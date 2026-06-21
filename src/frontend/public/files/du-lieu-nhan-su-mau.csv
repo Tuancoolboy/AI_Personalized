@@ -1,0 +1,13 @@
+phong_ban,headcount,turnover_pct,di_muon_lan_thang,nghi_khong_phep_ngay,ot_gio_thang
+Kinh doanh,18,8.5,12,2,145
+Marketing,9,5.0,6,1,72
+Ke toan,6,3.2,2,0,38
+Van hanh,12,6.1,9,1,98
+Cong nghe,15,4.5,5,0,1820
+Hanh chinh,5,2.0,3,0,22
+Cham soc khach hang,11,12.3,18,3,134
+Kho van,8,7.5,7,4,86
+
+# Ghi chu cho hoc vien:
+# Cot ot_gio_thang cua phong Cong nghe (1820 gio) bat thuong so voi cac phong khac (~22-145 gio).
+# Co the do loi nhap lieu (nham don vi, thua chu so). Khong ket luan voi - can xac minh nguon.

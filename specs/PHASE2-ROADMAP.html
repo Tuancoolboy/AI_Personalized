@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Bức tranh tổng thể và lộ trình triển khai AI Trợ Lý từ Phase 1 đến Phase 2.8.">
+  <title>AI Trợ Lý — Lộ trình triển khai Phase 2</title>
+  <style>
+    :root {
+      --cream: #faf6ef;
+      --paper: #fffdf9;
+      --paper-strong: #ffffff;
+      --forest: #15463b;
+      --forest-2: #1e5f4e;
+      --forest-soft: #e3eee8;
+      --ink: #1c2622;
+      --ink-2: #51605a;
+      --ink-3: #7c8b84;
+      --line: #e7dfd1;
+      --line-2: #efe8db;
+      --terracotta: #d96c4a;
+      --terracotta-soft: #f8e7df;
+      --gold: #c8923b;
+      --gold-soft: #f7edda;
+      --blue: #3d6f8e;
+      --blue-soft: #e6f0f6;
+      --red: #b84d42;
+      --red-soft: #f8e5e1;
+      --shadow: 0 16px 45px rgba(36, 53, 46, 0.08);
+      --radius: 22px;
+      --sidebar: 280px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 520px at 100% 0%, #f1e9da 0%, transparent 65%),
+        radial-gradient(700px 480px at 0% 100%, #e9f0e9 0%, transparent 65%),
+        var(--cream);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+
+    a { color: inherit; }
+    button { font: inherit; }
+    code {
+      padding: 0.12rem 0.38rem;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #f7f2e9;
+      color: var(--forest);
+      font-size: 0.88em;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar) minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 28px 22px;
+      overflow-y: auto;
+      color: #f7f2e8;
+      background:
+        radial-gradient(300px 220px at 10% 0%, rgba(255,255,255,.09), transparent 70%),
+        var(--forest);
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 42px;
+      height: 42px;
+      place-items: center;
+      border: 1px solid rgba(255,255,255,.25);
+      border-radius: 14px;
+      background: rgba(255,255,255,.1);
+      font-weight: 800;
+    }
+
+    .brand strong { display: block; font-size: 0.98rem; }
+    .brand small { color: rgba(255,255,255,.62); }
+
+    .nav-label {
+      margin: 22px 10px 8px;
+      color: rgba(255,255,255,.48);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .nav {
+      display: grid;
+      gap: 4px;
+    }
+
+    .nav a {
+      padding: 9px 11px;
+      border-radius: 10px;
+      color: rgba(255,255,255,.75);
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: .18s ease;
+    }
+
+    .nav a:hover,
+    .nav a.active {
+      color: white;
+      background: rgba(255,255,255,.1);
+    }
+
+    .sidebar-note {
+      margin-top: 26px;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 14px;
+      background: rgba(255,255,255,.06);
+      color: rgba(255,255,255,.68);
+      font-size: 0.78rem;
+    }
+
+    main {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: 40px clamp(22px, 4vw, 64px) 90px;
+    }
+
+    .eyebrow {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      color: var(--forest-2);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      width: 28px;
+      height: 2px;
+      background: var(--terracotta);
+      content: "";
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+      gap: 36px;
+      align-items: end;
+      padding: 46px 0 42px;
+    }
+
+    h1, h2, h3, h4 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      line-height: 1.08;
+      letter-spacing: -.025em;
+    }
+
+    h1 {
+      max-width: 780px;
+      margin-top: 14px;
+      font-size: clamp(2.65rem, 6vw, 5.8rem);
+      font-weight: 650;
+    }
+
+    h1 em {
+      color: var(--terracotta);
+      font-style: normal;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+      margin: 22px 0 0;
+      color: var(--ink-2);
+      font-size: clamp(1rem, 1.5vw, 1.2rem);
+    }
+
+    .snapshot {
+      padding: 24px;
+      border: 1px solid rgba(21,70,59,.16);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.72);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .snapshot-title {
+      margin-bottom: 14px;
+      color: var(--ink-3);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .snapshot-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line-2);
+      font-size: .9rem;
+    }
+
+    .snapshot-row:last-child { border: 0; }
+    .snapshot-row span { color: var(--ink-2); }
+    .snapshot-row strong { color: var(--forest); text-align: right; }
+
+    .notice {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 34px;
+      padding: 17px 19px;
+      border: 1px solid #ebc9bc;
+      border-radius: 16px;
+      background: var(--terracotta-soft);
+      color: #6e3627;
+    }
+
+    .notice strong { display: block; margin-bottom: 2px; }
+    .notice p { margin: 0; font-size: .9rem; }
+    .notice-icon {
+      display: grid;
+      flex: 0 0 30px;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--terracotta);
+      color: white;
+      font-weight: 900;
+    }
+
+    section {
+      padding: 42px 0;
+      scroll-margin-top: 20px;
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    .section-head h2 {
+      margin-top: 8px;
+      font-size: clamp(2rem, 4vw, 3.35rem);
+    }
+
+    .section-head p {
+      max-width: 460px;
+      margin: 0;
+      color: var(--ink-2);
+      font-size: .92rem;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      min-height: 165px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+      box-shadow: 0 8px 28px rgba(36,53,46,.045);
+    }
+
+    .stat-value {
+      margin: 14px 0 6px;
+      color: var(--forest);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2.8rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-label { font-weight: 800; }
+    .stat-note { margin-top: 5px; color: var(--ink-3); font-size: .78rem; }
+
+    .pill, .status {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      width: fit-content;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: .69rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+
+    .done { color: #1c624e; background: var(--forest-soft); }
+    .partial { color: #8b5c17; background: var(--gold-soft); }
+    .todo { color: #496276; background: var(--blue-soft); }
+    .critical { color: #963b32; background: var(--red-soft); }
+
+    .phase1-grid {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 18px;
+    }
+
+    .card {
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 12px 34px rgba(36,53,46,.05);
+    }
+
+    .card h3 { margin-bottom: 14px; font-size: 1.55rem; }
+    .card p { color: var(--ink-2); }
+
+    .check-list, .compact-list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .check-list li, .compact-list li {
+      position: relative;
+      padding-left: 27px;
+      color: var(--ink-2);
+      font-size: .9rem;
+    }
+
+    .check-list li::before {
+      position: absolute;
+      top: .08rem;
+      left: 0;
+      display: grid;
+      width: 18px;
+      height: 18px;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--forest-soft);
+      color: var(--forest);
+      content: "✓";
+      font-size: .72rem;
+      font-weight: 900;
+    }
+
+    .compact-list li::before {
+      position: absolute;
+      top: .62em;
+      left: 7px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--terracotta);
+      content: "";
+    }
+
+    .drift {
+      margin-top: 17px;
+      padding: 14px 15px;
+      border-left: 3px solid var(--gold);
+      border-radius: 0 12px 12px 0;
+      background: var(--gold-soft);
+      color: #6c4d1d;
+      font-size: .82rem;
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .capability {
+      position: relative;
+      overflow: hidden;
+      min-height: 250px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+    }
+
+    .capability::after {
+      position: absolute;
+      right: -28px;
+      bottom: -42px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: var(--tone, var(--forest-soft));
+      content: "";
+      opacity: .65;
+    }
+
+    .cap-number {
+      color: var(--terracotta);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .capability h3 { margin: 8px 0 10px; font-size: 1.22rem; }
+    .capability p { margin: 0 0 14px; color: var(--ink-2); font-size: .84rem; }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 22px;
+      margin-top: 25px;
+    }
+
+    .flow-step {
+      position: relative;
+      min-height: 134px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: var(--paper);
+    }
+
+    .flow-step:not(:last-child)::after {
+      position: absolute;
+      top: 50%;
+      right: -17px;
+      color: var(--terracotta);
+      content: "→";
+      font-size: 1.25rem;
+      font-weight: 900;
+      transform: translateY(-50%);
+    }
+
+    .flow-step b { display: block; margin-bottom: 7px; color: var(--forest); }
+    .flow-step span { color: var(--ink-2); font-size: .8rem; }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .filter {
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink-2);
+      background: var(--paper);
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    .filter:hover, .filter.active {
+      border-color: var(--forest);
+      color: white;
+      background: var(--forest);
+    }
+
+    .roadmap {
+      position: relative;
+      display: grid;
+      gap: 15px;
+    }
+
+    .roadmap::before {
+      position: absolute;
+      top: 18px;
+      bottom: 18px;
+      left: 31px;
+      width: 2px;
+      background: linear-gradient(var(--forest-soft), var(--terracotta-soft));
+      content: "";
+    }
+
+    .roadmap-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .phase-dot {
+      z-index: 1;
+      display: grid;
+      width: 64px;
+      height: 64px;
+      place-items: center;
+      border: 7px solid var(--cream);
+      border-radius: 50%;
+      color: white;
+      background: var(--forest);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .roadmap-card {
+      padding: 23px 24px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--paper);
+      transition: .18s ease;
+    }
+
+    .roadmap-card:hover {
+      border-color: #d5caba;
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .roadmap-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .roadmap-top h3 { margin: 5px 0 8px; font-size: 1.42rem; }
+    .roadmap-summary { margin: 0; color: var(--ink-2); font-size: .88rem; }
+
+    .progress {
+      overflow: hidden;
+      width: 120px;
+      height: 7px;
+      margin-top: 8px;
+      border-radius: 99px;
+      background: var(--line-2);
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--terracotta);
+    }
+
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 18px;
+      margin-top: 17px;
+    }
+
+    .task {
+      display: flex;
+      gap: 8px;
+      color: var(--ink-2);
+      font-size: .8rem;
+    }
+
+    .task::before {
+      flex: 0 0 15px;
+      width: 15px;
+      height: 15px;
+      margin-top: 3px;
+      border: 1px solid #cfc5b6;
+      border-radius: 4px;
+      content: "";
+    }
+
+    .task.complete::before {
+      display: grid;
+      place-items: center;
+      border-color: var(--forest);
+      color: white;
+      background: var(--forest);
+      content: "✓";
+      font-size: 9px;
+      font-weight: 900;
+    }
+
+    .task.partial::before {
+      display: grid;
+      place-items: center;
+      border-color: var(--gold);
+      color: var(--gold);
+      background: var(--gold-soft);
+      content: "~";
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .exit {
+      margin-top: 17px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--line);
+      color: var(--forest);
+      font-size: .8rem;
+      font-weight: 750;
+    }
+
+    .matrix {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .84rem;
+    }
+
+    th, td {
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--line-2);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--ink-3);
+      background: #fbf8f1;
+      font-size: .7rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .risk-grid, .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .risk-card, .decision-card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--paper);
+    }
+
+    .risk-card h3, .decision-card h3 {
+      margin: 10px 0 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    .risk-card p, .decision-card p {
+      margin: 0;
+      color: var(--ink-2);
+      font-size: .82rem;
+    }
+
+    .source-list {
+      columns: 2;
+      gap: 28px;
+      margin: 0;
+      padding-left: 20px;
+      color: var(--ink-2);
+      font-size: .85rem;
+    }
+
+    .source-list li {
+      margin-bottom: 8px;
+      break-inside: avoid;
+    }
+
+    .footer {
+      margin-top: 42px;
+      padding-top: 25px;
+      border-top: 1px solid var(--line);
+      color: var(--ink-3);
+      font-size: .77rem;
+    }
+
+    .mobile-menu { display: none; }
+    [hidden] { display: none !important; }
+
+    @media (max-width: 1080px) {
+      .stat-grid, .architecture { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .flow-step:nth-child(3)::after { display: none; }
+      .risk-grid, .decision-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 820px) {
+      .layout { display: block; }
+      .sidebar {
+        position: fixed;
+        z-index: 20;
+        inset: 0 auto 0 0;
+        width: min(86vw, 310px);
+        transform: translateX(-102%);
+        transition: transform .22s ease;
+      }
+      .sidebar.open { transform: translateX(0); }
+      .mobile-menu {
+        position: fixed;
+        z-index: 30;
+        top: 14px;
+        right: 14px;
+        display: grid;
+        width: 44px;
+        height: 44px;
+        place-items: center;
+        border: 0;
+        border-radius: 14px;
+        color: white;
+        background: var(--forest);
+        box-shadow: var(--shadow);
+      }
+      main { padding-top: 70px; }
+      .hero, .phase1-grid { grid-template-columns: 1fr; }
+      .hero { padding-top: 20px; }
+      .section-head { display: block; }
+      .section-head p { margin-top: 12px; }
+      .source-list { columns: 1; }
+    }
+
+    @media (max-width: 620px) {
+      main { padding-right: 16px; padding-left: 16px; }
+      h1 { font-size: 2.65rem; }
+      .stat-grid, .architecture, .risk-grid, .decision-grid, .task-grid { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child)::after {
+        top: auto;
+        right: 50%;
+        bottom: -24px;
+        display: block;
+        transform: rotate(90deg) translateY(-50%);
+      }
+      .roadmap { gap: 20px; }
+      .roadmap::before { left: 23px; }
+      .roadmap-item { grid-template-columns: 48px minmax(0, 1fr); gap: 10px; }
+      .phase-dot { width: 48px; height: 48px; border-width: 5px; font-size: .8rem; }
+      .roadmap-top { display: block; }
+      .roadmap-top .status { margin-top: 8px; }
+      .roadmap-card { padding: 18px; }
+    }
+
+    @media print {
+      body { background: white; }
+      .layout { display: block; }
+      .sidebar, .mobile-menu, .toolbar { display: none; }
+      main { width: 100%; padding: 20px; }
+      section { break-inside: avoid; }
+      .roadmap-card, .card, .stat { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <button class="mobile-menu" type="button" aria-label="Mở mục lục" aria-expanded="false">☰</button>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Mục lục">
+      <div class="brand">
+        <div class="brand-mark">AI</div>
+        <div>
+          <strong>AI Trợ Lý</strong>
+          <small>Implementation Roadmap</small>
+        </div>
+      </div>
+      <div class="nav-label">Bức tranh tổng thể</div>
+      <nav class="nav">
+        <a href="#tong-quan">Tổng quan</a>
+        <a href="#phase-1">Phase 1 đã hoàn thành</a>
+        <a href="#nen-tang">Nền tảng Phase 2 hiện có</a>
+        <a href="#kien-truc-ai">4 năng lực AI</a>
+      </nav>
+      <div class="nav-label">Lộ trình triển khai</div>
+      <nav class="nav">
+        <a href="#dependency">Chuỗi phụ thuộc</a>
+        <a href="#roadmap">Phase 2.0 → 2.8</a>
+        <a href="#test">Kiểm thử &amp; Definition of Done</a>
+        <a href="#rui-ro">Rủi ro &amp; quyết định mở</a>
+        <a href="#nguon">Nguồn đối chiếu</a>
+      </nav>
+      <div class="sidebar-note">
+        Snapshot đối chiếu ngày <strong>13/06/2026</strong> trên branch
+        <code>fix/phase2-0-hardening</code>. Trạng thái được kiểm tra từ
+        spec, worklog, migration, route và test hiện có.
+      </div>
+    </aside>
+
+    <main>
+      <header class="hero" id="tong-quan">
+        <div>
+          <div class="eyebrow">Bức tranh sản phẩm và triển khai</div>
+          <h1>Từ trợ lý học AI cá nhân đến <em>nền tảng học tập cho doanh nghiệp</em></h1>
+          <p class="hero-copy">
+            Phase 1 đã chứng minh luồng học cá nhân end-to-end. Phase 2 mở rộng
+            theo thứ tự: ổn định multi-tenant, tạo công ty, chuẩn hóa phòng ban
+            và vai trò, cho phép công ty thiết kế lộ trình, rồi mới mở rộng chấm
+            bài, Aha Moment, cộng đồng và kiểm soát chi phí AI.
+          </p>
+        </div>
+        <aside class="snapshot">
+          <div class="snapshot-title">Snapshot hiện tại</div>
+          <div class="snapshot-row"><span>Phase 1 core flow</span><strong>Đã chạy end-to-end</strong></div>
+          <div class="snapshot-row"><span>Production demo</span><strong>Đã deploy Vercel</strong></div>
+          <div class="snapshot-row"><span>Phase 2 checklist</span><strong>17 / 58 task chính · 7 partial</strong></div>
+          <div class="snapshot-row"><span>BE-12 manager chat</span><strong>+ tín hiệu chấm bài / quiz &lt;70%</strong></div>
+          <div class="snapshot-row"><span>Ưu tiên ngay</span><strong>Phase 2.3 authoring · mở rộng P2-EVAL-01</strong></div>
+        </aside>
+      </header>
+
+      <div class="notice">
+        <div class="notice-icon">!</div>
+        <div>
+          <strong>Bước tiếp theo: Phase 2.3 authoring</strong>
+          <p>
+            Agent 2/3 v1 + manager chat mở rộng (P2-AI-08): <code>lib/manager-analytics-summary.ts</code>
+            inject hàng đợi chấm bài, needs-revision và quiz &lt;70% vào <code>/tro-ly</code> quản lý.
+            P2-EVAL-01 có scaffold 5 case (<code>lib/fixtures/grading-benchmark.vi.json</code>) — còn mở rộng
+            và chạy Agent 2 live. Phase 2.6 (community) do thành viên khác. Tiếp: CRUD lộ trình công ty (0019),
+            P2-AI-03 sau budget gate (2.8).
+          </p>
+        </div>
+      </div>
+
+      <section aria-labelledby="status-title">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Executive dashboard</div>
+            <h2 id="status-title">Đang đứng ở đâu?</h2>
+          </div>
+          <p>
+            Hai lớp trạng thái cần đọc song song: checklist Phase 2 còn rất sớm,
+            nhưng repo đã có một số nền tảng quan trọng được xây trước.
+          </p>
+        </div>
+        <div class="stat-grid">
+          <article class="stat">
+            <span class="pill done">Phase 1</span>
+            <div class="stat-value">100%</div>
+            <div class="stat-label">Luồng chức năng chính</div>
+            <div class="stat-note">Auth → onboarding → học → chat → quiz → tiến bộ</div>
+          </article>
+          <article class="stat">
+            <span class="pill partial">Foundation</span>
+            <div class="stat-value">5/7</div>
+            <div class="stat-label">BE-08 multi-manager</div>
+            <div class="stat-note">Schema, auth, team data, invite flow đã có; QA/audit/bulk còn thiếu</div>
+          </article>
+          <article class="stat">
+            <span class="pill partial">Invite</span>
+            <div class="stat-value">6/6</div>
+            <div class="stat-label">BE-10 token invite</div>
+            <div class="stat-note">Create/copy/rotate/POST accept đã có; production-like isolation chưa test</div>
+          </article>
+          <article class="stat">
+            <span class="pill partial">Phase 2</span>
+            <div class="stat-value">17/58</div>
+            <div class="stat-label">Task roadmap chính thức</div>
+            <div class="stat-note">Agent 2/3 v1; BE-12 + grading signals; 2.3 authoring còn mở</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="phase-1">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Phase 1 baseline</div>
+            <h2>Những gì đã hoàn thành</h2>
+          </div>
+          <p>
+            Phase 1 chuyển ý tưởng AI Literacy thành một sản phẩm có thể demo và
+            vận hành ở cả demo mode lẫn Supabase real mode.
+          </p>
+        </div>
+        <div class="phase1-grid">
+          <article class="card">
+            <span class="status done">Core product done</span>
+            <h3 style="margin-top:14px">Employee learning journey</h3>
+            <ul class="check-list">
+              <li>Landing page, lead collection, đăng ký và đăng nhập Supabase.</li>
+              <li>Onboarding 4 bước: vai trò, mục tiêu, assessment và AI level.</li>
+              <li>5 vai trò, lộ trình theo vai trò, module, starter prompts và công cụ.</li>
+              <li>Tiến độ module, quiz tình huống, chấm điểm và lịch sử kết quả.</li>
+              <li>Nhật ký giờ tiết kiệm và dashboard tiến bộ cá nhân.</li>
+              <li>AI Tutor streaming, safety guardrail, rate limit và chat memory.</li>
+              <li>Practice review bằng ảnh với feedback và lịch sử submission.</li>
+              <li>Responsive UI, demo mode, Supabase real mode và Vercel production.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <span class="status partial">Ops / polish còn mở</span>
+            <h3 style="margin-top:14px">Không chặn Phase 2, nhưng cần theo dõi</h3>
+            <ul class="compact-list">
+              <li>Lighthouse/LCP chưa có bằng chứng đo chính thức.</li>
+              <li>SEO OG image và global loading state chưa hoàn thiện.</li>
+              <li>Chưa có Playwright E2E cho các luồng vàng.</li>
+              <li>Rate-limit lượt chat thứ 31 chưa có test tự động riêng.</li>
+              <li>Một số checklist cũ vẫn ghi “chưa deploy” dù worklog xác nhận đã deploy ngày 10/06/2026.</li>
+            </ul>
+            <div class="drift">
+              <strong>Docs drift:</strong> Phase 1 spec có các đoạn cũ mô tả
+              content static hoặc dashboard mock. Khi mâu thuẫn, ưu tiên
+              <code>PROJECT-CONTINUATION.md</code>, worklog và code hiện tại.
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="nen-tang">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Phase 2 baseline</div>
+            <h2>Nền móng đã có sẵn</h2>
+          </div>
+          <p>
+            Đây là phần đã tồn tại trong codebase và nên được gia cố, không xây
+            lại: organization membership, manager authorization, invite link,
+            dữ liệu team thật và chat theo quyền.
+          </p>
+        </div>
+        <div class="matrix">
+          <table>
+            <thead>
+              <tr>
+                <th>Năng lực nền</th>
+                <th>Trạng thái</th>
+                <th>Bằng chứng hiện tại</th>
+                <th>Khoảng trống Phase 2</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Organization &amp; membership</strong></td>
+                <td><span class="status done">Đã có</span></td>
+                <td><code>organizations</code>, <code>organization_members</code>, owner/manager/employee</td>
+                <td>Company creation UI, org switching và smoke test multi-org</td>
+              </tr>
+              <tr>
+                <td><strong>Manager authorization</strong></td>
+                <td><span class="status done">Đã có</span></td>
+                <td>Real mode dùng membership; team/dashboard đọc dữ liệu theo organization</td>
+                <td>Integration test isolation, audit log và permission matrix đầy đủ</td>
+              </tr>
+              <tr>
+                <td><strong>Token invite</strong></td>
+                <td><span class="status done">Đã có</span></td>
+                <td>Create, copy, rotate, expiry, max uses, POST accept, GET redirect-only</td>
+                <td>Cross-org smoke test và API integration tests</td>
+              </tr>
+              <tr>
+                <td><strong>Identity lookup</strong></td>
+                <td><span class="status done">Đã sửa</span></td>
+                <td><code>profiles.email</code> index + <code>getUserById</code>, không quét toàn bộ Auth users</td>
+                <td>Chạy migration 0013 và regression smoke trên Supabase thật</td>
+              </tr>
+              <tr>
+                <td><strong>Role-based chat</strong></td>
+                <td><span class="status partial">BE-12 + signals</span></td>
+                <td>Employee/manager prompts, memory 0012; manager chat + org grading/quiz summary</td>
+                <td>Company/path/Aha context, dept breakdown, budget per org</td>
+              </tr>
+              <tr>
+                <td><strong>Practical grading</strong></td>
+                <td><span class="status partial">Agent 2 v1</span></td>
+                <td>Migration 0020, MCQ server grade, practice/open-text Agent 2, manager review queue, revision UI</td>
+                <td>Benchmark scaffold 5 case (P2-EVAL-01); mở rộng 20–30 + CI live Agent 2</td>
+              </tr>
+              <tr>
+                <td><strong>Path recommendation</strong></td>
+                <td><span class="status partial">Agent 3 v1</span></td>
+                <td><code>lib/agents/recommender.ts</code>, snapshot DB, UI panel, manager priority từ assignments</td>
+                <td>Company path CRUD (2.3), optional LLM explain (P2-AI-03), budget gate</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="kien-truc-ai">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Target architecture</div>
+            <h2>Bốn năng lực AI, không phải bốn agent tự trị</h2>
+          </div>
+          <p>
+            Mỗi request đi vào đúng một capability. SQL và rule xử lý phần cần
+            tính đúng; LLM chỉ xử lý giải thích, sáng tạo có kiểm soát hoặc đánh
+            giá câu trả lời mở.
+          </p>
+        </div>
+        <div class="architecture">
+          <article class="capability" style="--tone:#e3eee8">
+            <div class="cap-number">01</div>
+            <span class="status done">Done / extend</span>
+            <h3>Personal Tutor</h3>
+            <p>Gia sư riêng theo vai trò, tiến độ, lịch sử và trí nhớ dài hạn.</p>
+            <ul class="compact-list">
+              <li>Thêm company/job role/path context</li>
+              <li>Thêm Aha-to-action theo yêu cầu</li>
+              <li>Budget theo organization</li>
+            </ul>
+          </article>
+          <article class="capability" style="--tone:#f8e7df">
+            <div class="cap-number">02</div>
+            <span class="status partial">v1 shipped</span>
+            <h3>Assignment Grader</h3>
+            <p>Chấm bài thực hành có rubric, bằng chứng, confidence và correction path.</p>
+            <ul class="compact-list">
+              <li>MCQ → <code>grading_results</code> + lịch sử trên <code>/tien-bo</code></li>
+              <li>Practice + open-text qua Agent 2 structured JSON</li>
+              <li>Manager queue <code>/quan-ly/bai-lam</code> + revision flow</li>
+            </ul>
+          </article>
+          <article class="capability" style="--tone:#f7edda">
+            <div class="cap-number">03</div>
+            <span class="status partial">v1 shipped</span>
+            <h3>Path Recommender</h3>
+            <p>Xếp hạng lộ trình bằng rules tái lập được, kèm lý do hiển thị rõ.</p>
+            <ul class="compact-list">
+              <li>API <code>/api/agents/recommender</code> + persist snapshot</li>
+              <li>Panel «Gợi ý lộ trình» trên <code>/lo-trinh</code></li>
+              <li>Manager priority từ <code>learning_assignments</code></li>
+            </ul>
+          </article>
+          <article class="capability" style="--tone:#e6f0f6">
+            <div class="cap-number">04</div>
+            <span class="status partial">v1 + signals</span>
+            <h3>Manager Analytics</h3>
+            <p>SQL tính facts trước, LLM chỉ viết nhận định từ summary đã giới hạn.</p>
+            <ul class="compact-list">
+              <li>BE-12 team progress trong manager chat</li>
+              <li>Org block: manager-review, needs-revision, quiz &lt;70%</li>
+              <li>Còn: dept/job-role, Aha evidence, saved reports</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="dependency">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Critical path</div>
+            <h2>Chuỗi phụ thuộc bắt buộc</h2>
+          </div>
+          <p>
+            Không nên làm feed, leaderboard hoặc agent nâng cao trước khi tenant,
+            taxonomy công ty và assignment model ổn định.
+          </p>
+        </div>
+        <div class="flow">
+          <div class="flow-step"><b>2.0 Hardening</b><span>POST invite accept, integration test, multi-org isolation.</span></div>
+          <div class="flow-step"><b>2.1–2.2 Company</b><span>Tạo công ty, Google login, phòng ban, vị trí và member admin.</span></div>
+          <div class="flow-step"><b>2.3 Learning model</b><span>Module/path versioning, publish, assignment và compatibility adapter.</span></div>
+          <div class="flow-step"><b>2.4–2.7 Intelligence</b><span>Recommendation, grading, Aha/community, tutor và analytics expansion.</span></div>
+          <div class="flow-step"><b>2.8 Operations</b><span>Usage ledger, budget, security audit, pilot và production rollout.</span></div>
+        </div>
+      </section>
+
+      <section id="roadmap">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Delivery plan</div>
+            <h2>Roadmap Phase 2.0 → 2.8</h2>
+          </div>
+          <p>
+            Lọc theo loại công việc để dùng trang này trong planning kỹ thuật,
+            product review hoặc chia ownership.
+          </p>
+        </div>
+        <div class="toolbar" role="group" aria-label="Lọc roadmap">
+          <button class="filter active" data-filter="all" type="button">Tất cả</button>
+          <button class="filter" data-filter="foundation" type="button">Foundation</button>
+          <button class="filter" data-filter="learning" type="button">Learning</button>
+          <button class="filter" data-filter="ai" type="button">AI capabilities</button>
+          <button class="filter" data-filter="community" type="button">Community</button>
+          <button class="filter" data-filter="ops" type="button">Operations</button>
+        </div>
+
+        <div class="roadmap">
+          <article class="roadmap-item" data-category="foundation">
+            <div class="phase-dot">2.0</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status partial">Gần xong · 4/5</span>
+                  <h3>Ổn định nền tảng manager hiện tại</h3>
+                  <p class="roadmap-summary">Đóng các lỗ hổng correctness và isolation trước khi thêm schema hoặc UI công ty mới.</p>
+                </div>
+                <div><div class="progress"><span style="width:80%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task complete">P2-BE-00: invite acceptance GET → POST</div>
+                <div class="task complete">P2-BE-01: sync department khi onboarding đổi role</div>
+                <div class="task complete">P2-BE-02: bỏ full Auth user scan</div>
+                <div class="task partial">P2-TEST-00: unit + API script (rotate/expired còn thiếu)</div>
+                <div class="task partial">P2-QA-00: script test:api:phase2 (manual dev khuyến nghị)</div>
+              </div>
+              <div class="exit">Exit: không lộ dữ liệu chéo công ty; invite explicit, idempotent; manager APIs có integration test.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="foundation">
+            <div class="phase-dot">2.1</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status partial">Gần xong · 6/7</span>
+                  <h3>Tạo công ty và company login</h3>
+                  <p class="roadmap-summary">Owner tự tạo organization, có URL ổn định và mời nhân viên qua Google hoặc email/password.</p>
+                </div>
+                <div><div class="progress"><span style="width:86%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task complete">Slug/settings migration và unique rules</div>
+                <div class="task complete">Organization API, creator thành owner</div>
+                <div class="task complete">Owner company setup flow</div>
+                <div class="task complete"><code>/c/[organizationSlug]</code> entry page</div>
+                <div class="task complete">Google OAuth + preserve invite/company next</div>
+                <div class="task complete">Identity linking và duplicate account tests</div>
+                <div class="task">Chốt SMS provider trước phone OTP (P2-AUTH-03)</div>
+              </div>
+              <div class="exit">Exit: owner tạo công ty; nhân viên mới join bằng invite + Google; auth cũ tiếp tục chạy.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="foundation">
+            <div class="phase-dot">2.2</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status todo">Chưa bắt đầu · 0/6</span>
+                  <h3>Phòng ban, vị trí và quản trị thành viên</h3>
+                  <p class="roadmap-summary">Thay taxonomy role cố định bằng cấu trúc riêng của từng công ty.</p>
+                </div>
+                <div><div class="progress"><span style="width:0%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task">Department và job-role tables</div>
+                <div class="task">Member UUID refs + legacy backfill</div>
+                <div class="task">CRUD APIs với owner/manager permissions</div>
+                <div class="task">Manager UI cho department/job role</div>
+                <div class="task">Member edit: department, role, access</div>
+                <div class="task">RLS/cross-tenant tests cho mọi bảng mới</div>
+              </div>
+              <div class="exit">Exit: công ty tự định nghĩa phòng ban/vị trí và gán mỗi nhân viên vào vị trí hợp lệ.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="learning">
+            <div class="phase-dot">2.3</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status partial">Schema sẵn · 1/7</span>
+                  <h3>Company learning authoring và assignment</h3>
+                  <p class="roadmap-summary">Cho manager tạo module/lộ trình có version, publish và phân công bản bất biến cho nhân viên.</p>
+                </div>
+                <div><div class="progress"><span style="width:14%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task partial">Migration 0019 + adapter <code>training-modules-adapter</code></div>
+                <div class="task">Compatibility view/shim global modules (P2-MIG-01)</div>
+                <div class="task">Module/path CRUD + publish APIs</div>
+                <div class="task">Structured module editor + AI draft</div>
+                <div class="task">Path builder: common + specialist</div>
+                <div class="task">Assignment + version pinning</div>
+                <div class="task">Employee state + manager UI (<code>/quan-ly/phan-cong</code> có slice)</div>
+              </div>
+              <div class="exit">Exit: công ty publish common + specialist path; employee nhận đúng immutable version.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="ai learning">
+            <div class="phase-dot">2.4</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status partial">Gần xong · 4/5</span>
+                  <h3>Agent 3: Recommendation Engine</h3>
+                  <p class="roadmap-summary">Rules quyết định eligibility và ranking; LLM chỉ diễn đạt lý do khi có ngân sách.</p>
+                </div>
+                <div><div class="progress"><span style="width:80%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task complete">Eligibility filters, scoring, manager priority</div>
+                <div class="task complete">Snapshot, reason codes, engine version trong DB</div>
+                <div class="task complete">UI panel gợi ý + sort timeline trên <code>/lo-trinh</code></div>
+                <div class="task">Optional LLM explanation có budget gate (P2-AI-03)</div>
+                <div class="task complete">Fixed fixtures Vitest (role/level/gap/prerequisite)</div>
+              </div>
+              <div class="exit">Exit: cùng input cho cùng kết quả không cần OpenAI; mọi đề xuất đều có lý do.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="ai learning">
+            <div class="phase-dot">2.5</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status partial">Gần xong · 6/7</span>
+                  <h3>Agent 2: Assessment và Grading</h3>
+                  <p class="roadmap-summary">Nâng practice review thành hệ chấm bài có rubric, confidence, evidence và human review.</p>
+                </div>
+                <div><div class="progress"><span style="width:86%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task partial">Migration 0020 + dual-write MCQ/practice (P2-DB-05)</div>
+                <div class="task complete">MCQ deterministic server-side → grading tables</div>
+                <div class="task partial">Agent 2 structured JSON — practice + open-text (P2-AI-04)</div>
+                <div class="task complete">Tab bài tự luận + evidence trong feedback</div>
+                <div class="task complete">Confidence threshold + manager review queue</div>
+                <div class="task complete">Revision flow employee + manager review UI</div>
+                <div class="task partial">Benchmark tiếng Việt — 5 case scaffold (P2-EVAL-01)</div>
+              </div>
+              <div class="exit">Exit: grade tái lập trong tolerance; low-confidence không tự động trở thành kết quả cuối.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="community">
+            <div class="phase-dot">2.6</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status partial">Delegated · 0/7 trên branch này</span>
+                  <h3>Aha Moment, feed, badge và leaderboard</h3>
+                  <p class="roadmap-summary">Tạo động lực học nội bộ nhưng giữ privacy-first. Đang do thành viên khác triển khai — không merge trên <code>fix/phase2-0-hardening</code>.</p>
+                </div>
+                <div><div class="progress"><span style="width:0%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task">Reflection/post/activity/badge/notification schema (0021 có thể trên Supabase dev)</div>
+                <div class="task">Post-lesson Aha Moment form</div>
+                <div class="task">Visibility + sensitive-data validation</div>
+                <div class="task">Company learning feed <code>/cong-dong</code></div>
+                <div class="task">Trusted points + anti-spam caps</div>
+                <div class="task">Leaderboard <code>/bang-xep-hang</code></div>
+                <div class="task">Badge rules + in-app notifications</div>
+              </div>
+              <div class="exit">Exit: employee kiểm soát chia sẻ; điểm chỉ sinh từ trusted server events.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="ai">
+            <div class="phase-dot">2.7</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status partial">Đang làm · 2/6 partial</span>
+                  <h3>Mở rộng Agent 1 và Agent 4</h3>
+                  <p class="roadmap-summary">Nối tutor vào path thật và nâng manager assistant bằng analytics có bằng chứng.</p>
+                </div>
+                <div><div class="progress"><span style="width:33%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task">Company/job-role/path/Aha context cho tutor (P2-AI-07)</div>
+                <div class="task partial">Analytics org-scoped — grading queue + quiz &lt;70% trong chat (P2-AI-08)</div>
+                <div class="task partial">Assessment quality signals — cùng org block (P2-AI-09 slice)</div>
+                <div class="task">Saved manager queries/reports (P2-AI-10)</div>
+                <div class="task">UI tách facts, period, evidence, action (P2-FE-13)</div>
+                <div class="task partial">Hallucination tests — empty signals Vitest (P2-EVAL-02 slice)</div>
+              </div>
+              <div class="exit">Exit: tutor bám assignment thật; manager assistant không bịa metric.</div>
+            </div>
+          </article>
+
+          <article class="roadmap-item" data-category="ops">
+            <div class="phase-dot">2.8</div>
+            <div class="roadmap-card">
+              <div class="roadmap-top">
+                <div>
+                  <span class="status todo">Chưa bắt đầu · 0/8</span>
+                  <h3>AI cost, operations và rollout</h3>
+                  <p class="roadmap-summary">Đưa hệ thống từ “feature complete” sang vận hành có ngân sách, fallback và pilot kiểm soát.</p>
+                </div>
+                <div><div class="progress"><span style="width:0%"></span></div></div>
+              </div>
+              <div class="task-grid">
+                <div class="task">AI usage ledger</div>
+                <div class="task">User/capability/org budget policy</div>
+                <div class="task">Manager AI usage dashboard</div>
+                <div class="task">Model snapshot + emergency fallback</div>
+                <div class="task">Batch API worker</div>
+                <div class="task">RLS/service-role/log/token security audit</div>
+                <div class="task">Production-like multi-tenant smoke suite</div>
+                <div class="task">Pilot một công ty trước self-service rollout</div>
+              </div>
+              <div class="exit">Exit: org đặt được budget; core learning vẫn chạy khi OpenAI lỗi hoặc hết ngân sách.</div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="test">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Quality gate</div>
+            <h2>Kiểm thử và Definition of Done</h2>
+          </div>
+          <p>
+            Mỗi phase phải khóa correctness theo tenant trước khi chuyển sang
+            phase tiếp theo. Build pass không thay thế được RLS và browser smoke.
+          </p>
+        </div>
+        <div class="phase1-grid">
+          <article class="card">
+            <h3>Ma trận kiểm thử bắt buộc</h3>
+            <ul class="check-list">
+              <li>Unit: scoring, permission helper, rubric parser, cost, sensitive-data scan.</li>
+              <li>API: company creation, OAuth redirect, CRUD tenant scope, grading, reflection, budget.</li>
+              <li>RLS: own employee, same-org peer, manager, other org, anonymous, service role.</li>
+              <li>Browser: owner setup → invite; employee join → learn → grade → Aha; manager analytics.</li>
+              <li>Isolation: Manager A tuyệt đối không đọc được Company B.</li>
+            </ul>
+          </article>
+          <article class="card">
+            <h3>Một task chỉ “Done” khi</h3>
+            <ul class="check-list">
+              <li>Migration có rollback section và không phá dữ liệu.</li>
+              <li>RLS/authorization được test theo matrix.</li>
+              <li>UI copy tiếng Việt hoàn chỉnh.</li>
+              <li>Deterministic fallback hoạt động khi không có OpenAI.</li>
+              <li>AI output được validate bằng schema.</li>
+              <li>Token-consuming operation được ghi usage.</li>
+              <li>Worklog, continuation, checklist và notes được cập nhật.</li>
+              <li><code>npm run lint</code>, <code>npm run test</code>, <code>npm run build</code> và smoke test pass.</li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section id="rui-ro">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Decision log</div>
+            <h2>Rủi ro và quyết định còn mở</h2>
+          </div>
+          <p>
+            Ba quyết định có mức ưu tiên cao cần được chốt đúng thời điểm để
+            tránh thiết kế schema và UX lại.
+          </p>
+        </div>
+        <div class="risk-grid">
+          <article class="risk-card">
+            <span class="status critical">High · trước 2.0 pilot</span>
+            <h3>Vai trò specialist đầu tiên</h3>
+            <p>Khuyến nghị: Sales, Marketing, Accounting, HR/Admin và Developer. Quyết định này ảnh hưởng taxonomy và nội dung pilot.</p>
+          </article>
+          <article class="risk-card">
+            <span class="status critical">High · trước 2.5</span>
+            <h3>Cách hiển thị grade đã chỉnh</h3>
+            <p>Manager-adjusted grade sẽ thay grade AI hay hiển thị song song? Quyết định ảnh hưởng contract và lịch sử audit.</p>
+          </article>
+          <article class="risk-card">
+            <span class="status critical">High · trước 2.6</span>
+            <h3>Ẩn danh trên leaderboard</h3>
+            <p>Spec mặc định opt-in theo employee; cần xác nhận preference field và trải nghiệm company-wide.</p>
+          </article>
+          <article class="risk-card">
+            <span class="status partial">Dependency ngoài</span>
+            <h3>Phone OTP</h3>
+            <p>Chưa có SMS provider, abuse limit và monthly budget. Không đưa vào critical path của Google OAuth.</p>
+          </article>
+          <article class="risk-card">
+            <span class="status partial">Data migration</span>
+            <h3>Legacy department text</h3>
+            <p>Phải backfill sang UUID reference theo từng bước; không xóa field cũ trước production verification.</p>
+          </article>
+          <article class="risk-card">
+            <span class="status partial">Cost &amp; reliability</span>
+            <h3>OpenAI budget exhaustion</h3>
+            <p>Core learning, recommendation rules và dashboard phải tiếp tục chạy với fallback <code>block</code>, <code>queue</code> hoặc <code>degrade</code>.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="nguon">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Traceability</div>
+            <h2>Nguồn đã đối chiếu</h2>
+          </div>
+          <p>
+            Trang này không thay thế spec chi tiết. Nó là bản đồ điều hướng và
+            status view tổng hợp từ các nguồn dưới đây.
+          </p>
+        </div>
+        <div class="card">
+          <ul class="source-list">
+            <li><code>specs/PHASE1-SPEC.md</code></li>
+            <li><code>specs/PHASE2-SPEC.md</code></li>
+            <li><code>specs/PROJECT-CONTINUATION.md</code></li>
+            <li><code>specs/BE-07-supabase-employee-persistence.md</code></li>
+            <li><code>specs/BE-08-multi-manager-roadmap.md</code></li>
+            <li><code>specs/BE-10-company-invite-links.md</code></li>
+            <li><code>specs/BE-12-role-chatbots-and-memory.md</code></li>
+            <li><code>specs/notes/*-implementation-notes.html</code></li>
+            <li><code>planning/sprints/260609-0056-tuan-1-landing-va-nen-tang/*</code></li>
+            <li><code>planning/decisions/AI20K-083-decision-and-plan.md</code></li>
+            <li><code>planning/demo/demo-plan.md</code> và <code>planning/reviews/spec-review.md</code></li>
+            <li><code>WORKLOG.md</code> và git history 08–11/06/2026</li>
+            <li><code>supabase/migrations/0001–0020</code> (+ 0021 community nếu đồng bộ dev)</li>
+            <li><code>lib/manager-analytics-summary.ts</code>, <code>lib/grading-benchmark.ts</code></li>
+            <li>Branch hiện tại: <code>fix/phase2-0-hardening</code></li>
+          </ul>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <strong>AI Trợ Lý · Team 09</strong><br>
+        Roadmap snapshot: 13/06/2026. Khi checklist hoặc code thay đổi, cập nhật
+        đồng thời <code>PHASE2-SPEC.md</code>, <code>PROJECT-CONTINUATION.md</code>,
+        <code>WORKLOG.md</code> và trang này.
+      </footer>
+    </main>
+  </div>
+
+  <script>
+    const menuButton = document.querySelector(".mobile-menu");
+    const sidebar = document.querySelector(".sidebar");
+    const navLinks = [...document.querySelectorAll(".nav a")];
+    const filters = [...document.querySelectorAll(".filter")];
+    const roadmapItems = [...document.querySelectorAll(".roadmap-item")];
+
+    menuButton.addEventListener("click", () => {
+      const open = sidebar.classList.toggle("open");
+      menuButton.setAttribute("aria-expanded", String(open));
+      menuButton.textContent = open ? "×" : "☰";
+    });
+
+    navLinks.forEach((link) => {
+      link.addEventListener("click", () => {
+        sidebar.classList.remove("open");
+        menuButton.setAttribute("aria-expanded", "false");
+        menuButton.textContent = "☰";
+      });
+    });
+
+    filters.forEach((button) => {
+      button.addEventListener("click", () => {
+        filters.forEach((item) => item.classList.remove("active"));
+        button.classList.add("active");
+        const filter = button.dataset.filter;
+
+        roadmapItems.forEach((item) => {
+          const categories = item.dataset.category.split(" ");
+          item.hidden = filter !== "all" && !categories.includes(filter);
+        });
+      });
+    });
+
+    const sections = [...document.querySelectorAll("main [id]")];
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+
+      navLinks.forEach((link) => {
+        link.classList.toggle("active", link.getAttribute("href") === `#${visible.target.id}`);
+      });
+    }, { rootMargin: "-20% 0px -65% 0px", threshold: [0.05, 0.2, 0.5] });
+
+    sections.forEach((section) => observer.observe(section));
+  </script>
+</body>
+</html>

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trợ Lý - Quiz & Trắc nghiệm</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-[#FAF8F5] text-slate-800 min-h-screen">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b border-gray-100 px-8 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center space-x-2">
+            <span class="bg-[#114b35] text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">A</span>
+            <span class="font-bold text-gray-800 text-lg">AI Trợ Lý</span>
+        </div>
+        <nav class="flex items-center space-x-8 text-sm font-semibold text-gray-500">
+            <a href="#" class="hover:text-[#114b35]">Lộ trình</a>
+            <a href="#" class="hover:text-[#114b35]">Trợ lý AI</a>
+            <a href="#" class="hover:text-[#114b35]">Xếp hạng</a>
+            <a href="#" class="text-[#114b35] border-b-2 border-[#114b35] pb-3 -mb-3 font-bold">Học tập</a>
+            <a href="#" class="hover:text-[#114b35]">Tiến bộ</a>
+        </nav>
+        <div class="flex items-center space-x-3">
+            <span class="bg-slate-800 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-xs">US</span>
+            <div class="text-xs">
+                <p class="font-bold text-gray-800">Demo User</p>
+                <p class="text-gray-400">Nhân viên - Demo</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY -->
+    <main class="max-w-[1550px] mx-auto p-6 grid grid-cols-12 gap-6">
+
+        <!-- LEFT SIDEBAR (Hồ sơ & Menu học tập) -->
+        <aside class="col-span-2 space-y-6">
+            <!-- Profile Card -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center relative">
+                <div class="relative mb-3">
+                    <div class="bg-amber-500 text-white rounded-full w-16 h-16 flex items-center justify-center font-extrabold text-lg shadow-md">
+                        DU
+                    </div>
+                    <span class="absolute bottom-0 right-0 bg-[#114b35] border-2 border-white rounded-full p-1 text-white">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    </span>
+                </div>
+                <h2 class="font-extrabold text-slate-800 text-base">Demo User</h2>
+                <span class="text-[10px] bg-emerald-50 text-[#114b35] px-3 py-1 rounded-full font-bold mt-1">Hành chính / HR</span>
+
+                <div class="w-full mt-6 space-y-1">
+                    <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Cấp độ minh họa</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-black text-slate-800">Lv. 7</span>
+                        <span class="text-amber-500">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="w-full mt-3 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-amber-500 h-1.5 rounded-full" style="width: 66.65%"></div>
+                </div>
+                <div class="w-full flex justify-between text-[10px] text-gray-400 font-bold mt-1">
+                    <span>XP 1.333 / 2.000</span>
+                </div>
+
+                <div class="w-full border-t border-gray-100 mt-5 pt-4 space-y-3 text-xs">
+                    <div class="flex justify-between font-medium text-gray-500">
+                        <span>Điểm XP</span>
+                        <span class="font-bold text-slate-800">2.503 XP</span>
+                    </div>
+                    <div class="flex justify-between font-medium text-gray-500">
+                        <span>Quiz tự tạo</span>
+                        <span class="font-bold text-[#114b35]">+53 XP</span>
+                    </div>
+                    <div class="flex justify-between font-medium text-gray-500">
+                        <span>Lượt đã làm</span>
+                        <span class="font-bold text-slate-800">2</span>
+                    </div>
+                    <div class="flex justify-between font-medium text-gray-500">
+                        <span>Hạng của bạn</span>
+                        <span class="font-bold text-[#114b35]">#6</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Học Tập Menu -->
+            <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <p class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Học tập</p>
+                <div class="space-y-1">
+                    <a href="#" class="flex items-center space-x-3 p-2.5 rounded-xl hover:bg-gray-50 text-gray-600 font-semibold text-xs">
+                        <span class="text-gray-400">📊</span>
+                        <span>Tổng quan</span>
+                    </a>
+                    <a href="#" class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 text-[#114b35] font-bold text-xs">
+                        <span class="flex items-center space-x-3">
+                            <span>📝</span>
+                            <span>Quiz & Trắc nghiệm</span>
+                        </span>
+                    </a>
+                    <a href="#" class="flex items-center justify-between p-2.5 rounded-xl text-gray-400 font-semibold text-xs">
+                        <span class="flex items-center space-x-3">
+                            <span>👥</span>
+                            <span>Chơi với team</span>
+                        </span>
+                        <span>🔒</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER PANEL (Bộ đề & Quiz chính) -->
+        <section class="col-span-7 space-y-6">
+
+            <!-- Hero Banner -->
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+                <div class="space-y-2">
+                    <span class="text-[10px] text-orange-500 font-bold tracking-widest uppercase flex items-center space-x-1">
+                        <span>🎮</span> <span>Học mà chơi</span>
+                    </span>
+                    <h1 class="text-2xl font-black text-slate-800">Quiz & Trắc nghiệm</h1>
+                    <p class="text-xs text-gray-400 font-medium">Học mà chơi - Chơi mà học với các bộ quiz được xây dựng sẵn theo chủ đề.</p>
+                </div>
+                <div class="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center text-amber-500">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                </div>
+            </div>
+
+            <!-- Filter Section -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="font-black text-slate-800 text-lg">Tất cả bộ đề</h2>
+                    <p class="text-xs text-gray-400">Luyện tập với các bộ đề có sẵn, được phân loại theo chủ đề và mức độ.</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="space-y-1 text-right">
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase">Chọn chủ đề</label>
+                        <select class="text-xs font-bold border border-gray-100 rounded-lg px-3 py-1.5 bg-white shadow-sm outline-none">
+                            <option>Tất cả chủ đề</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1 text-right">
+                        <label class="block text-[10px] text-gray-400 font-bold uppercase">Sắp xếp</label>
+                        <select class="text-xs font-bold border border-gray-100 rounded-lg px-3 py-1.5 bg-white shadow-sm outline-none">
+                            <option>Mới nhất</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Grid (8 Cards) -->
+            <div class="grid grid-cols-4 gap-4">
+
+                <!-- Card 1: Hành chính & HR -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-violet-600 to-indigo-700 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">Hành chính & HR</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">📁</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">Hành chính & Nhân sự cơ bản</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Câu hỏi xoay quanh quy trình hành chính, quản lý nhân sự, chấm công...</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 59 Câu hỏi</span>
+                            <span class="text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Dễ</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+                <!-- Card 2: Kinh doanh -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-orange-500 to-amber-600 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">Kinh doanh</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">📈</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">Kinh doanh tổng quan</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Kiến thức nền tảng về kinh doanh, bán hàng, chăm sóc khách hàng...</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 80 Câu hỏi</span>
+                            <span class="text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Trung bình</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+                <!-- Card 3: Marketing -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-teal-500 to-emerald-600 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">Marketing</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">🎯</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">Marketing căn bản</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Các khái niệm, chiến lược và công cụ marketing cơ bản trong doanh nghiệp.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 45 Câu hỏi</span>
+                            <span class="text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Dễ</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+                <!-- Card 4: Kế toán -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">Kế toán</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">🧮</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">Kế toán cơ bản</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Kiến thức cơ bản về kế toán, chứng từ, sổ sách và báo cáo tài chính.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 60 Câu hỏi</span>
+                            <span class="text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Trung bình</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+                <!-- Card 5: Công nghệ -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-violet-600 to-indigo-700 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">Công nghệ</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">💻</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">Công nghệ thông tin cơ bản</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Kiến thức nền tảng về phần cứng, phần mềm, mạng và bảo mật thông tin.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 40 Câu hỏi</span>
+                            <span class="text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Dễ</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+                <!-- Card 6: Kỹ năng mềm -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-pink-500 to-fuchsia-600 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">Kỹ năng mềm</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">🤝</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">Kỹ năng mềm</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Các kỹ năng giao tiếp, làm việc nhóm, quản lý thời gian và giải quyết vấn đề.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 50 Câu hỏi</span>
+                            <span class="text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">Trung bình</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+                <!-- Card 7: Pháp luật -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">Pháp luật</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">⚖️</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">Pháp luật cơ bản</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Kiến thức pháp luật cơ bản liên quan đến doanh nghiệp và người lao động.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 40 Câu hỏi</span>
+                            <span class="text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full">Khó</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+                <!-- Card 8: An toàn -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+                    <div>
+                        <div class="bg-gradient-to-r from-red-500 to-rose-600 p-4 relative flex flex-col justify-between h-24">
+                            <span class="text-[9px] text-white/95 font-black uppercase tracking-wider">An toàn</span>
+                            <div class="absolute bottom-2 right-4 text-white/20">
+                                <span class="text-4xl font-extrabold">🛡️</span>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <h3 class="font-extrabold text-xs text-slate-800 leading-snug">An toàn lao động</h3>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">Kiến thức và quy định về an toàn lao động, phòng cháy chữa cháy.</p>
+                        </div>
+                    </div>
+                    <div class="p-4 pt-0 space-y-3">
+                        <div class="flex items-center justify-between text-[10px] font-bold">
+                            <span class="text-gray-400">📋 30 Câu hỏi</span>
+                            <span class="text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full">Dễ</span>
+                        </div>
+                        <button class="w-full bg-[#114b35] text-white text-xs font-bold py-2 rounded-xl hover:bg-emerald-950 transition-colors">Luyện ngay</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Pagination -->
+            <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                <span class="text-xs text-gray-400 font-semibold">Hiển thị 1 - 8 của 24 bộ đề</span>
+                <div class="flex items-center space-x-1.5 text-xs">
+                    <button class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center font-semibold text-gray-400">&lt;</button>
+                    <button class="w-8 h-8 rounded-lg bg-[#114b35] text-white flex items-center justify-center font-bold">1</button>
+                    <button class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center font-semibold text-gray-500">2</button>
+                    <button class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center font-semibold text-gray-500">3</button>
+                    <button class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center font-semibold text-gray-400">&gt;</button>
+                    <button class="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center font-semibold text-gray-400">&raquo;</button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT SIDEBAR (Leaderboards & CTA) -->
+        <aside class="col-span-3 space-y-6">
+
+            <!-- Personal Leaderboard -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-sm">Bảng xếp hạng cá nhân</h3>
+                        <p class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Dữ liệu minh họa</p>
+                    </div>
+                    <a href="#" class="text-[10px] text-gray-400 font-bold hover:underline">Xem tất cả &rarr;</a>
+                </div>
+
+                <div class="space-y-3 text-xs font-semibold">
+                    <!-- User 1 -->
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-amber-500 font-bold w-4">1</span>
+                            <span class="bg-blue-50 text-blue-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">NH</span>
+                            <span class="text-slate-800">Nguyễn Thu Hà</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">739 XP</span>
+                    </div>
+                    <!-- User 2 -->
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-amber-500 font-bold w-4">2</span>
+                            <span class="bg-orange-50 text-orange-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">PL</span>
+                            <span class="text-slate-800">Phạm Thị Lan</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">730 XP</span>
+                    </div>
+                    <!-- User 3 -->
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-amber-500 font-bold w-4">3</span>
+                            <span class="bg-purple-50 text-purple-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">DH</span>
+                            <span class="text-slate-800">Dương Văn Hùng</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">720 XP</span>
+                    </div>
+                    <!-- User 4 -->
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-gray-400 font-bold w-4">4</span>
+                            <span class="bg-emerald-50 text-emerald-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">HB</span>
+                            <span class="text-slate-800">Hoàng Quốc Bảo</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">710 XP</span>
+                    </div>
+                    <!-- User 5 -->
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-gray-400 font-bold w-4">5</span>
+                            <span class="bg-rose-50 text-rose-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">VA</span>
+                            <span class="text-slate-800">Vũ Đức Anh</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">641 XP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Leaderboard -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-sm">Bảng xếp hạng phòng ban</h3>
+                        <p class="text-[9px] text-gray-400 font-semibold uppercase tracking-wider">Dữ liệu minh họa</p>
+                    </div>
+                    <a href="#" class="text-[10px] text-gray-400 font-bold hover:underline">Xem tất cả &rarr;</a>
+                </div>
+
+                <div class="space-y-4 text-xs font-semibold">
+                    <!-- Dept 1 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-800">
+                            <span>1. Marketing</span>
+                            <span>1.669 XP</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-emerald-600 h-1.5 rounded-full" style="width: 95%"></div>
+                        </div>
+                    </div>
+                    <!-- Dept 2 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-800">
+                            <span>2. Vận hành</span>
+                            <span>1.608 XP</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-orange-500 h-1.5 rounded-full" style="width: 88%"></div>
+                        </div>
+                    </div>
+                    <!-- Dept 3 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-800">
+                            <span>3. Kinh doanh</span>
+                            <span>1.580 XP</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-violet-600 h-1.5 rounded-full" style="width: 82%"></div>
+                        </div>
+                    </div>
+                    <!-- Dept 4 -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-slate-800">
+                            <span>4. Kế toán</span>
+                            <span>1.471 XP</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-sky-500 h-1.5 rounded-full" style="width: 70%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Quiz Box -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                <div>
+                    <h3 class="font-extrabold text-slate-800 text-sm">Tạo quiz mới</h3>
+                    <p class="text-[10px] text-gray-400 font-semibold">Tạo quiz riêng hoặc chia sẻ với team.</p>
+                </div>
+                <button class="w-full border-2 border-orange-500 text-orange-500 hover:bg-orange-50 text-xs font-extrabold py-2.5 rounded-xl flex items-center justify-center space-x-2 transition-colors">
+                    <span class="text-sm">+</span>
+                    <span>Tạo quiz mới</span>
+                </button>
+            </div>
+
+        </aside>
+
+    </main>
+
+</body>
+</html>

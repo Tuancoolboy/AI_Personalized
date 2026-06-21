@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Notes — BE-07: Supabase Employee Persistence</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 880px; margin: 0 auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; color: #24292e; }
+    h2 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; color: #24292e; margin-top: 24px; }
+    .meta { color: #586069; font-style: italic; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; }
+    th, td { padding: 8px 12px; border: 1px solid #dfe2e5; text-align: left; vertical-align: top; }
+    th { background-color: #f6f8fa; }
+    code { background: #f6f8fa; padding: 0.1em 0.3em; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Implementation Notes — BE-07: Supabase Employee Persistence</h1>
+  <div class="meta">
+    <p>Spec: <code>specs/BE-07-supabase-employee-persistence.md</code></p>
+    <p>Thực hiện bởi: Codex</p>
+    <p>Ngày: 2026-06-09</p>
+    <p>Branch: <code>feat/tuan</code></p>
+  </div>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Quyết định</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Tạo <code>lib/supabase/employee.ts</code> làm data access layer client-side cho employee flow.</td>
+        <td>Giữ logic Supabase tập trung, tránh rải query trực tiếp vào nhiều component.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Dùng browser Supabase client + session user id cho profile/progress/quiz/time logs.</td>
+        <td>Đúng RLS user-scoped, không cần service role và không expose secret ra client.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Vẫn ghi local demo profile sau khi onboarding Supabase lưu thành công.</td>
+        <td>Giữ trải nghiệm hiện tại ổn trong cùng browser và không ảnh hưởng DB thật.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Những chỗ AI thay đổi so với spec gốc</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Spec nói</th>
+        <th>AI làm gì thay thế</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Fallback localStorage cho demo mode.</td>
+        <td>Fallback chỉ là nhánh chính khi thiếu Supabase env; khi Supabase write fail thì hiển thị lỗi và rollback/preserve safe state.</td>
+        <td>Tránh che lỗi persistence thật, giúp debug Supabase dễ hơn.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Persist toàn bộ employee flow.</td>
+        <td>AI tutor vẫn dùng canned responses, nhưng profile role cho tutor đã đọc từ Supabase real mode.</td>
+        <td>OpenAI route nằm ngoài scope BE-07, nhưng tutor cần profile thật để không kẹt onboarding sau reload.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Tradeoff AI phải cân nhắc</h2>
+  <p><strong>Client data layer vs Route Handlers:</strong> Chọn client data layer vì các bảng đã có RLS user-scoped và component hiện là client components. Route Handlers sẽ thêm nhiều surface auth/error mới mà chưa cần cho Phase 1.</p>
+  <p><strong>Upsert profile vs update-only:</strong> Chọn upsert kèm policy <code>profiles_insert_own</code> để xử lý cả user cũ chưa có profile do trigger chưa từng chạy.</p>
+  <p><strong>Manager DB now vs later:</strong> Giữ manager mock theo AGENTS/BE-07 để tránh mở Phase 2 khi mục tiêu hiện tại là employee persistence.</p>
+
+  <h2>4. Những điều khác bạn nên biết</h2>
+  <ul>
+    <li><strong>Migration cần chạy:</strong> Supabase real mode cần áp dụng <code>0001_init.sql</code>, <code>0002_profiles_trigger.sql</code>, và <code>0003_employee_profile_assessment.sql</code>.</li>
+    <li><strong>Update 2026-06-10:</strong> đăng ký mới có field họ tên; chạy thêm <code>0009_profile_full_name_metadata.sql</code> để trigger lưu <code>auth.users.raw_user_meta_data.full_name</code> vào <code>profiles.full_name</code>.</li>
+    <li><strong>Update 2026-06-10:</strong> đăng ký thành công luôn chuyển về <code>/login?registered=1</code>; nếu Supabase trả session ngay (khi tắt email confirmation), client gọi <code>signOut()</code> trước để buộc đăng nhập lại.</li>
+    <li><strong>Update 2026-06-10:</strong> đăng ký mới có field số điện thoại; chạy thêm <code>0010_profile_phone_number.sql</code> để lưu <code>auth.users.raw_user_meta_data.phone_number</code> vào <code>profiles.phone_number</code>.</li>
+    <li><strong>Update 2026-06-17:</strong> Tuancoolboy — thêm dropdown tài khoản và trang <code>/tai-khoan</code>; real mode dùng <code>/api/profile</code> cho hồ sơ và <code>supabase.auth.updateUser()</code> cho mật khẩu/email, demo mode chỉ cảnh báo.</li>
+    <li><strong>Update 2026-06-17:</strong> follow-up fix — trang <code>/tai-khoan</code> ưu tiên nhãn nghề từ <code>profiles.role_id</code> thay vì chữ generic <code>Nhân viên</code>; luồng đổi mật khẩu/email cũng bắt exception client-side để hiện lỗi an toàn khi Supabase throw.</li>
+    <li><strong>Update 2026-06-18:</strong> thêm migration <code>20260618134858_onboarding_assessment_results.sql</code> để lưu mỗi lần hoàn thành khảo sát onboarding vào <code>onboarding_assessment_results</code>. <code>profiles.assessment_result</code> vẫn là snapshot hiện tại; bảng mới giữ raw answers, result JSON, score, AI level, role và các tín hiệu cá nhân hóa để không mất lịch sử khi user làm lại khảo sát.</li>
+    <li><strong>Known limitation:</strong> Chưa có server-side OpenAI chat route; <code>chat_usage</code> vẫn là bảng chuẩn bị cho bước sau.</li>
+    <li><strong>Debug:</strong> Các lỗi Supabase client được log ngắn gọn bằng prefix theo màn: <code>[onboarding]</code>, <code>[lo-trinh]</code>, <code>[kiem-tra]</code>, <code>[tien-bo]</code>, <code>[tro-ly]</code>.</li>
+    <li><strong>Verification:</strong> Build Node 20 đã pass. <code>npm run lint</code> toàn repo đã pass sau khi exclude <code>.codex/**</code> khỏi ESLint project source, cho phép CommonJS trong <code>.cjs</code> scripts, và escape quote ở landing page.</li>
+  </ul>
+</body>
+</html>

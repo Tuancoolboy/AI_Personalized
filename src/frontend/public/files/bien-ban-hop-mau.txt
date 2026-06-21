@@ -1,0 +1,22 @@
+BIÊN BẢN HỌP (mẫu, đã ẩn danh — dùng để luyện tóm tắt bằng AI)
+
+Thời gian: 14:00 thứ Sáu
+Thành phần: Trưởng phòng (chủ trì), 4 thành viên (A, B, C, D)
+Chủ đề: Kế hoạch ra mắt sản phẩm mới quý sau
+
+Nội dung trao đổi:
+- A báo cáo: bản thử nghiệm đã xong 80%, còn lỗi ở phần thanh toán.
+- B đề xuất lùi lịch ra mắt 2 tuần để kịp sửa lỗi và test.
+- Trưởng phòng: không lùi quá 1 tuần vì đã hứa với đối tác; ưu tiên sửa lỗi thanh toán trước.
+- C nhận sửa lỗi thanh toán, deadline thứ Tư tuần sau.
+- D phụ trách chuẩn bị nội dung truyền thông, deadline thứ Năm tuần sau.
+- A: cần thêm 1 người test, sẽ trao đổi riêng với Trưởng phòng.
+- Ngân sách marketing ra mắt: thống nhất 50 triệu (B ghi chú: cần duyệt lại với kế toán).
+
+Kết luận:
+- Ra mắt lùi đúng 1 tuần.
+- Việc cần làm: (1) C sửa lỗi thanh toán — thứ Tư; (2) D làm nội dung truyền thông — thứ Năm;
+  (3) A đề xuất nhân sự test — trước thứ Ba.
+- Họp lại đầu tuần sau để chốt.
+
+(Điểm bẫy khi tóm tắt: ngân sách 50 triệu CHƯA được duyệt — đừng ghi thành "đã chốt".)

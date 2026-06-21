@@ -1,0 +1,19 @@
+Mã NV,Phòng,Chức danh,Thâm niên (năm),Điểm KPI (/60),Điểm năng lực (/40),Tổng (/100),Xếp loại,Đề xuất
+NV001,Kinh doanh,Nhân viên KD,3,52,32,84,Tốt,Tăng lương
+NV002,Kinh doanh,Nhân viên KD,2,40,28,68,Đạt,Giữ nguyên
+NV003,Kế toán,Kế toán tổng hợp,5,50,38,88,Xuất sắc,Quy hoạch lên cấp
+NV005,Marketing,NV Marketing,4,44,33,77,Tốt,Tăng lương
+NV006,Kế toán,Kế toán kho,3,38,30,68,Đạt,Giữ nguyên
+NV007,Kinh doanh,Nhân viên KD,1,30,26,56,Cần cải thiện,Kèm cặp 3 tháng
+NV009,Marketing,Chuyên viên MKT,5,48,36,84,Tốt,Tăng lương
+NV010,Kinh doanh,Trưởng nhóm KD,6,55,30,85,Tốt,Đào tạo kỹ năng quản lý
+NV011,Kế toán,Kế toán công nợ,3,42,31,73,Đạt,Giữ nguyên
+NV013,Kinh doanh,Nhân viên KD,1,34,24,58,Cần cải thiện,Kèm cặp 3 tháng
+NV014,Vận hành,Trưởng nhóm VH,7,50,35,85,Tốt,Tăng lương
+NV016,Kinh doanh,Nhân viên KD,4,46,32,78,Tốt,Tăng lương
+NV017,Kế toán,Kế toán trưởng,8,56,39,95,Xuất sắc,Thưởng đặc biệt
+NV019,Marketing,Chuyên viên MKT,5,45,34,79,Tốt,Tăng lương
+NV020,Vận hành,NV vận hành,1,28,22,50,Cần cải thiện,Theo dõi sát
+NV022,Kinh doanh,Nhân viên KD,1,32,25,57,Cần cải thiện,Kèm cặp 3 tháng
+NV023,Hành chính nhân sự,Chuyên viên HC-NS,6,47,36,83,Tốt,Tăng lương
+NV024,Vận hành,NV vận hành,2,40,29,69,Đạt,Giữ nguyên

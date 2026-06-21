@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Notes — [SPEC-ID]: [Tên ngắn của task]</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      border-bottom: 2px solid #eaecef;
+      padding-bottom: 0.3em;
+      color: #24292e;
+    }
+    h2 {
+      border-bottom: 1px solid #eaecef;
+      padding-bottom: 0.3em;
+      color: #24292e;
+      margin-top: 24px;
+    }
+    .meta {
+      color: #586069;
+      font-style: italic;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+    th, td {
+      padding: 8px 12px;
+      border: 1px solid #dfe2e5;
+      text-align: left;
+    }
+    th {
+      background-color: #f6f8fa;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      border-radius: 3px;
+    }
+    .badge-info {
+      background-color: #dbedff;
+      color: #0366d6;
+    }
+    .checklist {
+      list-style: none;
+      padding-left: 0;
+    }
+    .checklist li {
+      margin-bottom: 6px;
+    }
+    .checklist input {
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Implementation Notes — [SPEC-ID]: [Tên ngắn của task]</h1>
+  <div class="meta">
+    <p>Spec: <code>specs/[spec-filename].md</code></p>
+    <p>Thực hiện bởi: [AI model — ví dụ: Claude Sonnet / Gemini / GPT-4o]</p>
+    <p>Ngày: [YYYY-MM-DD]</p>
+    <p>Branch: <code>feat/[name]/[spec-id]</code></p>
+  </div>
+
+  <hr>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <p>Những gì AI chủ động quyết định mà spec không đề cập hoặc để ngỏ.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Quyết định</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><em>(ví dụ: Dùng Zod để validate request body)</em></td>
+        <td><em>(type-safe, tích hợp tốt với Next.js)</em></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Những chỗ AI thay đổi so với spec gốc</h2>
+  <p>Những gì spec nói nhưng AI implement khác — phải ghi rõ lý do.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Spec nói</th>
+        <th>AI làm gì thay thế</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><em>(ví dụ: Dùng Redis cho rate-limit)</em></td>
+        <td><em>(Dùng DB table vì chưa có Redis)</em></td>
+        <td><em>(Tránh thêm infra, đủ cho Phase 1)</em></td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </tbody>
+  </table>
+  <p><em>Nếu không có thay đổi: ghi "Không có — implement đúng theo spec."</em></p>
+
+  <h2>3. Tradeoff AI phải cân nhắc</h2>
+  <p>Các lựa chọn đã được xem xét và lý do chọn hướng hiện tại.</p>
+  
+  <h3>[Tradeoff 1 — ví dụ: JWT vs Session Cookie]</h3>
+  <ul>
+    <li><strong>Option A (đã chọn):</strong> JWT stateless
+      <ul>
+        <li>✅ Không cần server-side session store</li>
+        <li>❌ Không thể revoke ngay lập tức</li>
+      </ul>
+    </li>
+    <li><strong>Option B:</strong> Session cookie với Redis
+      <ul>
+        <li>✅ Có thể revoke</li>
+        <li>❌ Cần thêm Redis, phức tạp hơn cho Phase 1</li>
+      </ul>
+    </li>
+  </ul>
+  <p><strong>Quyết định:</strong> Chọn A vì Phase 1 chưa cần revoke, đơn giản hơn.</p>
+
+  <h2>4. Những điều khác bạn nên biết</h2>
+  <p>Bất cứ điều gì quan trọng không nằm trong 3 mục trên: known limitation, gotcha, cần follow-up, dependency ngầm.</p>
+  <ul>
+    <li><em>(ví dụ: <strong>Known limitation:</strong> Token không expire sớm nếu user đổi password — cần fix ở Phase 2)</em></li>
+    <li><em>(ví dụ: <strong>Gotcha:</strong> Middleware requireAuth phải đặt TRƯỚC route handler, không phải sau)</em></li>
+    <li><em>(ví dụ: <strong>Cần follow-up:</strong> Chưa có unit test cho buildSystemPrompt() — nên thêm trước Sprint 4)</em></li>
+    <li><em>(ví dụ: <strong>Dependency ngầm:</strong> FE-06 phải gọi /api/tutor/chat với header Authorization, không dùng cookie)</em></li>
+  </ul>
+
+  <hr>
+
+  <h2>Checklist trước khi commit</h2>
+  <ul class="checklist">
+    <li><input type="checkbox"> File này đã điền đủ 4 section (không để trống không lý do)</li>
+    <li><input type="checkbox"> Tên file đúng format: <code>[SPEC-ID]-implementation-notes.html</code></li>
+    <li><input type="checkbox"> File được commit <strong>cùng PR</strong> với code</li>
+    <li><input type="checkbox"> Nếu có thay đổi so với spec → đã thông báo cho team lead / người viết spec</li>
+  </ul>
+
+</body>
+</html>

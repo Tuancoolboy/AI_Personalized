@@ -1,0 +1,23 @@
+---
+description: Quy tắc bắt buộc về cấu trúc thư mục và vị trí tạo file mới
+alwaysApply: true
+---
+
+# Project Structure — Bắt buộc
+
+> Canonical source: `.agents/rules/project-structure.md` — giữ đồng bộ khi sửa.
+
+- Khi tạo file mới, phải đặt đúng khu vực canonical:
+  - Frontend (Next.js) → `src/frontend/app`, `src/frontend/components`, `src/frontend/hooks`, `src/frontend/lib`, `src/frontend/public`
+  - Backend (FastAPI/LangGraph) → `src/backend/agents`, `src/backend/api`, `src/backend/models`, `src/backend/services`
+  - Spec → `specs/`
+  - Implementation notes → `specs/notes/`
+  - Planning/review/demo/decision docs → `planning/`
+  - Reference docs dài hạn → `docs/ops`, `docs/product`, `docs/handoffs`, `docs/archive`, `docs/guide`
+  - Task summary → `tasks/`
+  - Supabase migrations/scripts → `supabase/`
+- Không tạo lại `app/`, `components/`, `hooks/`, `lib/` ở root hoặc trực tiếp dưới `src/` (ngoài `frontend/`).
+- Không tạo spec mới trong `docs/`.
+- Không tạo planning doc mới trong `docs/`.
+- File mới mặc định dùng `kebab-case` ASCII, không dấu, trừ convention đặc biệt của Next.js/spec IDs/ADRs.
+- Nếu chưa rõ vị trí file, đọc `.agents/rules/project-structure.md`, `README.md`, `docs/README.md` trước khi tạo.

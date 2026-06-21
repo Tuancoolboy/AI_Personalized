@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team 9 — AI20K-083 Project Summary</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      line-height: 1.6;
+      color: #1f2937;
+      background: #f8fafc;
+    }
+    .container { max-width: 980px; margin: 0 auto; }
+    header, section {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    }
+    header {
+      border-top: 8px solid #2563eb;
+    }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    h2 { margin: 0 0 14px; font-size: 21px; color: #111827; }
+    h3 { margin: 18px 0 8px; font-size: 16px; color: #374151; }
+    p { margin: 8px 0; }
+    ul { margin: 8px 0 8px 22px; padding: 0; }
+    li { margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; background: #fff; }
+    th, td { border: 1px solid #e5e7eb; padding: 10px 12px; text-align: left; vertical-align: top; }
+    th { background: #eff6ff; color: #1e3a8a; }
+    .meta { color: #4b5563; }
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    .callout {
+      border-left: 4px solid #2563eb;
+      background: #f8fafc;
+      padding: 12px 14px;
+      margin: 12px 0;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Team 9 — AI20K-083 Project Summary</h1>
+      <p class="meta">AI20K Build Cohort 2 · VinUni x Vingroup</p>
+      <p><span class="pill">Đã chốt đề ngày 04/06/2026</span></p>
+    </header>
+
+    <section>
+      <h2>TL;DR</h2>
+      <p>Team 9 đã chốt đề tài <strong>AI20K-083 — AI Trợ Lý Phổ Cập Kiến Thức AI Nền Tảng Cho Nhân Viên</strong>. Sản phẩm là web app giúp nhân viên doanh nghiệp 10-200 người học AI nền tảng theo vai trò, hỏi trợ lý AI, làm bài kiểm tra tình huống và để quản lý theo dõi tiến bộ.</p>
+    </section>
+
+    <section>
+      <h2>Dòng thời gian</h2>
+      <table>
+        <tr><th>Ngày</th><th>Mốc</th><th>Ghi chú</th></tr>
+        <tr><td>31/05/2026</td><td>Sprint 0 shortlist</td><td>Team chọn nhóm AI Literacy và từng ưu tiên AI20K-089 như candidate ban đầu.</td></tr>
+        <tr><td>04/06/2026</td><td>Chốt đề tài</td><td>Chốt AI20K-083 vì scope phù hợp hơn với MVP web app và buyer rõ hơn.</td></tr>
+        <tr><td>05/06/2026</td><td>Chốt kế hoạch làm việc</td><td>Chia track product, content, design, engineering và demo.</td></tr>
+        <tr><td>06/06/2026</td><td>Cập nhật docs</td><td>Đồng bộ README, JOURNAL, WORKLOG và tài liệu trong docs.</td></tr>
+      </table>
+      <p>Xem chi tiết quyết định và kế hoạch tại <strong>planning/decisions/AI20K-083-decision-and-plan.md</strong>.</p>
+    </section>
+
+    <section>
+      <h2>Khách hàng và vấn đề</h2>
+      <p><strong>Khách hàng:</strong> nhân viên ở các phòng ban như kế toán, sales, marketing, vận hành tại doanh nghiệp 10-200 người.</p>
+      <ul>
+        <li>Muốn dùng AI nhưng không biết bắt đầu từ đâu.</li>
+        <li>Không biết AI làm được gì trong đúng công việc của mình.</li>
+        <li>Đào tạo tập trung tốn 2.000.000-5.000.000 VNĐ/người/lần.</li>
+        <li>Nội dung đào tạo chung chung, khó áp dụng, khó đo kết quả.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Giải pháp</h2>
+      <div class="callout">
+        Web app phổ cập kiến thức AI nền tảng theo vai trò, dùng ngôn ngữ đời thường và ví dụ sát công việc để giúp nhân viên áp dụng AI trong tuần đầu.
+      </div>
+      <table>
+        <tr><th>Tính năng</th><th>Mô tả</th></tr>
+        <tr><td>Lộ trình học cá nhân hóa</td><td>Sales học khác kế toán, marketing học khác vận hành.</td></tr>
+        <tr><td>AI tutor</td><td>Giải thích khái niệm AI bằng ví dụ đúng công việc của người học.</td></tr>
+        <tr><td>Assessment + dashboard</td><td>Bài kiểm tra tình huống và dashboard tiến bộ toàn đội.</td></tr>
+      </table>
+    </section>
+
+    <section>
+      <h2>Kế hoạch làm việc</h2>
+      <table>
+        <tr><th>Ngày</th><th>Action</th><th>Owner tạm thời</th></tr>
+        <tr><td>07/06</td><td>Persona, user journey, MVP scope</td><td>Lucas</td></tr>
+        <tr><td>07/06</td><td>Lesson outline và wireframe notes</td><td>Tuancoolboy</td></tr>
+        <tr><td>07/06</td><td>Data model, AI flow, tech stack</td><td>minhhai203</td></tr>
+        <tr><td>08/06</td><td>Demo plan, seed data, demo account</td><td>Cả team</td></tr>
+        <tr><td>Sprint 2</td><td>Build core flow: login -> onboarding -> lesson -> tutor -> quiz -> dashboard</td><td>Cả team</td></tr>
+      </table>
+    </section>
+  </div>
+</body>
+</html>

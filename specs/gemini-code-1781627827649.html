@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Nhân viên - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for main content */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165c3e', // Dark green brand color
+                        secondary: '#fbfaf6', // Sidebar light warm bg
+                        mainbg: '#ffffff', // Main content bg
+                        brandlight: '#eaf4ef', // Light green for active states
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 flex flex-col h-screen text-gray-800 overflow-hidden">
+
+    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-8">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center font-bold text-sm">A</div>
+                <span class="font-semibold text-gray-800">AI Trợ Lý</span>
+                <span class="bg-orange-100 text-orange-600 text-xs px-2 py-0.5 rounded-full font-medium">Quản lý</span>
+            </div>
+            
+            <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500">
+                <a href="#" class="hover:text-primary transition-colors py-2">Tổng quan</a>
+                <a href="#" class="hover:text-primary transition-colors py-2">Lộ trình</a>
+                <a href="#" class="text-primary border-b-2 border-primary py-2">Nhân viên</a>
+                <a href="#" class="hover:text-primary transition-colors py-2">Công cụ AI</a>
+                <a href="#" class="hover:text-primary transition-colors py-2">Xếp hạng</a>
+                <a href="#" class="hover:text-primary transition-colors py-2">Trợ lý AI</a>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-4 text-sm">
+            <span class="text-gray-500 hidden sm:block">Chi Quản lý > Trưởng phòng</span>
+            <button class="text-gray-400 hover:text-gray-600 relative">
+                <i class="fa-regular fa-bell text-lg"></i>
+                <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+            </button>
+            <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Avatar" class="w-8 h-8 rounded-full border border-gray-200 object-cover cursor-pointer">
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        
+        <aside class="w-64 bg-secondary border-r border-gray-200 flex flex-col justify-between shrink-0 overflow-y-auto">
+            <div class="p-4">
+                <a href="#" class="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 mb-8 mt-2">
+                    <i class="fa-solid fa-arrow-left text-xs"></i> Về dashboard
+                </a>
+
+                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">Quản lý nhân viên</div>
+                <ul class="space-y-1">
+                    <li>
+                        <a href="#" class="flex items-center gap-3 px-3 py-2.5 bg-brandlight text-primary rounded-lg font-medium text-sm">
+                            <i class="fa-regular fa-user"></i> Danh sách nhân viên
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium text-sm transition-colors">
+                            <i class="fa-regular fa-building"></i> Phòng ban
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium text-sm transition-colors">
+                            <i class="fa-solid fa-shield-halved"></i> Vai trò & Quyền hạn
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium text-sm transition-colors">
+                            <i class="fa-solid fa-user-plus"></i> Mời & Cấp quyền
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="p-4">
+                <div class="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                    <h4 class="font-semibold text-sm mb-1">Tổ chức demo</h4>
+                    <p class="text-xs text-gray-500 mb-3"><span class="font-medium text-gray-800">12</span> / 20 thành viên</p>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-4">
+                        <div class="bg-primary h-1.5 rounded-full" style="width: 60%"></div>
+                    </div>
+                    <button class="w-full py-2 px-4 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                        Nâng cấp gói
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 bg-mainbg overflow-y-auto p-6 md:p-8">
+            <div class="max-w-7xl mx-auto">
+                
+                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-8">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900 mb-1">Danh sách nhân viên</h1>
+                        <p class="text-sm text-gray-500">Quản lý và theo dõi hoạt động của toàn bộ nhân viên trong tổ chức demo.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button class="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors bg-white">
+                            <i class="fa-solid fa-upload text-gray-400"></i> Nhập Excel
+                        </button>
+                        <button class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-green-800 transition-colors shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Thêm nhân viên
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <span class="text-sm text-gray-500 font-medium">Tổng nhân viên</span>
+                        <div class="mt-2 flex items-end gap-2">
+                            <span class="text-3xl font-bold text-gray-900">12</span>
+                        </div>
+                        <span class="text-xs text-gray-400 mt-1">Thành viên</span>
+                    </div>
+                    <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <span class="text-sm text-gray-500 font-medium">Đang hoạt động</span>
+                        <div class="mt-2 flex items-end gap-2">
+                            <span class="text-3xl font-bold text-gray-900">10</span>
+                        </div>
+                        <span class="text-xs text-gray-400 mt-1">83%</span>
+                    </div>
+                    <div class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <span class="text-sm text-gray-500 font-medium">Hoàn thành TB</span>
+                        <div class="mt-2 flex items-end gap-2">
+                            <span class="text-3xl font-bold text-gray-900">78%</span>
+                        </div>
+                        <span class="text-xs text-gray-400 mt-1">Hiệu suất chung</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button class="px-4 py-1.5 rounded-full bg-primary text-white text-sm font-medium">Tất cả (12)</button>
+                        <button class="px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">Kinh doanh (3)</button>
+                        <button class="px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">Kế toán (3)</button>
+                        <button class="px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">Marketing (3)</button>
+                        <button class="px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">Vận hành (3)</button>
+                        <button class="px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">Khác (0)</button>
+                    </div>
+                    <div class="flex items-center gap-3 w-full lg:w-auto">
+                        <div class="relative w-full lg:w-64">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
+                            <input type="text" placeholder="Tìm kiếm nhân viên..." class="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary bg-white">
+                        </div>
+                        <div class="relative hidden sm:block">
+                            <select class="appearance-none bg-white border border-gray-200 text-gray-600 text-sm rounded-lg pl-4 pr-8 py-2 focus:outline-none cursor-pointer">
+                                <option>Tất cả trạng thái</option>
+                            </select>
+                            <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none"></i>
+                        </div>
+                        <button class="px-3 py-2 border border-gray-200 rounded-lg bg-white text-gray-500 hover:bg-gray-50">
+                            <i class="fa-solid fa-list-ul"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-gray-100 rounded-xl shadow-sm overflow-x-auto">
+                    <table class="w-full text-left border-collapse min-w-[900px]">
+                        <thead>
+                            <tr class="border-b border-gray-100">
+                                <th class="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nhân viên</th>
+                                <th class="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Phòng ban</th>
+                                <th class="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hoàn thành</th>
+                                <th class="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Điểm KT</th>
+                                <th class="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Hoạt động</th>
+                                <th class="py-4 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">Liên hệ</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-medium text-sm shrink-0">NH</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Nguyễn Thu Hà</div>
+                                        <div class="text-xs text-gray-400">thuha.nguyen@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Kinh doanh</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-primary h-full rounded-full" style="width: 100%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">100%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">92%</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Hoàn thành</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">Hôm nay</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center font-medium text-sm shrink-0">TM</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Trần Văn Minh</div>
+                                        <div class="text-xs text-gray-400">vanminh.tran@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Kinh doanh</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-orange-500 h-full rounded-full" style="width: 67%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">67%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">78%</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-orange-100 text-orange-600">Đang học</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">Hôm qua</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-orange-600 text-white flex items-center justify-center font-medium text-sm shrink-0">LN</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Lê Hoàng Nam</div>
+                                        <div class="text-xs text-gray-400">hoangnam.le@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Kinh doanh</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-orange-500 h-full rounded-full" style="width: 33%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">33%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">65%</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-orange-100 text-orange-600">Đang học</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">2 ngày trước</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center font-medium text-sm shrink-0">PL</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Phạm Thị Lan</div>
+                                        <div class="text-xs text-gray-400">thilan.pham@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Kế toán</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-primary h-full rounded-full" style="width: 100%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">100%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">95%</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Hoàn thành</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">Hôm nay</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-green-700 text-white flex items-center justify-center font-medium text-sm shrink-0">VA</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Vũ Đức Anh</div>
+                                        <div class="text-xs text-gray-400">ducanh.vu@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Kế toán</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-orange-500 h-full rounded-full" style="width: 83%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">83%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">88%</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-orange-100 text-orange-600">Đang học</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">Hôm nay</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-teal-700 text-white flex items-center justify-center font-medium text-sm shrink-0">DP</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Đỗ Mai Phương</div>
+                                        <div class="text-xs text-gray-400">maiphuong.do@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Kế toán</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-orange-500 h-full rounded-full" style="width: 17%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">17%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">-</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-orange-100 text-orange-600">Đang học</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">4 ngày trước</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-yellow-500 text-white flex items-center justify-center font-medium text-sm shrink-0">HĐ</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Hoàng Quốc Bảo</div>
+                                        <div class="text-xs text-gray-400">quocbao.hoang@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Marketing</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-primary h-full rounded-full" style="width: 100%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">100%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">90%</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-green-100 text-green-700">Hoàn thành</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">Hôm qua</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="hover:bg-gray-50/50 transition-colors group">
+                                <td class="py-3 px-6 flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-full bg-orange-400 text-white flex items-center justify-center font-medium text-sm shrink-0">NT</div>
+                                    <div>
+                                        <div class="font-medium text-gray-900 text-sm">Ngô Thanh Tú</div>
+                                        <div class="text-xs text-gray-400">thanhtu.ngo@demo.com</div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm text-gray-600">Marketing</td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-20 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="bg-orange-500 h-full rounded-full" style="width: 50%"></div>
+                                        </div>
+                                        <span class="text-sm font-medium text-gray-700">50%</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6 text-sm font-medium text-gray-800">72%</td>
+                                <td class="py-3 px-6">
+                                    <div class="inline-flex flex-col items-start">
+                                        <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-orange-100 text-orange-600">Đang học</span>
+                                        <span class="text-xs text-gray-400 mt-0.5">Hôm nay</span>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-6">
+                                    <div class="flex items-center gap-2">
+                                        <button class="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-50 bg-white">
+                                            <i class="fa-regular fa-comment-dots"></i> Chat
+                                        </button>
+                                        <button class="p-1.5 text-gray-400 hover:text-gray-600 rounded">
+                                            <i class="fa-solid fa-ellipsis-vertical"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</body>
+</html>

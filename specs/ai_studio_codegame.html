@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Trợ Lý - Chơi Với Team</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-[#FAF8F5] text-slate-800 min-h-screen">
+
+    <!-- HEADER -->
+    <header class="bg-white border-b border-gray-100 px-8 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div class="flex items-center space-x-2">
+            <span class="bg-[#114b35] text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">A</span>
+            <span class="font-bold text-gray-800 text-lg">AI Trợ Lý</span>
+        </div>
+        <nav class="flex items-center space-x-8 text-sm font-semibold text-gray-500">
+            <a href="#" class="hover:text-[#114b35]">Lộ trình</a>
+            <a href="#" class="hover:text-[#114b35]">Trợ lý AI</a>
+            <a href="#" class="hover:text-[#114b35]">Xếp hạng</a>
+            <a href="#" class="text-[#114b35] border-b-2 border-[#114b35] pb-3 -mb-3 font-bold">Học tập</a>
+            <a href="#" class="hover:text-[#114b35]">Tiến bộ</a>
+        </nav>
+        <div class="flex items-center space-x-3">
+            <span class="bg-slate-800 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-xs">DU</span>
+            <div class="text-xs">
+                <p class="font-bold text-gray-800">Demo User</p>
+                <p class="text-gray-400">Nhân viên - Demo</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY -->
+    <main class="max-w-[1550px] mx-auto p-6 grid grid-cols-12 gap-6">
+
+        <!-- LEFT SIDEBAR (Cột trái) -->
+        <aside class="col-span-2 space-y-6">
+            <!-- Profile Card -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col items-center relative">
+                <div class="relative mb-3">
+                    <div class="bg-amber-500 text-white rounded-full w-16 h-16 flex items-center justify-center font-extrabold text-lg shadow-md">
+                        DU
+                    </div>
+                    <span class="absolute bottom-0 right-0 bg-[#114b35] border-2 border-white rounded-full p-1 text-white">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    </span>
+                </div>
+                <h2 class="font-extrabold text-slate-800 text-base">Demo User</h2>
+                <span class="text-[10px] bg-emerald-50 text-[#114b35] px-3 py-1 rounded-full font-bold mt-1">Hành chính / HR</span>
+
+                <div class="w-full mt-6 space-y-1">
+                    <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Cấp độ minh họa</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-black text-slate-800">Lv. 7</span>
+                        <span class="text-amber-500">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="w-full mt-3 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-amber-500 h-1.5 rounded-full" style="width: 66.65%"></div>
+                </div>
+                <div class="w-full flex justify-between text-[10px] text-gray-400 font-bold mt-1">
+                    <span>XP 1.333 / 2.000</span>
+                </div>
+
+                <div class="w-full border-t border-gray-100 mt-5 pt-4 space-y-3 text-xs">
+                    <div class="flex justify-between font-medium text-gray-500">
+                        <span>Điểm XP</span>
+                        <span class="font-bold text-slate-800">2.503 XP</span>
+                    </div>
+                    <div class="flex justify-between font-medium text-gray-500">
+                        <span>Lượt đã làm</span>
+                        <span class="font-bold text-slate-800">2</span>
+                    </div>
+                    <div class="flex justify-between font-medium text-gray-500">
+                        <span>Hạng của bạn</span>
+                        <span class="font-bold text-[#114b35]">#6</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Học Tập Menu -->
+            <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <p class="text-[10px] font-bold text-gray-400 tracking-wider uppercase">Học tập</p>
+                <div class="space-y-1">
+                    <a href="#" class="flex items-center space-x-3 p-2.5 rounded-xl hover:bg-gray-50 text-gray-600 font-semibold text-xs">
+                        <span>📊</span>
+                        <span>Tổng quan</span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 p-2.5 rounded-xl hover:bg-gray-50 text-gray-600 font-semibold text-xs">
+                        <span>📝</span>
+                        <span>Quiz & Trắc nghiệm</span>
+                    </a>
+                    <a href="#" class="flex items-center justify-between p-2.5 rounded-xl bg-emerald-50/70 text-[#114b35] font-bold text-xs">
+                        <span class="flex items-center space-x-3">
+                            <span>👥</span>
+                            <span>Chơi với team</span>
+                        </span>
+                    </a>
+                    <a href="#" class="flex items-center space-x-3 p-2.5 rounded-xl hover:bg-gray-50 text-gray-500 font-semibold text-xs">
+                        <span>🕒</span>
+                        <span>Lịch sử chơi</span>
+                    </a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER PANEL (Cột giữa) -->
+        <section class="col-span-7 space-y-6">
+
+            <!-- Hero Banner -->
+            <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+                <div class="space-y-2">
+                    <span class="text-[10px] text-orange-500 font-bold tracking-widest uppercase flex items-center space-x-1">
+                        <span>💡</span> <span>Học mà chơi</span>
+                    </span>
+                    <h1 class="text-2xl font-black text-slate-800">Quiz & Trắc nghiệm</h1>
+                    <p class="text-xs text-gray-400 font-medium">Vừa học vừa chơi – Cùng team chinh phục thử thách và tích lũy XP!</p>
+                </div>
+                <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center text-amber-500">
+                    <span class="text-xl">💡</span>
+                </div>
+            </div>
+
+            <!-- Action Cards (Tạo phòng & Tham gia phòng) -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Tạo phòng mới -->
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+                    <div class="space-y-3">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm">Tạo phòng mới</h3>
+                            <p class="text-[11px] text-gray-400">Tạo phòng quiz và mời bạn bè tham gia</p>
+                        </div>
+                        <button class="bg-[#f25c05] hover:bg-[#d44e02] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center space-x-1 transition-colors">
+                            <span>+</span>
+                            <span>Tạo phòng</span>
+                        </button>
+                    </div>
+                    <!-- Trophy/Controller Graphic (Mockup using gradients) -->
+                    <div class="relative w-24 h-24 flex items-center justify-center bg-amber-50 rounded-full">
+                        <span class="text-4xl">🏆</span>
+                        <span class="absolute bottom-1 right-1 text-lg">🎮</span>
+                    </div>
+                </div>
+
+                <!-- Tham gia phòng -->
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between relative overflow-hidden">
+                    <div class="space-y-3 w-3/5">
+                        <div>
+                            <h3 class="font-extrabold text-slate-800 text-sm">Tham gia phòng</h3>
+                            <p class="text-[11px] text-gray-400">Nhập mã phòng do host chia sẻ</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" placeholder="Nhập mã phòng" class="border border-gray-200 text-xs rounded-xl px-3 py-2 w-full focus:outline-none focus:ring-1 focus:ring-emerald-600 bg-gray-50/50">
+                            <button class="bg-[#114b35] hover:bg-emerald-950 text-white text-xs font-bold px-4 py-2 rounded-xl transition-colors whitespace-nowrap">Tham gia</button>
+                        </div>
+                    </div>
+                    <!-- Space Robot Graphic (Mockup using gradients) -->
+                    <div class="w-24 h-24 flex items-center justify-center bg-indigo-50 rounded-full relative">
+                        <span class="text-4xl">🤖</span>
+                        <span class="absolute top-1 right-2 text-md">🚩</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Controls -->
+            <div class="flex items-center justify-between">
+                <!-- Search bar & selects -->
+                <div class="flex items-center space-x-3 w-3/4">
+                    <div class="relative w-1/2">
+                        <span class="absolute inset-y-0 left-3 flex items-center text-gray-400 text-xs">🔍</span>
+                        <input type="text" placeholder="Tìm phòng hoặc chủ đề..." class="border border-gray-200 text-xs rounded-xl pl-9 pr-4 py-2 w-full bg-white shadow-sm focus:outline-none focus:ring-1 focus:ring-emerald-600">
+                    </div>
+                    <select class="border border-gray-200 text-xs rounded-xl px-3 py-2 bg-white shadow-sm outline-none font-bold text-gray-600">
+                        <option>🎯 Tất cả chế độ</option>
+                    </select>
+                    <select class="border border-gray-200 text-xs rounded-xl px-3 py-2 bg-white shadow-sm outline-none font-bold text-gray-600">
+                        <option>Sắp xếp: Mới nhất</option>
+                    </select>
+                </div>
+                <!-- View toggle buttons -->
+                <div class="flex space-x-1">
+                    <button class="bg-[#114b35] text-white p-2 rounded-xl text-xs flex items-center justify-center w-8 h-8">⊞</button>
+                    <button class="bg-white border border-gray-200 text-gray-400 hover:text-gray-600 p-2 rounded-xl text-xs flex items-center justify-center w-8 h-8">☰</button>
+                </div>
+            </div>
+
+            <!-- Horizontal Filter Pills -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button class="bg-[#114b35] text-white text-xs font-bold px-4 py-2 rounded-full">Tất cả phòng</button>
+                <button class="bg-white border border-gray-100 text-gray-500 hover:text-slate-800 text-xs font-bold px-4 py-2 rounded-full shadow-sm">Đang chờ</button>
+                <button class="bg-white border border-gray-100 text-gray-500 hover:text-slate-800 text-xs font-bold px-4 py-2 rounded-full shadow-sm">Đang chơi</button>
+                <button class="bg-white border border-gray-100 text-gray-500 hover:text-slate-800 text-xs font-bold px-4 py-2 rounded-full shadow-sm">Sắp bắt đầu</button>
+                <button class="bg-white border border-gray-100 text-gray-500 hover:text-slate-800 text-xs font-bold px-4 py-2 rounded-full shadow-sm">Classic</button>
+                <button class="bg-white border border-gray-100 text-gray-500 hover:text-slate-800 text-xs font-bold px-4 py-2 rounded-full shadow-sm">Team Battle</button>
+                <button class="bg-white border border-gray-100 text-gray-500 hover:text-slate-800 text-xs font-bold w-10 py-2 rounded-full shadow-sm flex justify-center">•••</button>
+            </div>
+
+            <!-- Rooms Grid -->
+            <div class="grid grid-cols-2 gap-4">
+
+                <!-- Room 1 -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col justify-between h-48">
+                    <div class="flex space-x-3">
+                        <div class="bg-gradient-to-br from-indigo-500 to-indigo-700 w-16 h-16 rounded-xl flex items-center justify-center text-3xl shrink-0">
+                            🖥️
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">AI CƠ BẢN</span>
+                            </div>
+                            <h3 class="font-extrabold text-sm text-slate-800 flex items-center">
+                                AI cơ bản cho mọi người <span class="text-amber-500 ml-1">⭐</span>
+                            </h3>
+                            <div class="flex items-center text-[10px] text-gray-400 font-medium space-x-2">
+                                <span class="flex items-center space-x-1">
+                                    <span class="bg-gray-100 text-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold">MH</span>
+                                    <span>Host: Minh Hai</span>
+                                </span>
+                                <span class="text-indigo-600 bg-indigo-50 font-bold px-1.5 py-0.5 rounded">Đang chờ</span>
+                                <span>👥 10/20</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-100 pt-3">
+                        <div class="text-[10px] text-gray-400 font-semibold">
+                            Chế độ: <span class="text-slate-700 font-bold">Classic</span> <span class="mx-1">•</span> Thời gian: <span class="text-slate-700 font-bold">15 câu hỏi</span>
+                        </div>
+                        <button class="bg-[#114b35] hover:bg-emerald-950 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-colors">Tham gia</button>
+                    </div>
+                </div>
+
+                <!-- Room 2 -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col justify-between h-48">
+                    <div class="flex space-x-3">
+                        <div class="bg-gradient-to-br from-cyan-500 to-emerald-600 w-16 h-16 rounded-xl flex items-center justify-center text-3xl shrink-0">
+                            🏆
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="bg-cyan-50 text-cyan-600 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">AI TRONG MARKETING 🔥</span>
+                            </div>
+                            <h3 class="font-extrabold text-sm text-slate-800">
+                                AI trong Marketing
+                            </h3>
+                            <div class="flex items-center text-[10px] text-gray-400 font-medium space-x-2">
+                                <span class="flex items-center space-x-1">
+                                    <span class="bg-gray-100 text-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold">TC</span>
+                                    <span>Host: TuanCoolBoy</span>
+                                </span>
+                                <span class="text-cyan-600 bg-cyan-50 font-bold px-1.5 py-0.5 rounded">Đang chơi</span>
+                                <span>👥 8/12</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-100 pt-3">
+                        <div class="text-[10px] text-gray-400 font-semibold">
+                            Chế độ: <span class="text-slate-700 font-bold">Team Battle</span> <span class="mx-1">•</span> Thời gian: <span class="text-slate-700 font-bold">20 câu hỏi</span>
+                        </div>
+                        <button class="bg-[#114b35] hover:bg-emerald-950 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-colors">Vào phòng</button>
+                    </div>
+                </div>
+
+                <!-- Room 3 -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col justify-between h-48">
+                    <div class="flex space-x-3">
+                        <div class="bg-gradient-to-br from-teal-500 to-emerald-600 w-16 h-16 rounded-xl flex items-center justify-center text-3xl shrink-0">
+                            🚀
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">AI CHO SALES & CSKH ⚡</span>
+                            </div>
+                            <h3 class="font-extrabold text-sm text-slate-800">
+                                AI cho Sales & CSKH
+                            </h3>
+                            <div class="flex items-center text-[10px] text-gray-400 font-medium space-x-2">
+                                <span class="flex items-center space-x-1">
+                                    <span class="bg-gray-100 text-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold">LA</span>
+                                    <span>Host: lucasaivn</span>
+                                </span>
+                                <span class="text-emerald-600 bg-emerald-50 font-bold px-1.5 py-0.5 rounded">Sắp bắt đầu</span>
+                                <span>👥 5/10</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-100 pt-3">
+                        <div class="text-[10px] text-gray-400 font-semibold">
+                            Chế độ: <span class="text-slate-700 font-bold">Classic</span> <span class="mx-1">•</span> Thời gian: <span class="text-slate-700 font-bold">10 câu hỏi</span>
+                        </div>
+                        <button class="bg-[#114b35] hover:bg-emerald-950 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-colors">Tham gia</button>
+                    </div>
+                </div>
+
+                <!-- Room 4 -->
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col justify-between h-48">
+                    <div class="flex space-x-3">
+                        <div class="bg-gradient-to-br from-purple-500 to-pink-600 w-16 h-16 rounded-xl flex items-center justify-center text-3xl shrink-0">
+                            🧠
+                        </div>
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-1.5">
+                                <span class="bg-purple-50 text-purple-600 text-[9px] font-black uppercase px-2 py-0.5 rounded-full">AI NÂNG CAO</span>
+                            </div>
+                            <h3 class="font-extrabold text-sm text-slate-800">
+                                AI nâng cao ứng dụng
+                            </h3>
+                            <div class="flex items-center text-[10px] text-gray-400 font-medium space-x-2">
+                                <span class="flex items-center space-x-1">
+                                    <span class="bg-gray-100 text-gray-600 rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold">AT</span>
+                                    <span>Host: Anh Thu</span>
+                                </span>
+                                <span class="text-purple-600 bg-purple-50 font-bold px-1.5 py-0.5 rounded">Đang chờ</span>
+                                <span>👥 6/20</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center border-t border-gray-100 pt-3">
+                        <div class="text-[10px] text-gray-400 font-semibold">
+                            Chế độ: <span class="text-slate-700 font-bold">Classic</span> <span class="mx-1">•</span> Thời gian: <span class="text-slate-700 font-bold">20 câu hỏi</span>
+                        </div>
+                        <button class="bg-[#114b35] hover:bg-emerald-950 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-colors">Tham gia</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Xem thêm phòng Button -->
+            <div class="flex justify-center pt-2">
+                <button class="bg-white border border-gray-100 shadow-sm text-xs font-bold px-6 py-2 rounded-full text-slate-700 hover:bg-gray-50 flex items-center space-x-1 transition-all">
+                    <span>Xem thêm phòng</span>
+                    <span>▼</span>
+                </button>
+            </div>
+
+        </section>
+
+        <!-- RIGHT SIDEBAR (Cột phải) -->
+        <aside class="col-span-3 space-y-6">
+
+            <!-- XP & Rank Widget -->
+            <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm grid grid-cols-2 gap-4">
+                <div class="flex items-center space-x-3 border-r border-gray-100">
+                    <span class="text-xl bg-amber-50 text-amber-500 rounded-lg p-2 flex items-center justify-center">🏆</span>
+                    <div>
+                        <p class="text-[10px] text-gray-400 font-bold">Điểm của bạn</p>
+                        <p class="font-extrabold text-sm text-slate-800">2.450 XP</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3 pl-2">
+                    <div class="relative">
+                        <span class="text-xl">🏅</span>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-400 font-bold">Hạng của bạn</p>
+                        <p class="font-extrabold text-sm text-orange-500">#4</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Personal Leaderboard -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-sm">Bảng xếp hạng cá nhân</h3>
+                    </div>
+                    <a href="#" class="text-[10px] text-gray-400 font-bold hover:underline">Xem tất cả</a>
+                </div>
+
+                <div class="space-y-3 text-xs font-semibold">
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-amber-500 font-bold w-4">1</span>
+                            <span class="bg-blue-50 text-blue-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">NH</span>
+                            <span class="text-slate-800">Nguyễn Thu Hà</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">739 XP</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-amber-500 font-bold w-4">2</span>
+                            <span class="bg-orange-50 text-orange-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">PL</span>
+                            <span class="text-slate-800">Phạm Thị Lan</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">730 XP</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-amber-500 font-bold w-4">3</span>
+                            <span class="bg-purple-50 text-purple-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">DH</span>
+                            <span class="text-slate-800">Dương Văn Hùng</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">720 XP</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-emerald-500 font-bold w-4">4</span>
+                            <span class="bg-emerald-50 text-emerald-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">HB</span>
+                            <span class="text-slate-800">Hoàng Quốc Bảo</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">710 XP</span>
+                    </div>
+                    <div class="flex items-center justify-between py-1">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-gray-400 font-bold w-4">5</span>
+                            <span class="bg-rose-50 text-rose-600 rounded-full w-7 h-7 flex items-center justify-center font-bold text-[10px]">VA</span>
+                            <span class="text-slate-800">Vũ Đức Anh</span>
+                        </div>
+                        <span class="text-gray-500 text-[11px] font-bold">641 XP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bạn bè đang chơi -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-extrabold text-slate-800 text-sm">Bạn bè đang chơi</h3>
+                    </div>
+                    <a href="#" class="text-[10px] text-gray-400 font-bold hover:underline">Xem tất cả</a>
+                </div>
+
+                <div class="space-y-3.5 text-xs">
+                    <!-- Friend 1 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="bg-sky-100 rounded-full w-8 h-8 flex items-center justify-center text-sm">👤</div>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 leading-none">Minh Hai</p>
+                                <p class="text-[10px] text-gray-400">Đang chơi: <span class="text-slate-500">AI trong Marketing</span></p>
+                            </div>
+                        </div>
+                        <span class="bg-indigo-50 text-indigo-600 font-bold text-[10px] px-2 py-0.5 rounded-full">1.250 XP</span>
+                    </div>
+                    <!-- Friend 2 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="bg-amber-100 rounded-full w-8 h-8 flex items-center justify-center text-sm">👤</div>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 leading-none">TuanCoolBoy</p>
+                                <p class="text-[10px] text-gray-400">Đang chơi: <span class="text-slate-500">AI cho Sales & CSKH</span></p>
+                            </div>
+                        </div>
+                        <span class="bg-indigo-50 text-indigo-600 font-bold text-[10px] px-2 py-0.5 rounded-full">980 XP</span>
+                    </div>
+                    <!-- Friend 3 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="bg-orange-100 rounded-full w-8 h-8 flex items-center justify-center text-sm">👤</div>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 leading-none">lucasaivn</p>
+                                <p class="text-[10px] text-gray-400">Đang chơi: <span class="text-slate-500">AI cơ bản cho mọi người</span></p>
+                            </div>
+                        </div>
+                        <span class="bg-indigo-50 text-indigo-600 font-bold text-[10px] px-2 py-0.5 rounded-full">760 XP</span>
+                    </div>
+                    <!-- Friend 4 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2.5">
+                            <div class="bg-purple-100 rounded-full w-8 h-8 flex items-center justify-center text-sm">👤</div>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 leading-none">Anh Thu</p>
+                                <p class="text-[10px] text-gray-400">Đang chơi: <span class="text-slate-500">Trí tuệ nhân tạo là gì?</span></p>
+                            </div>
+                        </div>
+                        <span class="bg-indigo-50 text-indigo-600 font-bold text-[10px] px-2 py-0.5 rounded-full">560 XP</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thành tích gần đây -->
+            <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <h3 class="font-extrabold text-slate-800 text-sm">Thành tích gần đây</h3>
+
+                <div class="space-y-3.5 text-xs">
+                    <!-- Achievement 1 -->
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-2.5">
+                            <span class="text-lg bg-amber-50 p-1 rounded-lg">🏅</span>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 leading-none">Tham gia phòng quiz</p>
+                                <p class="text-[10px] text-gray-400">2 phút trước</p>
+                            </div>
+                        </div>
+                        <span class="text-[#114b35] font-extrabold text-[11px]">+20 XP</span>
+                    </div>
+                    <!-- Achievement 2 -->
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-2.5">
+                            <span class="text-lg bg-rose-50 p-1 rounded-lg">🎯</span>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 leading-none">Trả lời đúng 8 câu liên tiếp</p>
+                                <p class="text-[10px] text-gray-400">15 phút trước</p>
+                            </div>
+                        </div>
+                        <span class="text-[#114b35] font-extrabold text-[11px]">+50 XP</span>
+                    </div>
+                    <!-- Achievement 3 -->
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-2.5">
+                            <span class="text-lg bg-indigo-50 p-1 rounded-lg">🏆</span>
+                            <div class="space-y-0.5">
+                                <p class="font-bold text-slate-800 leading-none">Giành chiến thắng Team Battle</p>
+                                <p class="text-[10px] text-gray-400">1 giờ trước</p>
+                            </div>
+                        </div>
+                        <span class="text-[#114b35] font-extrabold text-[11px]">+100 XP</span>
+                    </div>
+                </div>
+            </div>
+
+        </aside>
+
+    </main>
+
+</body>
+</html>

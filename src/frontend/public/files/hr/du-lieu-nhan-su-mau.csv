@@ -1,0 +1,26 @@
+Mã NV,Họ tên,Phòng,Chức danh,Giới tính,Năm sinh,Ngày vào,Ngày nghỉ,Loại hợp đồng,Lương,Trạng thái
+NV001,Nguyễn Thị Lan,Kinh doanh,Nhân viên KD,Nữ,1994,2023-02-15,,Không xác định thời hạn,12000000,Đang làm
+NV002,Trần Văn Hùng,Kinh doanh,Nhân viên KD,Nam,1996,2024-06-01,,Xác định 12 tháng,11000000,Đang làm
+NV003,Lê Thị Hoa,Kế toán,Kế toán tổng hợp,Nữ,1990,2021-03-01,,Không xác định thời hạn,13000000,Đang làm
+NV004,Phạm Minh Tuấn,Vận hành,NV vận hành,Nam,1998,2025-06-10,2026-02-20,Thử việc,9000000,Đã nghỉ
+NV005,Hoàng Thị Mai,Marketing,NV Marketing,Nữ,1995,2022-09-05,,Không xác định thời hạn,12500000,Đang làm
+NV006,Đỗ Văn Nam,Kế toán,Kế toán kho,Nam,1993,2023-07-20,,Xác định 12 tháng,11000000,Đang làm
+NV007,Vũ Thị Thu,Kinh doanh,Nhân viên KD,Nữ,1999,2025-08-12,,Thử việc,10500000,Đang làm
+NV008,Bùi Văn Khoa,Vận hành,NV vận hành,Nam,1997,2024-04-01,2026-04-30,Xác định 12 tháng,9000000,Đã nghỉ
+NV009,Đặng Thị Nga,Marketing,Chuyên viên MKT,Nữ,1992,2021-11-01,,Không xác định thời hạn,12500000,Đang làm
+NV010,Ngô Văn Sơn,Kinh doanh,Trưởng nhóm KD,Nam,1989,2020-01-15,,Không xác định thời hạn,18000000,Đang làm
+NV011,Trịnh Thị Hằng,Kế toán,Kế toán công nợ,Nữ,1994,2023-05-19,,Xác định 12 tháng,11500000,Đang làm
+NV012,Lý Văn Đạt,Vận hành,NV vận hành,Nam,2000,2024-02-01,2026-01-10,Xác định 12 tháng,9500000,Đã nghỉ
+NV013,Phan Thị Yến,Kinh doanh,Nhân viên KD,Nữ,1997,2025-03-01,,Thử việc,10500000,Đang làm
+NV014,Dương Văn Phúc,Vận hành,Trưởng nhóm VH,Nam,1988,2019-08-01,,Không xác định thời hạn,16000000,Đang làm
+NV015,Cao Thị Bình,Marketing,NV Marketing,Nữ,2001,2025-09-15,2026-03-15,Thử việc,10000000,Đã nghỉ
+NV016,Hồ Văn Quang,Kinh doanh,Nhân viên KD,Nam,1995,2022-04-10,,Không xác định thời hạn,12000000,Đang làm
+NV017,Đinh Thị Loan,Kế toán,Kế toán trưởng,Nữ,1985,2018-06-01,,Không xác định thời hạn,25000000,Đang làm
+NV018,Mai Văn Tài,Kinh doanh,Nhân viên KD,Nam,1998,2024-10-01,2026-05-05,Xác định 12 tháng,11000000,Đã nghỉ
+NV019,Tô Thị Hương,Marketing,Chuyên viên MKT,Nữ,1993,2021-12-20,,Không xác định thời hạn,13000000,Đang làm
+NV020,Nguyễn Văn Long,Vận hành,NV vận hành,Nam,1999,2025-07-01,,Thử việc,9000000,Đang làm
+NV021,Trần Thị Kim,Kinh doanh,Nhân viên KD,Nữ,1996,2023-09-01,2026-04-01,Xác định 12 tháng,10500000,Đã nghỉ
+NV022,Lê Văn Bảo,Kinh doanh,Nhân viên KD,Nam,2000,2025-10-15,,Thử việc,10000000,Đang làm
+NV023,Phạm Thị Vân,Hành chính nhân sự,Chuyên viên HC-NS,Nữ,1991,2020-05-01,,Không xác định thời hạn,13000000,Đang làm
+NV024,Võ Văn Thành,Vận hành,NV vận hành,Nam,1997,2024-01-10,,Xác định 12 tháng,9500000,Đang làm
+NV025,Đặng Thị Thảo,Marketing,NV Marketing,Nữ,1998,2025-02-01,2026-02-28,Thử việc,10000000,Đã nghỉ

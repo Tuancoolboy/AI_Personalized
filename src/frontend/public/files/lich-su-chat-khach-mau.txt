@@ -1,0 +1,14 @@
+LỊCH SỬ CHAT VỚI KHÁCH (mẫu, đã ẩn danh — luyện phân tích nhu cầu bằng AI)
+
+[Khách] Chào shop, cho mình hỏi loại ghế công thái học có mẫu nào dưới 3 triệu không?
+[NV] Dạ có ạ, bên em có mẫu X giá 2,8 triệu, tựa lưng lưới, ngả 135 độ.
+[Khách] Ghế này ngồi 8 tiếng/ngày có ổn không? Mình hay đau lưng.
+[NV] Dạ mẫu này có đỡ thắt lưng rời, phù hợp ngồi lâu ạ.
+[Khách] Công ty mình tính mua 12 cái cho phòng kế toán. Có giảm giá số lượng không?
+[NV] Dạ mua từ 10 cái em xin ưu đãi thêm cho mình ạ.
+[Khách] Ok. Mà bao lâu giao tới Đà Nẵng? Bên mình cần trước ngày 30.
+[NV] Dạ giao Đà Nẵng khoảng 4-5 ngày ạ.
+[Khách] Để mình hỏi sếp duyệt ngân sách rồi báo lại. Chắc đầu tuần sau.
+
+(Gợi ý phân tích: tín hiệu mua rõ — số lượng 12, có deadline 30, đang chờ sếp duyệt.
+Bước tiếp theo nên làm: gửi báo giá số lượng + cam kết tiến độ giao trước 30, follow-up đầu tuần sau.)

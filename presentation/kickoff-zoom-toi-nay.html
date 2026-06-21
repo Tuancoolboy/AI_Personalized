@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Trợ Lý — Buổi Khởi Động</title>
+<style>
+  :root{
+    --bg:#14271f;          /* deep forest */
+    --bg2:#1f3d30;         /* lighter green glow */
+    --panel:#1b3a2d;       /* slide surface */
+    --panel2:#16322a;      /* nested surface */
+    --ink:#f4efe4;         /* cream */
+    --muted:#9db0a3;       /* sage gray */
+    --line:rgba(244,239,228,.14);
+    --accent:#e8714a;      /* coral */
+    --accent-2:#f2a07d;    /* light coral */
+    --accent-soft:rgba(232,113,74,.16);
+    --accent-line:rgba(232,113,74,.4);
+    --ok:#6fb39a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    overflow:hidden;
+  }
+  .deck{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(120% 100% at 80% 0%,#274a3a 0%,#1a342a 45%,#11231b 100%)}
+  .slide{
+    position:absolute;
+    width:min(1120px,94vw);
+    height:min(630px,94vh);
+    background:linear-gradient(150deg,#234539 0%,#1a352a 55%,#15291f 100%);
+    border:1px solid var(--line);
+    border-radius:20px;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);
+    padding:52px 70px 26px;
+    display:none;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .slide.active{display:flex;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent-2);background:var(--accent-soft);border:1px solid var(--accent-line);
+    padding:7px 16px;border-radius:999px;width:fit-content;
+  }
+  h1{font-size:54px;line-height:1.06;font-weight:800;letter-spacing:-.02em;margin-top:18px}
+  h2{font-size:38px;line-height:1.12;font-weight:800;letter-spacing:-.01em}
+  .accent{color:var(--accent)}
+  .sub{font-size:21px;color:var(--muted);line-height:1.5;margin-top:18px;max-width:48ch}
+  .sub b{color:var(--ink)}
+  .slide-head{margin-bottom:28px}
+  .slide-head h2{margin-top:14px}
+  p,li{font-size:19px;line-height:1.5}
+  .footer{
+    margin-top:auto;
+    display:flex;justify-content:space-between;align-items:center;gap:16px;
+    font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;
+  }
+  .footer b{color:var(--ink)}
+  .grid{display:grid;gap:18px;margin-top:6px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .grid.fill{flex:1 1 auto;align-content:stretch;grid-auto-rows:minmax(0,1fr)}
+  .grid.fill .card{display:flex;flex-direction:column;justify-content:center}
+  .card{
+    border:1px solid var(--line);border-radius:16px;padding:22px 24px;
+    background:rgba(244,239,228,.04);
+  }
+  .card .n{font-size:13px;font-weight:800;color:var(--accent);letter-spacing:.05em}
+  .card h3{font-size:21px;font-weight:800;margin:8px 0 6px;color:var(--ink)}
+  .card p{font-size:16px;color:var(--muted);line-height:1.45}
+  .pain{border-color:var(--accent-line);background:rgba(232,113,74,.07)}
+  .steps{display:flex;flex-direction:column;gap:16px;margin-top:6px}
+  .step{display:flex;gap:18px;align-items:flex-start}
+  .step .dot{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--accent);
+    color:#1a342a;font-weight:900;font-size:19px;display:flex;align-items:center;justify-content:center;
+  }
+  .step h3{font-size:20px;font-weight:800;color:var(--ink)}
+  .step p{font-size:16px;color:var(--muted);margin-top:3px}
+  .tools{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+  .chip{
+    border:1px solid var(--line);border-radius:12px;padding:14px 18px;background:rgba(244,239,228,.04);
+    font-weight:700;font-size:17px;display:flex;align-items:center;gap:10px;color:var(--ink);
+  }
+  .chip.main{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-2)}
+  .note{margin-top:22px;background:rgba(111,179,154,.1);border:1px solid rgba(111,179,154,.35);
+    border-radius:14px;padding:18px 22px;color:#bfe0d2;font-size:17px;font-weight:600}
+  .note.amber{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-2)}
+  .note b{color:var(--ink)}
+  .placeholder{display:inline-block;background:rgba(232,113,74,.18);border:1px dashed var(--accent);
+    color:var(--accent-2);padding:2px 10px;border-radius:8px;font-weight:700}
+  .meta{margin-top:auto;display:flex;gap:34px;font-size:15px;color:var(--muted)}
+  .meta b{color:var(--ink);display:block;font-size:18px;margin-bottom:2px}
+  .speaker{font-size:13px;color:var(--muted);margin-top:14px;font-style:italic}
+  .brand{display:flex;align-items:center;gap:12px;position:absolute;top:34px;left:70px}
+  .brand .logo{width:40px;height:40px;border-radius:50%;background:var(--ink);color:#1a342a;
+    font-weight:900;font-size:20px;display:flex;align-items:center;justify-content:center}
+  .brand span{font-weight:800;font-size:18px;color:var(--ink)}
+  .qr{width:150px;height:150px;border-radius:14px;border:1px solid var(--line);display:flex;
+    align-items:center;justify-content:center;color:var(--muted);font-size:13px;text-align:center;
+    background:rgba(244,239,228,.04);flex:none}
+  .progress{position:fixed;left:0;top:0;height:4px;background:var(--accent);z-index:20;transition:width .3s}
+  .nav{position:fixed;bottom:18px;right:22px;display:flex;gap:8px;z-index:20}
+  .nav button{width:40px;height:40px;border-radius:10px;border:none;cursor:pointer;
+    background:rgba(244,239,228,.12);color:var(--ink);font-size:18px}
+  .nav button:hover{background:var(--accent);color:#1a342a}
+  .counter{position:fixed;bottom:24px;left:22px;color:var(--muted);font-size:13px;font-weight:600;z-index:20}
+  @media (max-width:640px){
+    .slide{padding:30px 24px}
+    h1{font-size:34px}
+    h2{font-size:26px}
+    .g3,.g4{grid-template-columns:1fr}
+    .sub{font-size:17px}
+    .brand{top:22px;left:24px}
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- 1. COVER -->
+  <section class="slide active">
+    <div class="brand"><div class="logo">A</div><span>AI Trợ Lý</span></div>
+    <span class="kicker" style="margin-top:70px">Vin AI thực chiến · Nhóm 09</span>
+    <h1>Đào tạo <span class="accent">AI cho HR</span><br>Cohort 2</h1>
+    <p class="sub">Giúp mỗi nhân sự HR tự dùng được AI vào đúng công việc của mình — ngay trong tuần đầu.</p>
+    <div class="meta">
+      <div><b>Buổi khởi động</b>Gặp gỡ &amp; định hướng</div>
+      <div><b>Đồng hành</b>15 bạn HR tiên phong</div>
+      <div><b>Hình thức</b>Miễn phí · trực tuyến</div>
+    </div>
+    <div class="footer"><span>Dự án đào tạo nhân sự AI cho doanh nghiệp SME</span><span>1 / 9</span></div>
+  </section>
+
+  <!-- 2. GIỚI THIỆU DỰ ÁN -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Giới thiệu dự án</span>
+      <h2>Vì sao chúng ta ở đây tối nay</h2>
+    </div>
+    <p class="sub" style="margin-top:0;max-width:62ch">Cách đào tạo AI hiện nay khiến doanh nghiệp tốn tiền nhưng nhân sự vẫn không áp dụng được. Đây là 3 điểm đau chúng tôi muốn giải quyết:</p>
+    <div class="grid g3" style="margin-top:26px">
+      <div class="card pain"><div class="n">ĐIỂM ĐAU 01</div><h3>Đắt đỏ</h3><p>2–5 triệu đồng/người/lần đào tạo tập trung.</p></div>
+      <div class="card pain"><div class="n">ĐIỂM ĐAU 02</div><h3>Chung chung</h3><p>Không sát vị trí → học xong không biết áp dụng vào việc gì.</p></div>
+      <div class="card pain"><div class="n">ĐIỂM ĐAU 03</div><h3>Không đo được</h3><p>Không chứng minh được hiệu quả; người mới phải đào tạo lại từ đầu.</p></div>
+    </div>
+    <div class="note">Giải pháp: lộ trình AI cá nhân hóa theo vai trò + trợ lý AI giải thích bằng ví dụ đúng nghề — thay cho khóa học đắt đỏ, chung chung.</div>
+    <div class="footer"><span>AI Trợ Lý · Nhóm 09</span><span>2 / 9</span></div>
+  </section>
+
+  <!-- 3. LÀM QUEN -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Làm quen</span>
+      <h2>Mời 3 anh/chị chia sẻ đôi chút</h2>
+    </div>
+    <p class="sub" style="margin-top:0">Để cả nhà hiểu nhau hơn trước khi bắt đầu hành trình. Mỗi người ~1 phút:</p>
+    <div class="grid g3" style="margin-top:28px">
+      <div class="card"><div class="n">CHIA SẺ 01</div><h3>Bạn là ai?</h3><p>Tên, đang làm HR ở lĩnh vực / quy mô công ty nào.</p></div>
+      <div class="card"><div class="n">CHIA SẺ 02</div><h3>Vì sao tham gia?</h3><p>Điều khiến bạn muốn học AI ngay lúc này.</p></div>
+      <div class="card"><div class="n">CHIA SẺ 03</div><h3>Mong đợi gì?</h3><p>Sau chương trình bạn muốn làm được điều gì.</p></div>
+    </div>
+    <p class="speaker">Người dẫn: mời lần lượt 3 bạn bật mic — giữ không khí thoải mái, cởi mở.</p>
+    <div class="footer"><span>AI Trợ Lý · Nhóm 09</span><span>3 / 9</span></div>
+  </section>
+
+  <!-- 4. MỤC TIÊU / QUYỀN LỢI -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Mục tiêu dự án</span>
+      <h2>Bạn sẽ nhận được gì khi đồng hành</h2>
+    </div>
+    <div class="grid g4 fill">
+      <div class="card"><div class="n">01</div><h3>Dùng AI đúng việc</h3><p>Áp dụng AI vào chính công việc HR hằng ngày, không lý thuyết suông.</p></div>
+      <div class="card"><div class="n">02</div><h3>X2 – X3 hiệu suất</h3><p>Làm nhanh hơn gấp 2–3 lần khối lượng công việc hiện tại.</p></div>
+      <div class="card"><div class="n">03</div><h3>Bộ Skill HR 4.0</h3><p>Sở hữu kỹ năng AI mà không phải ai cũng có — được doanh nghiệp săn đón.</p></div>
+      <div class="card"><div class="n">04</div><h3>AI thành người bạn</h3><p>Thấy AI thật dễ dùng, như một cộng sự đồng hành mỗi ngày.</p></div>
+    </div>
+    <div class="note">Tư duy nền tảng: làm chủ AI = có ưu thế. Không dùng mới là điều đáng lo.</div>
+    <div class="footer"><span>AI Trợ Lý · Nhóm 09</span><span>4 / 9</span></div>
+  </section>
+
+  <!-- 5. HÀNH ĐỘNG NGAY (15 phút) -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Hành động ngay · 15 phút</span>
+      <h2>Đăng ký tài khoản &amp; làm khảo sát</h2>
+    </div>
+    <div style="display:flex;gap:40px;align-items:flex-start">
+      <div style="flex:1">
+        <div class="steps">
+          <div class="step"><div class="dot">1</div><div><h3>Mở web app &amp; đăng ký</h3><p>Truy cập đường link, tạo tài khoản bằng email.</p></div></div>
+          <div class="step"><div class="dot">2</div><div><h3>Chọn vai trò của bạn</h3><p>Onboarding chọn đúng phòng ban → nhận lộ trình riêng.</p></div></div>
+          <div class="step"><div class="dot">3</div><div><h3>Làm bài khảo sát nhanh</h3><p>Vài câu để hệ thống hiểu trình độ AI hiện tại của bạn.</p></div></div>
+        </div>
+        <div class="note amber" style="margin-top:22px">Link đăng ký: <span class="placeholder">[ĐIỀN LINK WEB APP]</span> — dán vào ô chat Zoom để cả nhà bấm.</div>
+      </div>
+      <div style="text-align:center">
+        <div class="qr">QR code<br>web app<br>(dán sau)</div>
+        <p class="speaker" style="margin-top:10px">Người dẫn ở lại<br>hỗ trợ trực tiếp</p>
+      </div>
+    </div>
+    <div class="footer"><span>AI Trợ Lý · Nhóm 09</span><span>5 / 9</span></div>
+  </section>
+
+  <!-- 6. CÔNG CỤ -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Công cụ sử dụng</span>
+      <h2>Chúng ta sẽ học &amp; làm việc với gì</h2>
+    </div>
+    <p class="sub" style="margin-top:0;max-width:62ch"><b>Claude</b> là công cụ chính. Tùy đặc thù công việc của mỗi người, sẽ kết hợp thêm một số công cụ phụ.</p>
+    <div class="tools">
+      <div class="chip main">★ Claude — công cụ chính</div>
+      <div class="chip">Công cụ AI viết / soạn thảo</div>
+      <div class="chip">Công cụ xử lý dữ liệu</div>
+      <div class="chip">Công cụ theo từng nghiệp vụ HR</div>
+    </div>
+    <div class="note amber">Khuyến nghị: đăng ký gói <b>Pro</b> để trải nghiệm &amp; học tập tốt nhất, không bị giới hạn lượt dùng trong quá trình thực hành.</div>
+    <div class="footer"><span>AI Trợ Lý · Nhóm 09</span><span>6 / 9</span></div>
+  </section>
+
+  <!-- 7. TRAO ĐỔI SÂU 1-1 -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Bước tiếp theo</span>
+      <h2>Trao đổi sâu với từng anh/chị</h2>
+    </div>
+    <p class="sub" style="margin-top:0;max-width:64ch">Sau buổi hôm nay, team sẽ hẹn nói chuyện riêng với khoảng <b>10 thành viên</b> để hiểu rõ và thiết kế giải pháp phù hợp nhất cho từng người.</p>
+    <div class="grid g3" style="margin-top:26px">
+      <div class="card"><div class="n">CHÚNG TA NÓI VỀ</div><h3>Công việc hiện tại</h3><p>Bạn đang làm gì mỗi ngày, quy trình ra sao.</p></div>
+      <div class="card"><div class="n">CHÚNG TA NÓI VỀ</div><h3>Khó khăn gặp phải</h3><p>Việc nào tốn thời gian, lặp lại, gây mệt mỏi.</p></div>
+      <div class="card"><div class="n">KẾT QUẢ</div><h3>Giải pháp riêng</h3><p>Team đề xuất cách dùng AI sát với chính bạn.</p></div>
+    </div>
+    <div class="note">Mục tiêu: không để ai "học chung chung". Mỗi người có lộ trình AI của riêng mình.</div>
+    <div class="footer"><span>AI Trợ Lý · Nhóm 09</span><span>7 / 9</span></div>
+  </section>
+
+  <!-- 8. TÓM TẮT NGAY HÔM NAY -->
+  <section class="slide">
+    <div class="slide-head">
+      <span class="kicker">Tóm lại tối nay</span>
+      <h2>3 việc cần làm</h2>
+    </div>
+    <div class="steps" style="gap:22px;margin-top:10px">
+      <div class="step"><div class="dot">1</div><div><h3>Đăng ký tài khoản trên web app + làm khảo sát</h3><p>Ngay trong 15 phút tại buổi này.</p></div></div>
+      <div class="step"><div class="dot">2</div><div><h3>Đăng ký gói Pro công cụ AI chính</h3><p>Để thực hành không giới hạn.</p></div></div>
+      <div class="step"><div class="dot">3</div><div><h3>Sắp xếp lịch trao đổi 1-1 với team</h3><p>Team sẽ chủ động liên hệ với bạn.</p></div></div>
+    </div>
+    <div class="footer"><span>AI Trợ Lý · Nhóm 09</span><span>8 / 9</span></div>
+  </section>
+
+  <!-- 9. CẢM ƠN -->
+  <section class="slide">
+    <div class="brand"><div class="logo">A</div><span>AI Trợ Lý</span></div>
+    <span class="kicker" style="margin-top:70px">Cảm ơn cả nhà</span>
+    <h1>Cùng bắt đầu<br><span class="accent">hành trình AI</span></h1>
+    <p class="sub">Công nghệ AI đang thay đổi cách chúng ta làm việc mỗi ngày. Chủ động học hỏi hôm nay để không bị bỏ lại phía sau.</p>
+    <div class="meta">
+      <div><b>Bước đầu tiên</b>Đăng ký &amp; làm khảo sát ngay</div>
+      <div><b>Liên hệ</b><span class="placeholder">[ĐIỀN ZALO / EMAIL]</span></div>
+    </div>
+    <div class="footer"><span>AI Trợ Lý · Dự án đào tạo nhân sự AI cho doanh nghiệp · Nhóm 09</span><span>9 / 9</span></div>
+  </section>
+
+</div>
+
+<div class="counter" id="counter">1 / 9</div>
+<div class="nav">
+  <button id="prev" aria-label="Slide trước">‹</button>
+  <button id="next" aria-label="Slide sau">›</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  const progress=document.getElementById('progress');
+  const counter=document.getElementById('counter');
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    progress.style.width=((i+1)/slides.length*100)+'%';
+    counter.textContent=(i+1)+' / '+slides.length;
+  }
+  document.getElementById('next').onclick=()=>show(i+1);
+  document.getElementById('prev').onclick=()=>show(i-1);
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(i+1);}
+    if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(i-1);}
+    if(e.key==='Home')show(0);
+    if(e.key==='End')show(slides.length-1);
+    if(e.key==='f'||e.key==='F'){if(!document.fullscreenElement)document.documentElement.requestFullscreen();else document.exitFullscreen();}
+  });
+  let x0=null;
+  addEventListener('touchstart',e=>x0=e.touches[0].clientX);
+  addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>50)show(i+(dx<0?1:-1));x0=null;});
+  show(0);
+</script>
+</body>
+</html>

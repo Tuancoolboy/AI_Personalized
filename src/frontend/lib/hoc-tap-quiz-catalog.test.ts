@@ -1,0 +1,153 @@
+import { describe, expect, it } from "vitest";
+import { getRole } from "@/lib/roles";
+import {
+  AVAILABLE_QUIZ_ROLE_IDS,
+  buildHocTapQuizCatalog,
+  calculateHocTapQuizXp,
+  filterHocTapQuizCatalog,
+  filterHocTapQuizLibrary,
+  getHocTapDepartmentFilterValue,
+  getHocTapQuiz,
+  getHocTapQuizHref,
+  getVisibleHocTapQuizzes,
+  parseHocTapDepartmentFilter,
+  resolveHocTapQuizForRoute,
+  resolveHocTapLevelProgress,
+  resolveQuizReturnHref,
+  sortHocTapQuizCatalog,
+} from "@/lib/hoc-tap-quiz-catalog";
+
+describe("hoc-tap quiz catalog", () => {
+  it("contains five working role quizzes and three coming-soon topics", () => {
+    const catalog = buildHocTapQuizCatalog();
+    const available = catalog.filter((item) => item.status === "available");
+    const comingSoon = catalog.filter((item) => item.status === "coming-soon");
+
+    expect(catalog).toHaveLength(8);
+    expect(available).toHaveLength(5);
+    expect(comingSoon).toHaveLength(3);
+    expect(available.map((item) => item.roleId)).toEqual([
+      ...AVAILABLE_QUIZ_ROLE_IDS,
+    ]);
+    expect(available.every((item) => item.creator === "Bạn tự tạo")).toBe(
+      true,
+    );
+
+    for (const item of available) {
+      expect(item.roleId).not.toBeNull();
+      expect(item.questionCount).toBeGreaterThan(0);
+      expect(item.durationMinutes).toBeGreaterThan(0);
+    }
+  });
+
+  it("keeps hoc-tap mock quiz questions separate from role lesson quizzes", () => {
+    const salesQuiz = getHocTapQuiz("ai-ban-hang");
+    const roleQuiz = getRole("kinh-doanh")?.quiz[0];
+
+    expect(salesQuiz).not.toBeNull();
+    expect(salesQuiz?.questions[0]?.question).not.toBe(roleQuiz?.question);
+    expect(salesQuiz?.questions[0]?.explanation).toContain("Prompt");
+  });
+
+  it("sorts by newest, question count, and XP without mutating input", () => {
+    const catalog = buildHocTapQuizCatalog();
+    const originalIds = catalog.map((item) => item.id);
+
+    expect(sortHocTapQuizCatalog(catalog, "newest")[0]?.publishedOrder).toBe(8);
+    expect(
+      sortHocTapQuizCatalog(catalog, "question-count")[0]?.questionCount,
+    ).toBe(15);
+    expect(sortHocTapQuizCatalog(catalog, "xp")[0]?.xp).toBe(100);
+    expect(catalog.map((item) => item.id)).toEqual(originalIds);
+  });
+
+  it("filters quiz catalog by department from database option values", () => {
+    const catalog = buildHocTapQuizCatalog();
+    const marketingFilter = getHocTapDepartmentFilterValue("marketing");
+
+    expect(parseHocTapDepartmentFilter(marketingFilter)).toBe("marketing");
+    expect(filterHocTapQuizCatalog(catalog, marketingFilter).map((item) => item.id))
+      .toEqual(["ai-marketing"]);
+    expect(filterHocTapQuizCatalog(catalog, "all")).toHaveLength(8);
+  });
+
+  it("filters the practice library by unaccented search, topic, and difficulty", () => {
+    const catalog = buildHocTapQuizCatalog();
+
+    expect(
+      filterHocTapQuizLibrary(catalog, {
+        query: "ke toan",
+        topic: "all",
+        difficulty: "all",
+      }).map((item) => item.id),
+    ).toEqual(["ai-ke-toan"]);
+    expect(
+      filterHocTapQuizLibrary(catalog, {
+        query: "",
+        topic: "automation",
+        difficulty: "Khó",
+      }).map((item) => item.id),
+    ).toEqual(["ai-automation"]);
+    expect(
+      filterHocTapQuizLibrary(catalog, {
+        query: "",
+        topic: "ai-co-ban",
+        difficulty: "Dễ",
+      }).map((item) => item.id),
+    ).toEqual(["ai-hanh-chinh-hr", "ai-van-phong"]);
+  });
+
+  it("shows four cards initially and all cards after expansion", () => {
+    const catalog = buildHocTapQuizCatalog();
+
+    expect(getVisibleHocTapQuizzes(catalog, false)).toHaveLength(4);
+    expect(getVisibleHocTapQuizzes(catalog, true)).toHaveLength(8);
+  });
+
+  it("only creates quiz links for whitelisted role ids", () => {
+    const marketingQuiz = getHocTapQuiz("ai-marketing");
+    const catalog = buildHocTapQuizCatalog();
+    const comingSoon = catalog.find((item) => item.id === "prompt-engineering");
+
+    expect(marketingQuiz).not.toBeNull();
+    expect(getHocTapQuizHref(marketingQuiz!)).toBe(
+      "/kiem-tra/marketing?from=hoc-tap&quiz=ai-marketing",
+    );
+    expect(comingSoon).toBeDefined();
+    expect(getHocTapQuizHref(comingSoon!)).toBeNull();
+  });
+
+  it("resolves hoc-tap route quiz only when role and quiz id match", () => {
+    expect(resolveHocTapQuizForRoute("marketing", "ai-marketing")?.id).toBe(
+      "ai-marketing",
+    );
+    expect(resolveHocTapQuizForRoute("marketing", "ai-ban-hang")).toBeNull();
+    expect(resolveHocTapQuizForRoute("marketing", null)?.id).toBe(
+      "ai-marketing",
+    );
+  });
+
+  it("maps only the known hoc-tap source to the hoc-tap return route", () => {
+    expect(resolveQuizReturnHref("hoc-tap")).toBe("/hoc-tap");
+    expect(resolveQuizReturnHref("https://example.com")).toBe("/lo-trinh");
+    expect(resolveQuizReturnHref(["hoc-tap"])).toBe("/lo-trinh");
+    expect(resolveQuizReturnHref(undefined)).toBe("/lo-trinh");
+  });
+
+  it("calculates mock quiz XP and level progress for hoc-tap only", () => {
+    expect(calculateHocTapQuizXp(100, 80)).toBe(80);
+    expect(calculateHocTapQuizXp(100, 0)).toBe(10);
+    expect(calculateHocTapQuizXp(100, 120)).toBe(100);
+
+    expect(resolveHocTapLevelProgress(0)).toMatchObject({
+      level: 7,
+      currentXp: 1280,
+      totalXp: 2450,
+    });
+    expect(resolveHocTapLevelProgress(720)).toMatchObject({
+      level: 8,
+      currentXp: 0,
+      totalXp: 3170,
+    });
+  });
+});

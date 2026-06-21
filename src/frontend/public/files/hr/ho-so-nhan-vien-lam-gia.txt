@@ -1,0 +1,21 @@
+[FILE MẪU — bài m4: HỒ SƠ NHÂN VIÊN LÀM GIẢ để luyện kỹ năng ẩn danh dữ liệu trước khi đưa lên AI]
+=== KHÔNG dùng dữ liệu thật khi luyện. Tất cả thông tin dưới đây là bịa. ===
+
+HỒ SƠ NHÂN VIÊN
+- Họ tên: Nguyễn Văn An
+- Ngày sinh: 12/03/1992
+- CCCD: 0010xxxxxxx (số làm giả) — cấp ngày 05/2021 tại Hà Nội
+- Địa chỉ thường trú: số 12, ngõ X, phường Y, quận Z, Hà Nội
+- SĐT: 09xxxxxxxx | Email cá nhân: annguyen.fake@gmail.com
+- Số tài khoản: 1903xxxxxxx — Techcombank, CN Hà Nội
+- Mã số thuế cá nhân: 80xxxxxxxx
+- Số sổ BHXH: 01xxxxxxxx
+- Vị trí: Nhân viên kinh doanh | Phòng: Kinh doanh | Mã NV: NV001
+- Lương cơ bản: 12.000.000đ | Phụ cấp: 1.230.000đ
+- Người phụ thuộc giảm trừ: 1 (con nhỏ)
+- Tình trạng hôn nhân: Đã kết hôn
+- Ghi chú nội bộ: nhắc nhở 1 lần (đi muộn) Q1/2026; đang trong diện xét tăng lương.
+
+>>> BÀI TẬP: Nhờ Claude (1) liệt kê các trường nhạy cảm KHÔNG nên đưa lên AI công cộng,
+(2) viết lại bản ẩn danh an toàn (vd "Ứng viên/NV A", bỏ CCCD/STK/MST/BHXH/địa chỉ),
+(3) gợi ý quy tắc ẩn danh dùng lại cho cả phòng HR.

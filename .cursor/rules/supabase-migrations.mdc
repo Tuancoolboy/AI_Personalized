@@ -1,0 +1,17 @@
+---
+description: Supabase migration naming — timestamp bắt buộc, không dùng 0013_xxx
+globs: supabase/migrations/**
+alwaysApply: false
+---
+
+# Supabase Migrations
+
+> Canonical: `.agents/rules/supabase-migrations.md` — giữ đồng bộ khi sửa.
+
+Migration **mới** = `YYYYMMDDHHMMSS_<noi-dung-kebab>.sql` (14 chữ số + mô tả).
+
+**Cấm** `0017_`, `0024_`, `0007b_` — dùng `npx supabase migration new <name>`.
+
+Legacy `0001`–`0012`: giữ nguyên, không thêm file numbered mới.
+
+Trước commit: `npm run db:validate`. Cập nhật `PROJECT-CONTINUATION.md`.

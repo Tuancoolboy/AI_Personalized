@@ -1,0 +1,44 @@
+=== BỘ CV ỨNG VIÊN MẪU (đã ẩn danh) — Vị trí: Nhân viên Kinh doanh ===
+Lưu ý: dữ liệu hư cấu, dùng để luyện sàng lọc CV bằng AI.
+
+--- ỨNG VIÊN 1 ---
+Họ tên: Ứng viên A
+Năm sinh: 1996
+Học vấn: Cử nhân Quản trị Kinh doanh
+Kinh nghiệm: 3 năm bán hàng B2B ngành thiết bị văn phòng; đạt 120% target 2 năm liền.
+Kỹ năng: đàm phán, CRM, tiếng Anh giao tiếp.
+Mong muốn lương: 15 triệu.
+
+--- ỨNG VIÊN 2 ---
+Họ tên: Ứng viên B
+Năm sinh: 2000
+Học vấn: Cao đẳng Marketing
+Kinh nghiệm: 1 năm telesales bảo hiểm.
+Kỹ năng: giao tiếp tốt, chăm chỉ.
+Mong muốn lương: 10 triệu.
+
+--- ỨNG VIÊN 3 ---
+Họ tên: Ứng viên C
+Năm sinh: 1992
+Học vấn: Thạc sĩ Tài chính
+Kinh nghiệm: 6 năm — nhưng nhảy việc 5 công ty trong 6 năm (mỗi nơi ~1 năm).
+Kỹ năng: phân tích, lãnh đạo nhóm.
+Mong muốn lương: 30 triệu.
+
+--- ỨNG VIÊN 4 ---
+Họ tên: Ứng viên D
+Năm sinh: 1998
+Học vấn: Cử nhân Ngôn ngữ Anh
+Kinh nghiệm: 2 năm sales xuất khẩu; thành thạo tiếng Anh + tiếng Trung.
+Kỹ năng: viết email thương mại, tìm khách quốc tế.
+Mong muốn lương: 18 triệu.
+
+--- ỨNG VIÊN 5 ---
+Họ tên: Ứng viên E
+Năm sinh: 1995
+Học vấn: (bỏ trống)
+Kinh nghiệm: ghi "5 năm kinh nghiệm" nhưng không nêu công ty hay sản phẩm cụ thể nào.
+Kỹ năng: "bán được mọi thứ".
+Mong muốn lương: 25 triệu.
+
+(Gợi ý điểm bẫy: ứng viên 3 nhảy việc nhiều; ứng viên 5 mô tả mơ hồ, thiếu bằng chứng.)

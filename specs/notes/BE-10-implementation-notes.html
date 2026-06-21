@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Notes — BE-10: Company Invite Links Token-Only</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 880px; margin: 0 auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; color: #24292e; }
+    h2 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; color: #24292e; margin-top: 24px; }
+    .meta { color: #586069; font-style: italic; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; }
+    th, td { padding: 8px 12px; border: 1px solid #dfe2e5; text-align: left; vertical-align: top; }
+    th { background-color: #f6f8fa; }
+    code { background: #f6f8fa; padding: 0.1em 0.3em; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Implementation Notes — BE-10: Company Invite Links Token-Only</h1>
+  <div class="meta">
+    <p>Spec: <code>specs/BE-10-company-invite-links.md</code></p>
+    <p>Thực hiện bởi: Codex</p>
+    <p>Ngày: 2026-06-10; cập nhật: 2026-06-12</p>
+    <p>Branch: <code>feat/tuan</code>; cập nhật trên <code>feat/tuanvh/manager-private-organizations</code></p>
+  </div>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Quyết định</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Tạo helper server <code>lib/company-invite-links.ts</code> cho token, URL, map DB row, create/get/rotate.</td>
+        <td>Giữ token logic tập trung, tránh lặp giữa manager APIs, public page và accept route.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Sinh token bằng <code>randomBytes(32).toString("base64url")</code>.</td>
+        <td>Token đủ dài, URL-safe, không cần thêm dependency.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Cho bảng <code>organization_invite_links</code> bật RLS nhưng không tạo policy client.</td>
+        <td>Đúng yêu cầu mọi thao tác token đi qua Route Handler/service role, giảm nguy cơ client đọc bearer secret.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Những chỗ AI phải thay đổi so với spec gốc</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Spec nói</th>
+        <th>AI làm gì thay thế</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><code>GET /moi/[token]</code> kiểm tra token.</td>
+        <td>Dùng Server Component <code>app/moi/[token]/page.tsx</code> thay vì Route Handler GET.</td>
+        <td>App Router page là đúng bề mặt để render CTA đăng ký/đăng nhập và trạng thái lỗi.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Register qua invite redirect về <code>/login?registered=1&amp;next=...</code>.</td>
+        <td>Giữ nguyên register form hiện có, chỉ thêm preserve <code>next</code> và email callback <code>next</code>.</td>
+        <td>Không phá flow đăng ký hiện tại; người dùng vẫn phải đăng nhập rõ ràng sau khi tạo tài khoản.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Checklist có phase smoke test production-like Supabase.</td>
+        <td>Để Phase 3.6 chưa tick.</td>
+        <td>Phiên này không có dữ liệu hai tổ chức/quản lý thật để xác minh cách ly end-to-end.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Tradeoff AI phải cân nhắc</h2>
+  <p><strong>Token-only vs slug công ty:</strong> chọn đúng token-only theo yêu cầu. Tên công ty chỉ hiển thị sau khi token hợp lệ, không đưa slug vào URL.</p>
+  <p><strong>Một active link mỗi manager vs mỗi organization:</strong> giữ một active link cho mỗi cặp <code>organization_id</code> + <code>created_by</code>, để nhiều manager cùng công ty vẫn có token riêng và rotate độc lập.</p>
+  <p><strong>Existing membership:</strong> nếu user đã là <code>manager</code> hoặc <code>owner</code>, accept flow không ghi <code>member_role = employee</code> đè lên quyền hiện có.</p>
+  <p><strong>Existing membership ở công ty khác:</strong> sau rule một tài khoản một công ty, accept flow kiểm tra tất cả membership của user. Nếu user đã thuộc organization khác, route redirect về trang invite với lỗi <code>already-member</code> và không cập nhật <code>last_used_at</code>.</p>
+  <p><strong>Demo mode:</strong> không tạo token fake persistent; UI báo cần Supabase real mode, còn thêm thủ công demo vẫn giữ nguyên.</p>
+
+  <h2>4. Bất kỳ điều gì khác cần lưu ý</h2>
+  <ul>
+    <li><strong>Migration cần chạy:</strong> chạy <code>0011_company_invite_links.sql</code> sau <code>0008</code>, <code>0009</code>, <code>0010</code>, và chạy <code>20260610120000_single_organization_membership.sql</code> để enforce một user một công ty.</li>
+    <li><strong>Secret handling:</strong> server logs không ghi token; chỉ log message lỗi DB không kèm URL invite.</li>
+    <li><strong>Manual add:</strong> nút <code>Thêm nhân viên</code> thủ công vẫn chỉ email + checkbox cấp quyền quản lý.</li>
+    <li><strong>Verification đã chạy:</strong> <code>git diff --check</code>, scoped ESLint, unit test <code>lib/company-invite-links.test.ts</code>, và Next build Node 20 đều pass.</li>
+    <li><strong>Follow-up:</strong> smoke test Manager A/Manager B với hai organization thật, invalid token, token rotated, existing-user accept và new-user register qua invite.</li>
+  </ul>
+</body>
+</html>

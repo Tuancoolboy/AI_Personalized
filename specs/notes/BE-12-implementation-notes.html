@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Notes — BE-12: Chatbot 2 quyền + trí nhớ</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; }
+    h2 { border-bottom: 1px solid #eaecef; margin-top: 24px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { padding: 8px 12px; border: 1px solid #dfe2e5; text-align: left; }
+    th { background: #f6f8fa; }
+  </style>
+</head>
+<body>
+  <h1>Implementation Notes — BE-12: Chatbot 2 quyền + trí nhớ</h1>
+  <p>Spec: <code>specs/BE-12-role-chatbots-and-memory.md</code></p>
+  <p>Ngày: 2026-06-10</p>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <table>
+    <tr><th>#</th><th>Quyết định</th><th>Lý do</th></tr>
+    <tr><td>1</td><td><code>lib/app-user.ts</code> resolve userType/displayName server-side cho `/tro-ly`</td><td>Tránh thêm API config riêng</td></tr>
+    <tr><td>2</td><td>Memory refresh throttle: 5 phút HOẶC 3 tin gần nhất</td><td>Giữ chi phí OpenAI ≤ ngưỡng GĐ1</td></tr>
+    <tr><td>3</td><td>Một conversation active mỗi audience; tái sử dụng conversation gần nhất</td><td>UX đơn giản — không UI chọn thread</td></tr>
+    <tr><td>4</td><td>Team analysis lọc nhân viên có <code>role_id</code> hợp lệ trong ROLES</td><td>Tránh noise từ profile chưa onboarding</td></tr>
+  </table>
+
+  <h2>2. Những chỗ AI thay đổi so với spec gốc</h2>
+  <p>Không có thay đổi lớn — implement đúng plan đã chốt với user (dữ liệu team thật, lưu cả messages + core context).</p>
+
+  <h2>3. Tradeoff AI phải cân nhắc</h2>
+  <ul>
+    <li><strong>Lưu full messages vs chỉ summary:</strong> User chọn cả hai → thêm bảng <code>chat_messages</code> + refresh summary async sau stream.</li>
+    <li><strong>Manager data mock vs real:</strong> User chọn real → service role + admin.listUsers; dashboard vẫn mock.</li>
+    <li><strong>Cross-user RLS vs service role:</strong> Chỉ team summary dùng service role server-side; user chat vẫn RLS.</li>
+  </ul>
+
+  <h2>4. Những điều khác bạn nên biết</h2>
+  <ul>
+    <li><strong>Migration:</strong> Chạy <code>0012_chat_memory.sql</code> trên Supabase trước khi test memory (sau <code>0011_company_invite_links.sql</code> nếu dùng invite links).</li>
+    <li><strong>Demo mode:</strong> Không persist; greeting vẫn cá nhân hóa theo quyền.</li>
+    <li><strong>Follow-up:</strong> Phase 2 nên thêm <code>profiles.user_type</code> thay email pattern; manager dashboard có thể reuse <code>getTeamAnalysisSummary()</code>.</li>
+  </ul>
+</body>
+</html>

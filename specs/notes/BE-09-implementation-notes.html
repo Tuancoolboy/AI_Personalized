@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>BE-09 — Implementation Notes</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    h1 { font-size: 1.25rem; }
+    h2 { font-size: 1rem; margin-top: 1.5rem; }
+    ul { padding-left: 1.25rem; }
+  </style>
+</head>
+<body>
+  <h1>BE-09 Leads API — Implementation Notes</h1>
+  <p><strong>Ngày:</strong> 09/06/2026 · <strong>Phạm vi:</strong> GET leads + UI quản lý (bản sơ khai US-07)</p>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <ul>
+    <li>Thêm <code>lib/manager-auth.ts</code> — detect quản lý qua email pattern (<code>quanly@</code>, <code>manager@</code>…) cho cả demo mode và Supabase Auth.</li>
+    <li>GET đọc <code>leads</code> bằng <strong>service role</strong> server-side; không thêm RLS SELECT cho user (tránh lộ lead ra client anon).</li>
+    <li>Trang <code>/quan-ly/leads</code> redirect nhân viên về <code>/lo-trinh</code>; API trả 403 nếu không phải manager.</li>
+    <li>Login Supabase: email quản lý redirect thẳng <code>/quan-ly</code> (giống demo).</li>
+  </ul>
+
+  <h2>2. Thay đổi so với spec gốc</h2>
+  <ul>
+    <li>US-07 / GD2-01 ghi Phase 2 — đã ship sớm <strong>chỉ phần xem leads</strong>, không phải dashboard đội thật.</li>
+    <li>BE-09 ban đầu chỉ POST — mở rộng GET + UI manager.</li>
+  </ul>
+
+  <h2>3. Tradeoff</h2>
+  <ul>
+    <li><strong>Email pattern vs profiles.user_type:</strong> nhanh cho GĐ1, dễ demo; GĐ2 nên thay bằng cột DB + policy.</li>
+    <li><strong>Service role read vs RLS manager policy:</strong> service role đơn giản, không expose SELECT; tradeoff là logic quản lý nằm ở app layer.</li>
+    <li><strong>Demo mode không Supabase:</strong> GET trả mảng rỗng + message — lead chỉ persist khi có DB.</li>
+  </ul>
+
+  <h2>4. Lưu ý khác</h2>
+  <ul>
+    <li>Dashboard <code>/quan-ly</code> vẫn dùng mock <code>team-data.ts</code>; chỉ card/bảng leads là dữ liệu thật.</li>
+    <li>Follow-up GĐ2: export CSV, thông báo lead mới, <code>profiles.user_type</code>, bảo vệ toàn bộ <code>/quan-ly/*</code> ở server.</li>
+  </ul>
+</body>
+</html>

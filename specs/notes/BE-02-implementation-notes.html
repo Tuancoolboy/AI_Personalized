@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>BE-02 — Implementation Notes</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    h2 { font-size: 1rem; margin-top: 1.5rem; }
+    ul { padding-left: 1.25rem; }
+  </style>
+</head>
+<body>
+  <h1>BE-02 Profile + proxy onboarding — v1.4</h1>
+  <p><strong>Ngày:</strong> 09/06/2026</p>
+
+  <h2>1. Quyết định AI tự ra</h2>
+  <ul>
+    <li>Migration <code>0005_profiles_ai_level.sql</code> — cột <code>ai_level smallint 0–5</code>.</li>
+    <li><code>lib/post-auth-redirect.ts</code> — logic redirect dùng chung.</li>
+    <li>Cookie <code>ai_troly_demo_onboarded</code> cho demo mode (proxy không đọc localStorage).</li>
+    <li>Sửa ngưỡng skip module: <code>aiLevel >= 5</code> (trước đó <code>&gt; 5</code> không bao giờ kích hoạt).</li>
+  </ul>
+
+  <h2>2. Thay đổi so với spec</h2>
+  <ul>
+    <li>Login Supabase: redirect <code>/lo-trinh</code>, proxy tự đẩy <code>/onboarding</code> nếu chưa có role.</li>
+  </ul>
+
+  <h2>3. Tradeoff</h2>
+  <ul>
+    <li>Proxy query <code>profiles</code> mỗi request protected — đơn giản, thêm 1 DB read; GĐ2 có thể cache JWT claim.</li>
+  </ul>
+
+  <h2>4. Lưu ý</h2>
+  <ul>
+    <li>User phải chạy migration 0005 trên Supabase trước khi PUT profile có <code>aiLevel</code>.</li>
+    <li><code>/tien-bo</code> dùng <code>fetchModules</code> thống nhất với <code>/lo-trinh</code>.</li>
+  </ul>
+</body>
+</html>

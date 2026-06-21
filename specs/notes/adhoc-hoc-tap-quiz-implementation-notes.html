@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Notes — Học tập Quiz</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; color: #26332e; max-width: 900px; margin: 0 auto; padding: 24px; }
+    h1 { border-bottom: 2px solid #dfe7e2; padding-bottom: 10px; }
+    h2 { margin-top: 28px; border-bottom: 1px solid #dfe7e2; padding-bottom: 6px; }
+    code { border-radius: 4px; background: #f2f5f3; padding: 2px 5px; }
+    li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <h1>Implementation Notes — Học tập Quiz</h1>
+  <p>Visual reference: <code>specs/ai_studio_code.html</code> và <code>specs/ai_studio_codegame.html</code></p>
+  <p>Owner: Tuancoolboy · Ngày: 18/06/2026 · Branch: <code>feat/tuanvh/quiz</code></p>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <ul>
+    <li>Tạo catalog TypeScript riêng cho 8 card để UI, sắp xếp, số lượng hiển thị và whitelist route có thể kiểm thử độc lập.</li>
+    <li>Tách 5 bộ câu hỏi quiz Học tập thành mock quiz tự tạo trong <code>lib/hoc-tap-quiz-catalog.ts</code>; không dùng lại <code>role.quiz</code> của bài học/lộ trình.</li>
+    <li>Quiz Học tập ghi XP/cấp độ minh họa vào localStorage riêng <code>ai_troly_hoc_tap_quiz_progress</code>, không ghi vào <code>quiz_results</code>.</li>
+    <li>Ngày 19/06/2026, đổi mặt chính sang thư viện “Luyện đề” một panel theo visual mới của user; tìm kiếm được chuẩn hóa dấu tiếng Việt để “ke toan” vẫn tìm được “kế toán”.</li>
+    <li>Thêm thời lượng ước tính cho từng bộ đề, topic mapping và pure filter helper để UI lọc theo môn học/cấp độ mà không trộn logic vào JSX.</li>
+    <li>Ngày 19/06/2026, thêm filter phòng ban riêng cho Học tập: UI tải <code>/api/hoc-tap/departments</code>, merge với 5 role/phòng ban canonical, và auto chọn phòng ban hiện tại của user.</li>
+    <li>Label phòng ban trong Học tập dùng <code>roles.ts</code> thay vì label demo team; vì vậy <code>van-hanh</code> hiển thị nhất quán là “Hành chính / HR” trên bộ đề và filter.</li>
+    <li>Ngày 19/06/2026, sau feedback “HTML làm gốc”, đưa runtime <code>/hoc-tap</code> quay lại bố cục 3 vùng bám <code>specs/ai_studio_code.html</code>: hồ sơ/menu trái, khu quiz giữa, leaderboard/tạo quiz phải.</li>
+    <li>Ngày 19/06/2026, theo feedback mới, đổi mặt chính sang màn “Chơi với team” bám <code>specs/ai_studio_codegame.html</code>: action card tạo/tham gia phòng, filter phòng, grid room, bạn bè đang chơi và thành tích gần đây.</li>
+    <li>Dùng <code>/images/hoc-tap/trophy.png</code> và <code>/images/hoc-tap/robot.png</code> làm material cho hai action card theo đúng yêu cầu user.</li>
+    <li>Ngày 19/06/2026, thêm state tab nội bộ cho <code>/hoc-tap</code> để click qua lại giữa “Quiz &amp; Trắc nghiệm” và “Chơi với team” ngay trên cùng một trang, không đổi route và không sửa nội dung UI team đã hoàn tất.</li>
+    <li>Màn “Quiz &amp; Trắc nghiệm” dùng lại <code>specs/ai_studio_code.html</code> làm bố cục tham chiếu: hero, filter bộ đề, grid card quiz, leaderboard cá nhân/phòng ban và CTA tạo quiz demo.</li>
+    <li>Ngày 19/06/2026, triển khai phòng chơi online kiểu Kahoot bằng <code>lib/hoc-tap-room-store.ts</code>, Next Route Handlers dưới <code>/api/hoc-tap/rooms</code>, polling client và trang <code>/hoc-tap/phong/[code]</code>.</li>
+    <li>Ngày 20/06/2026, harden luồng tạo phòng AI project theo <code>ai_studio_codegame_project_room_types.html</code>: <code>host-review</code> được preview/sửa/chọn câu trước, còn <code>ai-secret</code> bị chặn preview ở server và chỉ gen bộ đề khi tạo phòng; đồng thời sửa fallback type trong <code>services/quizApi.ts</code> để build production không gãy.</li>
+    <li>Ngày 20/06/2026, tiếp tục theo <code>specs/continual.md</code> để khóa regression cho flow quiz có sẵn với vai trò <code>Chủ phòng</code>/<code>Người chơi</code>: thêm test store/route cho room system-hosted, auto-phase theo timer, Top 5/Top 3 không tính host, và đồng bộ wrapper room cũ với shape snapshot mới.</li>
+    <li>Ngày 21/06/2026, mở rộng thêm một vòng hoàn thiện theo feedback user: room store có pha <code>reveal</code> để hiện đúng/sai màu xanh lá/đỏ trước leaderboard, AI project cũng có segmented control <code>Chủ phòng / Người chơi</code> cho cả <code>Host kiểm duyệt</code> và <code>AI bí mật</code>, và màn phòng quay lại đúng route <code>/choi-voi-team</code>.</li>
+    <li>Ngày 21/06/2026, siết thêm invariant reveal: trong 60 giây trả lời, snapshot chỉ giữ lựa chọn người chơi đã chốt để khóa nút và hiển thị trạng thái chờ; <code>correctIndex</code>, <code>isCorrect</code>, <code>points</code> và <code>explanation</code> chỉ lộ ra khi cả phòng trả lời xong hoặc hết giờ rồi bước vào pha <code>reveal</code> 5 giây.</li>
+    <li>Ngày 21/06/2026, bổ sung lớp quản trị room tối thiểu ngay trên kiến trúc memory hiện tại: host có thể xoá phòng, bật/tắt khoá phòng theo mã, snapshot/public room có thêm cờ <code>isLocked</code> và <code>canManageRoom</code>, còn participant/avatar live room chuyển sang DiceBear <code>bottts-neutral</code> deterministic theo <code>participant.id</code>.</li>
+    <li>Ngày 21/06/2026, mở rộng từ avatar deterministic sang avatar chọn được trên browser: user có picker DiceBear ngay ở thẻ hồ sơ Học tập và tab Thông tin cá nhân, preference được lưu local và truyền theo <code>avatarSeed</code> vào create/join room để avatar đã chọn tiếp tục xuất hiện trong room team.</li>
+    <li>Thêm route <code>/choi-voi-team</code> để top navigation hiện có không còn trỏ vào 404; route này tái dùng <code>HocTapDashboard</code> với tab team.</li>
+    <li>Chuyển các file socket/demo cũ (<code>quizApi</code>, <code>useQuizSocket</code>, <code>useGameStore</code>, <code>CreateRoomModal</code>) sang wrapper không cần dependency ngoài để không kéo <code>axios</code>, <code>socket.io-client</code>, <code>zustand</code> hoặc <code>framer-motion</code> vào build.</li>
+  </ul>
+
+  <h2>2. Những chỗ AI phải thay đổi so với spec gốc</h2>
+  <ul>
+    <li>HTML tham khảo có 8 nút “Làm quiz”; bản triển khai chỉ bật 5 quiz mock tự tạo tương ứng 5 role hiện có. Prompt, Data và Automation hiển thị “Sắp ra mắt”.</li>
+    <li>Không sao chép header/account menu/FAB từ HTML vì app đã có layout và trợ lý nổi dùng chung.</li>
+    <li>XP/cấp độ tăng sau khi hoàn thành quiz mock bằng localStorage demo; leaderboard vẫn chưa ghi Supabase vì Phase 2.6 chưa triển khai.</li>
+    <li>Visual mới có nền trắng/xám trung tính; bản triển khai giữ palette kem–xanh rừng hiện có để trang Học tập không tách khỏi nhận diện chung.</li>
+    <li>Giữ lại sidebar hồ sơ, menu Học tập, leaderboard và khối tạo quiz theo HTML gốc; các khối này là UI/demo state, không tạo backend Phase 2.6.</li>
+    <li>Đổi select “Môn học” thành hai lớp rõ hơn: “Phòng ban” cho role/department và “Chủ đề” cho nhóm nội dung như AI cơ bản, Marketing, Prompt, Data, Automation.</li>
+    <li>Không sao chép header trong HTML vào component vì <code>AppNav</code> đã là layout chung của project; phần còn lại của trang bám sát mẫu gốc.</li>
+    <li>Với <code>ai_studio_codegame.html</code>, các nút phòng seed có thể trỏ tới quiz mock hiện có nếu có <code>quizId</code>; tạo phòng và tham gia bằng mã nay gọi API memory thật, nhưng chưa ghi dữ liệu bền vững.</li>
+    <li>Sau yêu cầu tạo/tham gia phòng online, màn team là tab mặc định của <code>/hoc-tap</code>; người dùng vẫn có thể chuyển qua “Quiz &amp; Trắc nghiệm” trong sidebar trái.</li>
+    <li>Metadata <code>/hoc-tap</code> đổi sang tên trung tính “Học tập” vì route giờ chứa cả quiz và team play.</li>
+    <li>Không dùng socket.io server riêng trong bước này dù có thư mục <code>src/quiz-server</code> nháp, vì dự án chính chưa có dependency/runtime deploy cho server đó.</li>
+    <li>HTML tham khảo vẫn tạo mảng câu hỏi rồi ẩn trong client cho phòng blind; runtime thật đổi thành guard server-side để không thể gọi lén endpoint preview lấy đáp án của phòng AI bí mật.</li>
+    <li>Wrapper room cũ trong <code>components/quiz/CreateRoomModal.tsx</code> và <code>services/quizApi.ts</code> vẫn được giữ để tránh gãy phần UI cũ chưa xóa, nhưng nay đã cho phép <code>hostToken</code> optional và fallback snapshot đủ trường mới để build TypeScript không lệch shape.</li>
+    <li>Nút quay lại trong room detail, empty state và finished state không còn trỏ về tổng quan Học tập; chúng quay về <code>/choi-voi-team</code> để giữ đúng mental model của flow team play.</li>
+    <li>Panel tóm tắt “Điểm của bạn / Hạng của bạn” ở cột phải đổi từ 2 cột sang 2 hàng dọc để XP nhiều chữ số không còn bị <code>truncate</code> trên card hẹp.</li>
+  </ul>
+
+  <h2>3. Tradeoff AI phải cân nhắc</h2>
+  <ul>
+    <li><strong>Tạo quiz Học tập riêng hay tái sử dụng:</strong> chọn tách quiz riêng vì yêu cầu mới xác định đây là quiz mock tự tạo bởi người dùng, không phải quiz bài học.</li>
+    <li><strong>Return URL tự do hay whitelist:</strong> chỉ ánh xạ <code>from=hoc-tap</code> sang <code>/hoc-tap</code>; mọi giá trị khác trở về <code>/lo-trinh</code>.</li>
+    <li><strong>Leaderboard thật hay demo:</strong> chọn demo có nhãn rõ ràng để không giả vờ Phase 2 gamification đã hoàn thành.</li>
+    <li><strong>Độ giống HTML hay tính nhất quán sản phẩm:</strong> ưu tiên bố cục 3 vùng, card nhỏ và leaderboard của HTML; vẫn dùng token màu/font/radius của dự án để không lệch toàn app.</li>
+    <li><strong>Lưu bookmark hay bám HTML:</strong> bỏ bookmark khỏi card runtime vì HTML gốc không có thao tác này; giữ card tập trung vào CTA “Luyện ngay”.</li>
+    <li><strong>Team play thật hay UI demo:</strong> trước đó chọn UI demo; theo yêu cầu mới, nâng lên room online bằng REST + polling + memory store để có luồng chơi được ngay mà không mở schema Supabase.</li>
+    <li><strong>State tab hay route query:</strong> chọn state nội bộ để không đổi routing, không tạo file route mới và tránh ảnh hưởng deep link/return flow <code>from=hoc-tap</code> hiện có.</li>
+    <li><strong>Dùng chung filter hay tách filter:</strong> tách filter quiz khỏi filter phòng team để khi chuyển tab qua lại không làm reset hoặc đổi hành vi phần “Chơi với team” đã hoàn tất.</li>
+    <li><strong>Socket/Reatime hay polling:</strong> chọn polling 2.5–4 giây qua Next Route Handlers để tránh thêm runtime và dependency; tradeoff là chưa phù hợp production đa instance/serverless memory reset.</li>
+    <li><strong>Ẩn bằng UI hay chặn bằng backend:</strong> chọn chặn preview <code>ai-secret</code> ở Route Handler để invariant phòng bí mật không phụ thuộc vào client hiện tại.</li>
+    <li><strong>Chỉ browser smoke hay thêm regression test:</strong> chọn thêm regression test ở mức store/route vì flow room bây giờ có timer + nhiều phase, rất dễ gãy âm thầm nếu chỉ nhìn UI.</li>
+    <li><strong>Nhảy thẳng leaderboard hay có pha reveal:</strong> chọn thêm pha <code>reveal</code> riêng thay vì hack trong UI, vì chỉ như vậy mọi viewer mới thấy cùng một trạng thái “đúng/sai rồi mới sang bảng xếp hạng”.</li>
+    <li><strong>Lộ kết quả ngay sau khi bấm hay chờ cả phòng:</strong> chọn chờ tới khi câu đóng rồi mới reveal, vì đây là invariant gameplay Kahoot-like user vừa chốt; tradeoff là cần tách trạng thái “đã trả lời” khỏi “đã biết kết quả” trong snapshot.</li>
+    <li><strong>Khoá phòng bằng PIN hay chỉ bằng mã room:</strong> chọn không thêm PIN/password mới; room vẫn public trong danh sách nhưng card bị disable và chỉ ai biết mã hoặc URL code mới vào được. Tradeoff là mức bảo vệ nhẹ hơn password thật, nhưng không mở thêm state/validation phức tạp ngoài phạm vi task.</li>
+    <li><strong>Lưu avatar server hay local browser:</strong> tạm chọn local preference để không đụng profile schema/API trong task Học tập; đổi lại avatar chưa tự sync đa thiết bị cho đến khi có task persistence riêng.</li>
+  </ul>
+
+  <h2>4. Bất kỳ điều gì khác cần lưu ý</h2>
+  <ul>
+    <li>Mục team play có tìm kiếm phòng/chủ đề, lọc phòng ban, lọc chủ đề, lọc trạng thái/chế độ và sort mới nhất, nhiều câu nhất, XP cao nhất.</li>
+    <li>“Chơi với team” là menu active; “Tạo phòng” và nhập mã phòng nay gọi API, lưu participant/host token trong localStorage và chuyển tới lobby/game.</li>
+    <li>Không có migration hoặc thay đổi RLS trong task này; API mới dùng memory store và chỉ yêu cầu session demo/Supabase hiện có.</li>
+    <li>Hai asset runtime nằm tại <code>src/frontend/public/images/hoc-tap/</code>; file trophy đã sửa tên chính tả.</li>
+    <li>Filter phòng ban hiện vẫn bám 5 role/phòng ban canonical; custom department/job-role thật thuộc Phase 2 và cần task riêng trước khi mở rộng schema/UI.</li>
+    <li>Verification ngày 19/06/2026: targeted Node 20 Vitest 13/13 pass; scoped ESLint pass (notice cấu hình Pages Router đã biết); Node 20 <code>npm run build</code> pass; sau chỉnh lại theo HTML gốc, scoped ESLint cho <code>hoc-tap-dashboard.tsx</code> pass; sau chỉnh theo <code>ai_studio_codegame.html</code>, targeted Vitest Học tập 16/16 pass và scoped ESLint cho dashboard/page pass; full lint/test/build đang chạy lại.</li>
+    <li>Verification cập nhật ngày 19/06/2026: <code>npx eslint src/frontend/components/hoc-tap-dashboard.tsx 'src/frontend/app/(app)/hoc-tap/page.tsx'</code> pass (notice Pages Router cũ); targeted Vitest Học tập 16/16 pass; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run build</code> pass ngoài sandbox. <code>npm run test</code> chạy unit 60 files / 286 tests pass nhưng API integration còn fail 2 case chat/manager khi runner dùng server có sẵn <code>:3000</code>.</li>
+    <li>Verification room online ngày 19/06/2026: targeted Vitest Học tập/room 22/22 pass; scoped ESLint cho room store, route handlers, dashboard, room page và wrapper socket cũ pass. Full lint/test/build sẽ chạy lại trước khi kết thúc task.</li>
+    <li>Verification hardening ngày 20/06/2026: <code>npx vitest run src/frontend/lib/hoc-tap-room-store.test.ts src/frontend/app/api/hoc-tap/rooms/preview/route.test.ts</code> pass 11/11; scoped ESLint cho preview route/test, room page component, room store test và <code>services/quizApi.ts</code> pass; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run build</code> pass; <code>npm run db:validate</code> pass sau khi đổi migration study sessions sang <code>20260620080312_learning_study_sessions.sql</code>. <code>npm run test</code> chưa pass vì API phase 1 còn 2 lỗi chat/manager ngoài phạm vi sau khi Unit 302/302 pass.</li>
+    <li>Verification regression ngày 20/06/2026: Node 20 <code>vitest</code> cho <code>src/frontend/lib/hoc-tap-room-store.test.ts</code>, <code>src/frontend/app/api/hoc-tap/rooms/route.test.ts</code> và <code>preview/route.test.ts</code> pass 15/15; scoped ESLint cho store, route test, wrapper room cũ pass; full <code>eslint .</code> pass với 6 warning cũ; Node 20 <code>next build src/frontend</code> pass. Full <code>npm run test</code> vẫn fail 2 case API phase 1 có sẵn: unauth <code>/api/chat/history</code> và manager chat seed membership.</li>
+    <li>Verification ngày 21/06/2026: Node 20 <code>vitest</code> cho <code>src/frontend/lib/hoc-tap-room-store.test.ts</code>, <code>src/frontend/app/api/hoc-tap/rooms/route.test.ts</code> và <code>preview/route.test.ts</code> pass 17/17; full <code>eslint .</code> pass với 5 warning cũ; Node 20 <code>next build src/frontend</code> pass. Full <code>npm run test</code> vẫn fail ở 2 API phase 1 ngoài phạm vi room team: unauth <code>/api/chat/history</code> và manager chat seed membership.</li>
+    <li>Verification bổ sung ngày 21/06/2026 cho flow “đã chốt đáp án”: Node 20 <code>vitest run src/frontend/lib/hoc-tap-room-store.test.ts</code> pass 15/15 với regression “không lộ đúng/sai trước reveal”; <code>npm run lint</code> pass với 5 warning cũ; Node 20 <code>next build src/frontend</code> pass sau khi vá fallback <code>canStart</code> trong <code>services/quizApi.ts</code>. Full <code>npm run test</code> ngoài sandbox vẫn dừng ở 2 case API phase 1 có sẵn: unauth <code>/api/chat/history</code> và manager chat seed membership.</li>
+    <li>Verification bổ sung ngày 21/06/2026 cho room admin/avatar: Node 20 <code>vitest run src/frontend/lib/hoc-tap-room-store.test.ts src/frontend/app/api/hoc-tap/rooms/route.test.ts src/frontend/app/api/hoc-tap/rooms/[code]/route.test.ts</code> pass 25/25; scoped ESLint cho store/API/dashboard/team-room/client-api pass; <code>npm run lint</code> pass với 5 warning cũ; Node 20 <code>next build src/frontend</code> pass. Full <code>npm run test</code> vẫn fail đúng 2 case API phase 1 cũ: unauth <code>/api/chat/history</code> và manager chat seed membership.</li>
+    <li>Verification bổ sung ngày 21/06/2026 cho avatar picker và panel điểm/hạng sẽ chạy lại với targeted Node 20 <code>vitest</code> cho room store/create route, scoped ESLint cho dashboard/account/team-room/avatar helper, và Node 20 <code>next build src/frontend</code>; full <code>npm run test</code> vẫn dự kiến giữ 2 lỗi API phase 1 ngoài phạm vi nếu không có thay đổi khác.</li>
+  </ul>
+</body>
+</html>

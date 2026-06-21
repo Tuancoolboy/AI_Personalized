@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Notes — BE-08: Multi-Manager Roadmap</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 880px; margin: 0 auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; color: #24292e; }
+    h2 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; color: #24292e; margin-top: 24px; }
+    .meta { color: #586069; font-style: italic; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 10px; }
+    th, td { padding: 8px 12px; border: 1px solid #dfe2e5; text-align: left; vertical-align: top; }
+    th { background-color: #f6f8fa; }
+    code { background: #f6f8fa; padding: 0.1em 0.3em; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Implementation Notes — BE-08: Multi-Manager Roadmap</h1>
+  <div class="meta">
+    <p>Spec: <code>specs/BE-08-multi-manager-roadmap.md</code></p>
+    <p>Thực hiện bởi: Codex</p>
+    <p>Ngày: 2026-06-10; cập nhật: 2026-06-12</p>
+    <p>Branch: <code>feat/tuan</code>; cập nhật trên <code>feat/tuanvh/manager-private-organizations</code></p>
+  </div>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Quyết định</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Dùng <code>organization_members</code> làm source of truth cho manager thật.</td>
+        <td>Tránh tiếp tục dựa vào email pattern khi Supabase real mode đã bật.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Dùng Supabase service role trong <code>/api/manager/team</code> sau khi đã kiểm tra manager session.</td>
+        <td>Manager cần đọc dữ liệu cross-user; service role chỉ ở server nên không expose secret ra client.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Luồng thêm nhân viên chỉ yêu cầu email và checkbox quyền quản lý; API tự đọc hồ sơ đã đăng ký nếu có.</td>
+        <td>Giảm ma sát cho manager, tránh bắt nhập lại họ tên/số điện thoại/phòng ban đã có trong Supabase.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Tách manager mới sang organization riêng theo email bằng <code>20260610110000_manager_private_organizations.sql</code>.</td>
+        <td>Không có UI chọn nhiều tổ chức, nên mỗi manager email cần một công ty mặc định ổn định để tránh lẫn team.</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Khóa mỗi Auth user/email chỉ thuộc một organization bằng <code>20260610120000_single_organization_membership.sql</code>.</td>
+        <td>Chưa có UI chuyển công ty; cho phép một email xuất hiện trong nhiều công ty làm lẫn team và quyền quản lý.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Những chỗ AI thay đổi so với spec gốc</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Spec nói</th>
+        <th>AI làm gì thay thế</th>
+        <th>Lý do</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>BE-08 roadmap file được docs nhắc tới nhưng không tồn tại trong working tree.</td>
+        <td>Tạo lại file roadmap và migration <code>0008</code> theo trạng thái code hiện tại.</td>
+        <td>Cần có source of truth trước khi mở manager production scope.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Phase 2.5 yêu cầu smoke test nhiều tổ chức/quản lý.</td>
+        <td>Để checklist Phase 2.5 chưa tick.</td>
+        <td>Chưa có Supabase production-like data trong phiên này để xác minh đa tổ chức.</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Manager có thể có nhiều membership nhưng chưa có UI chuyển tổ chức.</td>
+        <td>Thêm helper chọn membership ưu tiên <code>owner</code>, organization riêng, rồi <code>updated_at</code> mới nhất.</td>
+        <td>Giữ UI hiện tại nhưng loại bỏ hành vi lấy dòng đầu tiên không ổn định từ Supabase.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. Tradeoff AI phải cân nhắc</h2>
+  <p><strong>RLS manager policy vs service-role aggregation:</strong> vẫn tạo RLS cho membership, nhưng team aggregation dùng service role trong Route Handler vì cần đọc <code>profiles</code>, <code>module_progress</code>, và <code>quiz_results</code> của nhiều user.</p>
+  <p><strong>Email đã tồn tại:</strong> tìm user bằng Admin API theo email, đọc <code>profiles.full_name</code>, <code>profiles.phone_number</code> và <code>profiles.role_id</code> nếu có, rồi upsert membership. Nếu tài khoản chưa đăng ký, API trả lỗi để nhân viên tạo tài khoản trước.</p>
+  <p><strong>Department field:</strong> dùng lại role IDs kebab-case (<code>kinh-doanh</code>, <code>ke-toan</code>...) để tránh thêm taxonomy mới.</p>
+  <p><strong>Real-mode empty team:</strong> khi Supabase đã cấu hình, dashboard/list không fallback về <code>TEAM_MEMBERS</code> demo nữa. Manager mới sẽ thấy trạng thái rỗng cho đến khi có membership thật trong <code>organization_members</code>.</p>
+  <p><strong>Manager self-row:</strong> API team loại row của manager đang đăng nhập khỏi danh sách/trang dashboard để trưởng phòng xem nhân viên khác, không tự xuất hiện như một nhân viên cần quản lý.</p>
+  <p><strong>Private organization per manager:</strong> checkbox <code>Cấp quyền quản lý</code> hiện tạo organization riêng cho email được cấp quyền, thay vì đưa người đó vào công ty hiện tại của manager đang thao tác.</p>
+  <p><strong>Single organization per account:</strong> API thêm nhân viên và accept link mời đều kiểm tra mọi membership của user trước khi ghi. Nếu user đã thuộc organization khác, hệ thống trả conflict hoặc hiển thị lỗi link mời thay vì tự chuyển công ty.</p>
+  <p><strong>Reset dev data:</strong> thêm script SQL riêng để xóa dữ liệu dev/test, bao gồm <code>auth.users</code>. Không chạy script này trên production.</p>
+
+  <h2>4. Những điều khác bạn nên biết</h2>
+  <ul>
+    <li><strong>Migration cần chạy:</strong> chạy <code>0008_multi_manager_core.sql</code>, sau đó <code>20260610110000_manager_private_organizations.sql</code> để tách manager khỏi <code>Tổ chức mặc định</code>, rồi <code>20260610120000_single_organization_membership.sql</code> để enforce một user một công ty.</li>
+    <li><strong>Schema cũ:</strong> <code>0008</code> có đoạn compatibility để nâng cấp bảng từng tạo nháp với cột <code>department</code> sang <code>department_id</code> và thêm unique constraint <code>organization_id,user_id</code> cho Supabase upsert.</li>
+    <li><strong>Full name khi đăng ký:</strong> chạy thêm <code>0009_profile_full_name_metadata.sql</code> để trigger lấy <code>full_name</code> từ Supabase Auth metadata; manager add form không còn yêu cầu nhập họ tên.</li>
+    <li><strong>Số điện thoại:</strong> chạy thêm <code>0010_profile_phone_number.sql</code>; manager team API có thể đọc <code>profiles.phone_number</code> để hiển thị dưới email nhân viên, nhưng add form không yêu cầu số điện thoại.</li>
+    <li><strong>Known limitation:</strong> chưa có UI chuyển công ty; nếu cần chuyển nhân viên từ công ty A sang công ty B thì phải làm thao tác admin/manual có chủ đích.</li>
+    <li><strong>Follow-up:</strong> chạy smoke test với <code>vuhaituan@gmail.com</code>, <code>ronaldo36@gmail.com</code>, và một employee như <code>mixi@gmail.com</code> để xác nhận công ty thứ hai bị chặn.</li>
+  </ul>
+
+  <h2>5. Update 2026-06-16 — UI manager theo mẫu Gemini</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Tạo <code>ManagerWorkspaceShell</code> dùng chung cho màn <code>/quan-ly/nhan-vien</code> và <code>/quan-ly/cai-dat</code>, gồm sidebar quản lý, thẻ tổ chức, và vùng nội dung rộng theo mẫu HTML <code>specs/gemini-code-1781627827649.html</code>.</p>
+
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Không thay đổi BE-08 schema/API/RLS. Phần thay đổi chỉ là presentation: KPI cards, filter/search/status controls, cột liên hệ trong bảng nhân viên, và visual cards cho cài đặt công cụ AI.</p>
+
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không copy HTML mẫu trực tiếp vì repo dùng Next.js, Tailwind v4 và lucide-react. Chọn tái hiện layout bằng component React hiện có để giữ data flow <code>fetchManagerTeam</code>, invite link, add-member modal, demo fallback và real-mode behavior.</p>
+
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Top navigation desktop có active underline để khớp mẫu. Nút Chat trong cột liên hệ mở <code>ManagerDirectChatModal</code> nhắn tin trực tiếp theo từng nhân viên trên cả <code>/quan-ly</code> và <code>/quan-ly/nhan-vien</code>, lưu lịch sử demo bằng <code>localStorage</code>; không gọi trợ lý AI và không dùng <code>/api/chat</code>. Các sửa đổi chat có sẵn trước task này được giữ trong <code>stash@{0}</code> do conflict với <code>develop</code> mới.</p>
+</body>
+</html>

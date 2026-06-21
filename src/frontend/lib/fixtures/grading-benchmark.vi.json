@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "tolerancePoints": 10,
+  "cases": [
+    {
+      "id": "kinh-doanh-email-pass",
+      "moduleId": "kinh-doanh-m2",
+      "roleId": "kinh-doanh",
+      "answerText": "Em dùng ChatGPT viết email chốt sale cho khách ABC Corp. Email có tên công ty, nhu cầu cụ thể (giảm 20% chi phí vận hành), CTA hẹn demo thứ Ba 10h và chữ ký đầy đủ.",
+      "expectedBand": "pass",
+      "expectedScoreMin": 75,
+      "expectedScoreMax": 100,
+      "reviewerNote": "Đủ cá nhân hóa, CTA rõ — band pass."
+    },
+    {
+      "id": "kinh-doanh-email-borderline",
+      "moduleId": "kinh-doanh-m2",
+      "roleId": "kinh-doanh",
+      "answerText": "Em nhờ AI viết email giới thiệu sản phẩm chung chung, không ghi tên khách, có lời mời liên hệ nhưng thiếu lợi ích cụ thể.",
+      "expectedBand": "borderline",
+      "expectedScoreMin": 55,
+      "expectedScoreMax": 75,
+      "reviewerNote": "Có dùng AI nhưng thiếu chi tiết khách hàng — sát ngưỡng 70."
+    },
+    {
+      "id": "ke-toan-prompt-fail",
+      "moduleId": "ke-toan-m1",
+      "roleId": "ke-toan",
+      "answerText": "Em copy nguyên prompt mẫu trên mạng, không áp dụng vào hóa đơn hay sổ sách công ty.",
+      "expectedBand": "fail",
+      "expectedScoreMin": 0,
+      "expectedScoreMax": 55,
+      "reviewerNote": "Không liên quan nghiệp vụ kế toán — band fail."
+    },
+    {
+      "id": "marketing-caption-pass",
+      "moduleId": "marketing-m2",
+      "roleId": "marketing",
+      "answerText": "Em dùng AI viết 3 caption Facebook cho chiến dịch Tết của shop thời trang: có hook, emoji vừa phải, hashtag đúng ngách và CTA mua ngay.",
+      "expectedBand": "pass",
+      "expectedScoreMin": 72,
+      "expectedScoreMax": 100,
+      "reviewerNote": "Đúng nghề marketing, có cấu trúc post."
+    },
+    {
+      "id": "van-hanh-checklist-borderline",
+      "moduleId": "van-hanh-m1",
+      "roleId": "van-hanh",
+      "answerText": "Em liệt kê checklist vận hành kho nhưng chưa nói rõ dùng AI ở bước nào, chỉ paste danh sách việc thủ công.",
+      "expectedBand": "borderline",
+      "expectedScoreMin": 50,
+      "expectedScoreMax": 72,
+      "reviewerNote": "Liên quan vận hành nhưng thiếu bằng chứng dùng AI."
+    }
+  ]
+}

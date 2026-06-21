@@ -1,0 +1,33 @@
+---
+description: Checklist bắt buộc trước khi báo task xong — git, verify, docs, render AI output
+alwaysApply: true
+---
+
+# Task Completion Checklist — Bắt buộc
+
+> Canonical source: `.agents/rules/task-completion-checklist.md` — giữ đồng bộ khi sửa.
+> Đọc **trước khi** báo task hoàn thành / mở PR.
+
+## Git (§1)
+
+Feature mới → `develop` + pull + `checkout -b {type}/{noi-dung}` **trước khi code**. Không commit feature trên `develop`.
+
+## Verify (§2)
+
+Pass: `npm run lint`, `npm run test`, `npm run build`. Có bằng chứng lệnh — không báo xong giả.
+
+## Docs (§3)
+
+Cập nhật `specs/PROJECT-CONTINUATION.md`; `WORKLOG.md` nếu quyết định kỹ thuật quan trọng.
+
+## Render AI output (§4) — khi chạm chat/rich text/parser
+
+- Parser **scoped** — không Markdown đầy đủ; document phạm vi
+- **Whitelist href** từ AI/user; fail → plain text
+- JSX `{text}` = React escape — không DOMPurify cho text child
+- Pattern lồng `**[link](url)**` → ưu tiên link hoặc parse đệ quy bold
+- Parser đệ quy → depth guard (`MAX_INLINE_PARSE_DEPTH`)
+- Prompt + UI fallback (context có URL canonical)
+- Test regression: `javascript:`, external URL, bad path; `renderToStaticMarkup` nếu cần
+
+Chi tiết + checkbox đầy đủ: `.agents/rules/task-completion-checklist.md`.

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Implementation Notes — PHASE2: Company Learning Platform</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
+    h1 { border-bottom: 2px solid #eaecef; padding-bottom: 0.3em; }
+    h2 { border-bottom: 1px solid #eaecef; margin-top: 24px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    th, td { padding: 8px 12px; border: 1px solid #dfe2e5; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Implementation Notes — PHASE2: Company Learning Platform</h1>
+  <p>Spec: <code>specs/PHASE2-SPEC.md</code></p>
+  <p>Thực hiện bởi: Codex</p>
+  <p>Ngày: 2026-06-11</p>
+  <p>Branch: <code>docs/phase-2-product-agent-spec</code></p>
+
+  <h2>1. Quyết định AI tự ra (ngoài spec)</h2>
+  <table>
+    <tr><th>#</th><th>Quyết định</th><th>Lý do</th></tr>
+    <tr>
+      <td>1</td>
+      <td>Xem 4 agent là 4 capability có interface rõ ràng, không phải hệ multi-agent tự trị.</td>
+      <td>Phần lớn nghiệp vụ là single-purpose; tránh token fan-out, khó debug và dependency orchestration chưa cần thiết.</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Không thêm LangGraph trong lõi Phase 2.</td>
+      <td>Repo đang là Next.js TypeScript monorepo; Route Handler và module TypeScript đủ cho các workflow hiện tại.</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Dùng deterministic recommendation thay cho LLM ranking.</td>
+      <td>Kết quả tái lập được, giải thích được và không tốn token cho mỗi lần mở lộ trình.</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Google OAuth là auth mới bắt buộc; phone OTP đặt sau feature flag.</td>
+      <td>Phone OTP cần SMS provider, chống abuse và ngân sách vận hành chưa được chốt.</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Giữ <code>gpt-4o-mini</code> làm model mặc định, chỉ escalation có kiểm soát.</td>
+      <td>Model hiện tại hỗ trợ vision và structured output với chi phí thấp; phù hợp cảnh báo token của product.</td>
+    </tr>
+  </table>
+
+  <h2>2. Những chỗ AI thay đổi so với định hướng ban đầu</h2>
+  <table>
+    <tr><th>#</th><th>Định hướng</th><th>Spec chốt</th><th>Lý do</th></tr>
+    <tr>
+      <td>1</td>
+      <td>4 agent chính của hệ thống.</td>
+      <td>4 capability độc lập, một request chỉ đi vào một capability.</td>
+      <td>Vẫn giữ đúng 4 nghiệp vụ nhưng giảm chi phí và rủi ro orchestration.</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Mỗi công ty một link đăng nhập giống MISA.</td>
+      <td>Dùng <code>/c/[organizationSlug]</code> cho entry/login; token invite vẫn là quyền tham gia.</td>
+      <td>Slug không phải secret và không nên tự cấp membership.</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>Kết nối Google cá nhân hoặc số điện thoại.</td>
+      <td>Google OAuth trong must-ship; phone OTP feature-flagged.</td>
+      <td>Tránh đưa chi phí SMS và abuse risk vào critical path khi chưa có provider.</td>
+    </tr>
+  </table>
+
+  <h2>3. Tradeoff AI phải cân nhắc</h2>
+  <ul>
+    <li><strong>Giữ schema cũ hay thay ngay:</strong> chọn migration tương thích, thêm UUID reference mới rồi backfill; không phá <code>organization_members.department_id</code> text trong một lần.</li>
+    <li><strong>Vector search hay Postgres search:</strong> chọn full-text/filter trước; chỉ thêm <code>pgvector</code> khi có corpus công ty và benchmark chứng minh cần semantic retrieval.</li>
+    <li><strong>Realtime feed hay polling:</strong> chọn polling cho MVP; Realtime chỉ thêm khi activity volume và UX yêu cầu.</li>
+    <li><strong>AI recommendation hay rules:</strong> rules tạo ranking; LLM chỉ diễn đạt lý do khi cần.</li>
+    <li><strong>Model mạnh cho mọi request hay tiered routing:</strong> giữ model rẻ cho đường chính, model mạnh chỉ cho regrade/draft phức tạp có budget gate.</li>
+  </ul>
+
+  <h2>4. Những điều khác bạn nên biết</h2>
+  <ul>
+    <li><strong>Baseline:</strong> Agent 1 và Agent 4 đã có lõi thật; Agent 2 và Agent 3 mới partial.</li>
+    <li><strong>Hardening bắt buộc:</strong> invite accept đã chuyển sang POST (2026-06-13); department sync sau onboarding đã có; còn smoke test multi-org và integration tests.</li>
+    <li><strong>Privacy:</strong> Aha Moment private mặc định; share là opt-in.</li>
+    <li><strong>Known docs drift:</strong> một số tài liệu cũ còn nói manager dashboard mock hoặc dùng email pattern; <code>PROJECT-CONTINUATION.md</code> và code hiện tại mới là source of truth. <code>AGENTS.md</code> và đầu file <code>CLAUDE.md</code> đã được nối tới spec Phase 2 để tránh agent sau bỏ qua.</li>
+    <li><strong>Update 2026-06-13:</strong> hoàn thành P2-BE-00 (POST invite accept) và P2-BE-01 (department sync). Cập nhật <code>PHASE2-SPEC.md</code>, <code>PHASE2-ROADMAP.html</code>, <code>BE-10-company-invite-links.md</code>.</li>
+    <li><strong>Update 2026-06-12:</strong> thêm <code>specs/PHASE2-ROADMAP.html</code> làm trang tổng quan trực quan, đối chiếu Phase 1, Phase 2, các plan, worklog, migration và code hiện tại. Trang phân biệt rõ baseline đã có với checklist Phase 2 chính thức, đồng thời đánh dấu invite acceptance vẫn dùng <code>GET</code> là blocker Phase 2.0.</li>
+    <li><strong>Verification:</strong> Task này chỉ tạo tài liệu; cần review Markdown/HTML và <code>git diff --check</code>, không yêu cầu app build nếu không đổi code.</li>
+  </ul>
+</body>
+</html>

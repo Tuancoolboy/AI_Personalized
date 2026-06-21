@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Trợ Lý — Tổng quan những gì đã làm & vì sao</title>
+<style>
+  :root{
+    --bg:#FAF6EF; --bg2:#F2EBDF; --ink:#1C2622; --ink2:#51605A; --ink3:#94A099;
+    --brand:#15463B; --brand2:#1E5F4E; --soft:#E3EEE8; --fg:#FAF6EF;
+    --line:#E7DFD1; --gold:#C8923B; --accent:#DB6E4C; --card:#FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Be Vietnam Pro',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.65;font-size:15px;
+    background-image:radial-gradient(120% 90% at 100% 0%,#F4EDDE 0%,transparent 55%);
+    background-attachment:fixed;padding:0 0 64px}
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px}
+  h1,h2,h3{font-weight:800;letter-spacing:-0.01em;line-height:1.15}
+  header.top{padding:48px 0 24px}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+  h1{font-size:34px;margin-bottom:14px}
+  .lead{font-size:17px;color:var(--ink2);max-width:680px}
+  .pill{display:inline-block;background:var(--soft);color:var(--brand);font-size:13px;font-weight:600;
+    border-radius:999px;padding:6px 14px;margin:14px 8px 0 0}
+  section{margin-top:40px}
+  h2.sec{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+    border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:20px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}h1{font-size:27px}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px 22px;
+    box-shadow:0 1px 3px rgba(28,38,34,.05)}
+  .card .ico{width:38px;height:38px;border-radius:11px;background:var(--soft);color:var(--brand);
+    display:grid;place-items:center;font-size:19px;margin-bottom:12px}
+  .card h3{font-size:17px;margin-bottom:6px}
+  .card .did{font-size:14px;color:var(--ink2);margin-bottom:12px}
+  .why{background:var(--bg2);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;
+    padding:9px 13px;font-size:13.5px;color:var(--ink)}
+  .why b{color:var(--accent)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;overflow:hidden;font-size:14px}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+  th{background:var(--soft);color:var(--brand);font-weight:700;font-size:13px}
+  tr:last-child td{border-bottom:none}
+  code{background:var(--bg2);border-radius:5px;padding:1px 6px;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .steps{counter-reset:s;list-style:none}
+  .steps li{counter-increment:s;position:relative;padding:8px 0 8px 40px;font-size:14.5px;border-bottom:1px solid var(--line)}
+  .steps li:last-child{border-bottom:none}
+  .steps li:before{content:counter(s);position:absolute;left:0;top:7px;width:26px;height:26px;border-radius:50%;
+    background:var(--brand);color:var(--fg);display:grid;place-items:center;font-size:13px;font-weight:700}
+  .todo{background:#FBF1E9;border:1px solid #F0D7C6;border-radius:14px;padding:16px 20px}
+  .todo li{margin:6px 0 6px 18px;font-size:14px}
+  .tag{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;margin-right:6px}
+  .t-red{background:var(--accent)} .t-green{background:var(--brand)} .t-gold{background:var(--gold)}
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--ink3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">AI20K · Nhóm 09 · Cập nhật 13/06/2026</div>
+    <h1>AI Trợ Lý — chúng ta đã làm gì & vì sao</h1>
+    <p class="lead">Sản phẩm giúp <b>mọi nhân viên SME tự dùng được AI vào đúng công việc của mình ngay tuần đầu</b> —
+    bằng lộ trình cá nhân hóa + trợ lý AI giải thích bằng ví dụ đúng nghề, thay cho khóa đào tạo tập trung đắt đỏ, chung chung.</p>
+    <div>
+      <span class="pill">Next.js + Supabase + OpenAI</span>
+      <span class="pill">6 PR (#22–#27) chờ merge</span>
+      <span class="pill">eslint sạch · 65/65 test · build OK</span>
+    </div>
+  </header>
+
+  <section>
+    <h2 class="sec">Những tính năng đã làm — kèm lý do</h2>
+    <div class="grid">
+
+      <div class="card">
+        <div class="ico">📚</div>
+        <h3>Bài học 5 bước + Aha Moment</h3>
+        <p class="did">Mỗi bài: thực hành ngay với file mẫu → copy prompt → nộp cho AI chấm → ghi "điều vừa ngộ ra" → tóm tắt.</p>
+        <div class="why"><b>Vì sao:</b> học xong phải <b>áp dụng được và nhớ lâu</b>. Bắt người học nối kiến thức mới với cái họ đã biết giúp ghi nhớ; làm nhẹ nhàng 20 giây để không gây khó chịu.</div>
+      </div>
+
+      <div class="card">
+        <div class="ico">🏆</div>
+        <h3>Bảng xếp hạng + bảng tin</h3>
+        <p class="did">Bảng tuần + bảng tổng tích lũy; điểm từ học bài, chia sẻ, và bài thử thách. Feed "anh A vừa xong bài X" ở cấp phòng và công ty.</p>
+        <div class="why"><b>Vì sao:</b> tạo <b>động lực bằng hiệu ứng đồng nghiệp</b>; có bảng tổng + điểm đa nguồn để người đã hết bài vẫn cày rank được, không "đứng yên".</div>
+      </div>
+
+      <div class="card">
+        <div class="ico">🧭</div>
+        <h3>Lộ trình theo kỹ năng & phòng ban</h3>
+        <p class="did">Quản lý chọn phòng ban + kỹ năng mong muốn → AI gợi lộ trình (Nền tảng + theo kỹ năng) → áp cả phòng, chỉnh riêng từng người nếu cần.</p>
+        <div class="why"><b>Vì sao:</b> mỗi vị trí công việc mỗi khác nên <b>không fix cứng theo chức danh</b>; công ty trăm người thì set theo phòng mới không phải sửa từng người. Mỗi người 1 vị trí chính để học tới nơi tới chốn.</div>
+      </div>
+
+      <div class="card">
+        <div class="ico">🛠️</div>
+        <h3>Công cụ AI theo phòng ban</h3>
+        <p class="did">Mỗi phòng chọn 1 công cụ chính; bài cần ảnh/video tự gợi ý công cụ chuyên dụng. Có "Bạn đã có tài khoản chưa?" + video hướng dẫn.</p>
+        <div class="why"><b>Vì sao:</b> <b>phòng media khác phòng kế toán</b> — không thể ép cả công ty một công cụ. Nhân viên không phải tự chọn, mở bài là thấy đúng công cụ + cách dùng.</div>
+      </div>
+
+      <div class="card">
+        <div class="ico">📎</div>
+        <h3>File mẫu đính kèm + chấm rubric</h3>
+        <p class="did">Mọi bài thực hành đi kèm file mẫu (ẩn danh, có "điểm bẫy"); chấm bằng tiêu chí rõ ràng, nhận cả ảnh lẫn text.</p>
+        <div class="why"><b>Vì sao:</b> có <b>file mẫu cố định mới có đáp án chuẩn để chấm đúng</b>; chấm theo tiêu chí + nhận text giúp chính xác hơn là chỉ nhìn ảnh.</div>
+      </div>
+
+      <div class="card">
+        <div class="ico">👥</div>
+        <h3>Tách luồng Cá nhân vs Doanh nghiệp</h3>
+        <p class="did">Doanh nghiệp: quản lý set theo phòng. Cá nhân: lộ trình gọn theo nghiệp vụ, gợi ý công cụ sau bài test.</p>
+        <div class="why"><b>Vì sao:</b> <b>hai tệp khách hàng khác nhau</b> — người tự do không có quản lý nên cần hệ thống tự gợi ý, doanh nghiệp cần admin điều phối.</div>
+      </div>
+
+      <div class="card">
+        <div class="ico">🏛️</div>
+        <h3>Nền SaaS phân tầng + khu Quản trị</h3>
+        <p class="did">3 tầng: nhà vận hành (super-admin) → admin công ty → nhân viên. Cô lập dữ liệu giữa các công ty. Khu <code>/quan-tri</code> mức xem.</p>
+        <div class="why"><b>Vì sao:</b> <b>phân quyền & cô lập dữ liệu là móng</b> — phải đúng từ đầu, sửa sau rất tốn và dễ rò rỉ. Super-admin làm bản "xem" trước cho an toàn, quyền điều khiển làm sau.</div>
+      </div>
+
+      <div class="card">
+        <div class="ico">🔌</div>
+        <h3>Trợ lý AI chạy LLM thật</h3>
+        <p class="did">Trợ lý hỏi-đáp và chấm bài gọi OpenAI thật khi có API key; trả lời bằng ví dụ đúng nghề, cảnh báo dữ liệu nhạy cảm, giới hạn 30 lượt/ngày.</p>
+        <div class="why"><b>Vì sao:</b> đây là <b>lõi "agent" của sản phẩm</b> và là tiêu chí nghiệm thu — phải chạy LLM thật, không phải câu trả lời dựng sẵn.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2 class="sec">Cách mở xem demo (không cần cài gì phức tạp)</h2>
+    <ol class="steps">
+      <li>Mở nhánh <code>feature/admin-superadmin-ui</code> (đã chứa tất cả tính năng).</li>
+      <li>Chạy <code>npm run dev</code> → mở <code>localhost:3000</code> (tự chạy chế độ demo, không cần Supabase).</li>
+      <li>Đăng nhập bằng email demo bên dưới (mật khẩu gõ bất kỳ).</li>
+    </ol>
+    <div style="height:14px"></div>
+    <table>
+      <tr><th>Vai trò</th><th>Email đăng nhập</th><th>Vào thẳng</th></tr>
+      <tr><td>Super-admin (nhà vận hành)</td><td><code>lucas.ai.vn@gmail.com</code></td><td>/quan-tri</td></tr>
+      <tr><td>Quản lý / Trưởng phòng</td><td><code>quanly@congty.vn</code></td><td>/quan-ly</td></tr>
+      <tr><td>Nhân viên</td><td><code>nhanvien@congty.vn</code></td><td>/lo-trinh</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2 class="sec">Thứ tự gộp code (quan trọng — xếp chồng)</h2>
+    <p style="font-size:14.5px;color:var(--ink2);margin-bottom:8px">6 PR phụ thuộc nhau theo kiểu "móng trước, xây sau". Gộp lần lượt, đừng nhảy thứ tự:</p>
+    <p style="font-size:16px"><code>#22</code> → <code>#23</code> → <code>#24</code> → <code>#25</code> → <code>#26</code> → <code>#27</code></p>
+    <p style="font-size:13.5px;color:var(--ink3);margin-top:8px">Sau khi gộp dần, đổi "điểm gốc" (base) của các PR sau về <code>develop</code> nếu GitHub chưa tự cập nhật.</p>
+  </section>
+
+  <section>
+    <h2 class="sec">Việc còn lại (chưa làm)</h2>
+    <div class="todo">
+      <ul>
+        <li><span class="tag t-red">Nghiệm thu</span> Cắm <code>OPENAI_API_KEY</code> thật → chạy 5 ca eval + quay video demo 3 phút (chứng minh LLM thật, không mock).</li>
+        <li><span class="tag t-gold">Sau show</span> Super-admin: hiện mới có quyền <b>xem</b> → thêm quyền điều khiển (tạo/khóa công ty, đổi quyền…) làm bài bản, có nhật ký + xác nhận 2 bước.</li>
+        <li><span class="tag t-green">Hoàn thiện</span> Khu Quản trị đọc dữ liệu thật; gợi ý công cụ cá nhân hiển thị trong onboarding; đăng nhập Google.</li>
+        <li><span class="tag t-red">Bảo mật</span> Đổi mật khẩu super-admin mạnh; KHÔNG để demo-login (gõ đúng email là vào) lên bản thật.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Tài liệu chi tiết: <code>docs/tom-tat-thay-doi-cho-dong-doi.md</code> · <code>docs/ket-qua-ban-giao.md</code> ·
+    <code>docs/architecture_diagram.md</code> · <code>eval/results/report.md</code>. — AI Trợ Lý, Nhóm 09.
+  </footer>
+
+</div>
+</body>
+</html>
