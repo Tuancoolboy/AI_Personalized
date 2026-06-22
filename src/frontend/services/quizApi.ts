@@ -135,6 +135,7 @@ function emptyCreateResult(): HocTapRoomCreateResult & { roomCode: string } {
       currentQuestion: null,
       reviewQuestions: null,
       viewerAnswer: null,
+      viewerParticipantId: null,
       isHost: false,
       canManageRoom: false,
       canStart: false,

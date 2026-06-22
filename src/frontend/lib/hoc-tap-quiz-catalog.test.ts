@@ -29,9 +29,7 @@ describe("hoc-tap quiz catalog", () => {
     expect(available.map((item) => item.roleId)).toEqual([
       ...AVAILABLE_QUIZ_ROLE_IDS,
     ]);
-    expect(available.every((item) => item.creator === "Bạn tự tạo")).toBe(
-      true,
-    );
+    expect(available.every((item) => item.creator === "AI Trợ Lý")).toBe(true);
 
     for (const item of available) {
       expect(item.roleId).not.toBeNull();

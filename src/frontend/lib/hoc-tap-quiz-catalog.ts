@@ -77,9 +77,9 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
     id: "ai-hanh-chinh-hr",
     title: "AI cơ bản cho Hành chính & HR",
     description:
-      "Bộ quiz mock tự tạo để luyện cách dùng AI trong tuyển dụng, văn bản nội bộ và hành chính.",
+      "Bộ đề thực hành để luyện cách dùng AI trong tuyển dụng, văn bản nội bộ và hành chính.",
     category: "Hành chính & HR",
-    creator: "Bạn tự tạo",
+    creator: "AI Trợ Lý",
     difficulty: "Dễ",
     xp: 50,
     publishedOrder: 8,
@@ -98,7 +98,7 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
         ],
         correctIndex: 1,
         explanation:
-          "Quiz Học tập là bộ mock tự tạo, nên mục tiêu là luyện tình huống. Khi dùng AI thật, hãy ẩn dữ liệu cá nhân và chỉ đưa phần cần xử lý.",
+          "Bộ đề Học tập dùng để luyện tình huống thực tế. Khi dùng AI thật, hãy ẩn dữ liệu cá nhân và chỉ đưa phần cần xử lý.",
       },
       {
         question:
@@ -145,9 +145,9 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
     id: "ai-ban-hang",
     title: "AI hỗ trợ bán hàng hiệu quả",
     description:
-      "Bộ quiz mock tự tạo để luyện tìm khách, soạn nội dung và chăm sóc khách hàng bằng AI.",
+      "Bộ đề thực hành để luyện tìm khách, soạn nội dung và chăm sóc khách hàng bằng AI.",
     category: "Kinh doanh",
-    creator: "Bạn tự tạo",
+    creator: "AI Trợ Lý",
     difficulty: "Trung bình",
     xp: 80,
     publishedOrder: 7,
@@ -213,9 +213,9 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
     id: "ai-marketing",
     title: "AI trong Marketing hiện đại",
     description:
-      "Bộ quiz mock tự tạo để luyện lên ý tưởng, tối ưu nội dung và bảo vệ dữ liệu chiến dịch.",
+      "Bộ đề thực hành để luyện lên ý tưởng, tối ưu nội dung và bảo vệ dữ liệu chiến dịch.",
     category: "Marketing",
-    creator: "Bạn tự tạo",
+    creator: "AI Trợ Lý",
     difficulty: "Khó",
     xp: 100,
     publishedOrder: 6,
@@ -281,9 +281,9 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
     id: "ai-ke-toan",
     title: "AI an toàn cho công việc kế toán",
     description:
-      "Bộ quiz mock tự tạo để luyện nhận diện rủi ro, kiểm tra số liệu và dùng AI đúng cách trong nghiệp vụ.",
+      "Bộ đề thực hành để luyện nhận diện rủi ro, kiểm tra số liệu và dùng AI đúng cách trong nghiệp vụ.",
     category: "Kế toán",
-    creator: "Bạn tự tạo",
+    creator: "AI Trợ Lý",
     difficulty: "Trung bình",
     xp: 80,
     publishedOrder: 5,
@@ -349,9 +349,9 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
     id: "ai-van-phong",
     title: "Tổng hợp kiến thức AI văn phòng",
     description:
-      "Bộ quiz mock tự tạo dành cho nhân viên văn phòng muốn bắt đầu dùng AI an toàn.",
+      "Bộ đề thực hành dành cho nhân viên văn phòng muốn bắt đầu dùng AI an toàn.",
     category: "Văn phòng",
-    creator: "Bạn tự tạo",
+    creator: "AI Trợ Lý",
     difficulty: "Dễ",
     xp: 60,
     publishedOrder: 4,

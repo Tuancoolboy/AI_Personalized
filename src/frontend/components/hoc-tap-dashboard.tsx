@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,9 +19,7 @@ import {
   Database,
   Eye,
   Flame,
-  Gamepad2,
   Lightbulb,
-  List,
   ListChecks,
   LockKeyhole,
   Megaphone,
@@ -35,6 +39,11 @@ import {
 import { DicebearAvatarPicker } from "@/components/dicebear-avatar-picker";
 import { useAppProfile } from "@/hooks/use-app-profile";
 import { usePreferredAvatar } from "@/hooks/use-preferred-avatar";
+import {
+  parseAvatarChoice,
+  type AppAvatarChoice,
+  type AppAvatarOption,
+} from "@/lib/app-avatar";
 import { buildAvatarIdentity } from "@/lib/avatar-preferences";
 import {
   HocTapOverview,
@@ -290,9 +299,6 @@ const ROOM_FILTER_OPTIONS: Array<{ value: TeamRoomFilter; label: string }> = [
   { value: "all", label: "Tất cả phòng" },
   { value: "waiting", label: "Đang chờ" },
   { value: "playing", label: "Đang chơi" },
-  { value: "starting", label: "Sắp bắt đầu" },
-  { value: "classic", label: "Classic" },
-  { value: "team-battle", label: "Team Battle" },
 ];
 
 const HOC_TAP_PROGRESS_EVENT = "hoc-tap-quiz-progress";
@@ -307,7 +313,7 @@ export function HocTapDashboard({
   displayName,
   initialTab = "overview",
 }: HocTapDashboardProps) {
-  const { profile, fullName } = useAppProfile();
+  const { profile, fullName, avatar: remoteAvatar } = useAppProfile();
   const currentRoleId =
     profile?.roleId && isAvailableQuizRoleId(profile.roleId)
       ? profile.roleId
@@ -318,12 +324,11 @@ export function HocTapDashboard({
     avatarSeed,
     avatarUrl,
     selectAvatar,
-  } = usePreferredAvatar(avatarIdentity);
+  } = usePreferredAvatar(avatarIdentity, remoteAvatar);
   const [activeTab, setActiveTab] = useState<HocTapActiveTab>(initialTab);
   const [quizQuery, setQuizQuery] = useState("");
   const [quizDepartmentFilter, setQuizDepartmentFilter] =
     useState<HocTapQuizFilter>("all");
-  const [quizTopic, setQuizTopic] = useState<HocTapQuizTopic>("all");
   const [quizDifficulty, setQuizDifficulty] =
     useState<HocTapQuizDifficultyFilter>("all");
   const [quizSort, setQuizSort] = useState<HocTapQuizSort>("newest");
@@ -350,19 +355,24 @@ export function HocTapDashboard({
     getHocTapProgressSnapshot,
     getServerHocTapProgressSnapshot,
   );
+  const quizProgress = getHocTapQuizProgress();
   const { levelProgress, completedMockQuizzes } = useMemo(
     () => parseHocTapProgressSnapshot(progressSnapshot),
     [progressSnapshot],
+  );
+  const attemptedQuizIds = useMemo(
+    () => new Set(quizProgress.attempts.map((attempt) => attempt.quizId)),
+    [quizProgress],
   );
   const catalog = useMemo(() => buildHocTapQuizCatalog(), []);
   const filteredQuizCatalog = useMemo(
     () =>
       sortHocTapQuizCatalog(
-        filterHocTapQuizLibrary(
+          filterHocTapQuizLibrary(
           filterHocTapQuizCatalog(catalog, quizDepartmentFilter),
           {
             query: quizQuery,
-            topic: quizTopic,
+            topic: "all",
             difficulty: quizDifficulty,
           },
         ),
@@ -374,7 +384,6 @@ export function HocTapDashboard({
       quizDifficulty,
       quizQuery,
       quizSort,
-      quizTopic,
     ],
   );
   const visibleQuizCatalog = useMemo(
@@ -409,7 +418,6 @@ export function HocTapDashboard({
     100,
     Math.round((levelProgress.currentXp / levelProgress.targetXp) * 100),
   );
-  const extraXpLabel = `+${levelProgress.extraXp.toLocaleString("vi-VN")} XP`;
   const hasActiveFilters =
     query.trim().length > 0 ||
     effectiveDepartmentFilter !== "all" ||
@@ -418,7 +426,6 @@ export function HocTapDashboard({
   const hasActiveQuizFilters =
     quizQuery.trim().length > 0 ||
     quizDepartmentFilter !== "all" ||
-    quizTopic !== "all" ||
     quizDifficulty !== "all";
 
   useEffect(() => {
@@ -483,7 +490,6 @@ export function HocTapDashboard({
   function clearQuizFilters() {
     setQuizQuery("");
     setQuizDepartmentFilter("all");
-    setQuizTopic("all");
     setQuizDifficulty("all");
     setQuizExpanded(false);
   }
@@ -502,7 +508,6 @@ export function HocTapDashboard({
           currentXp={levelProgress.currentXp}
           targetXp={levelProgress.targetXp}
           totalXp={levelProgress.totalXp}
-          extraXpLabel={extraXpLabel}
           completedMockQuizzes={completedMockQuizzes}
           levelPercent={levelPercent}
         />
@@ -536,11 +541,6 @@ export function HocTapDashboard({
               setQuizExpanded(false);
             }}
             departmentOptions={departmentOptions}
-            topic={quizTopic}
-            onTopicChange={(value) => {
-              setQuizTopic(value);
-              setQuizExpanded(false);
-            }}
             difficulty={quizDifficulty}
             onDifficultyChange={(value) => {
               setQuizDifficulty(value);
@@ -551,6 +551,7 @@ export function HocTapDashboard({
               setQuizSort(value);
               setQuizExpanded(false);
             }}
+            attemptedQuizIds={attemptedQuizIds}
             hasActiveFilters={hasActiveQuizFilters}
             onClearFilters={clearQuizFilters}
             currentRoleId={currentRoleId}
@@ -566,82 +567,7 @@ export function HocTapDashboard({
         />
 
         <section className="space-y-4">
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_180px_170px_auto]">
-            <label className="relative block">
-              <span className="sr-only">Tìm phòng hoặc chủ đề</span>
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
-                aria-hidden="true"
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setExpanded(false);
-                }}
-                placeholder="Tìm phòng hoặc chủ đề..."
-                className="h-11 w-full rounded-xl border border-line bg-card pl-10 pr-10 text-xs font-bold text-ink shadow-sm outline-none transition placeholder:text-ink-3 hover:border-brand/35 focus:border-brand focus:ring-4 focus:ring-brand/10"
-              />
-              {query ? (
-                <button
-                  type="button"
-                  onClick={() => setQuery("")}
-                  className="absolute right-1 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-ink-3 transition hover:bg-secondary hover:text-ink focus-visible:ring-2 focus-visible:ring-brand"
-                  aria-label="Xóa từ khóa tìm kiếm"
-                >
-                  <X className="size-4" aria-hidden="true" />
-                </button>
-              ) : null}
-            </label>
-
-            <FilterSelect
-              label="Chế độ"
-              value={roomFilter}
-              onChange={(value) => {
-                setRoomFilter(value as TeamRoomFilter);
-                setExpanded(false);
-              }}
-            >
-              {ROOM_FILTER_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </FilterSelect>
-
-            <FilterSelect
-              label="Sắp xếp"
-              value={sort}
-              onChange={(value) => {
-                setSort(value as HocTapQuizSort);
-                setExpanded(false);
-              }}
-            >
-              <option value="newest">Mới nhất</option>
-              <option value="question-count">Nhiều câu nhất</option>
-              <option value="xp">XP cao nhất</option>
-            </FilterSelect>
-
-            <div className="flex items-end gap-2">
-              <button
-                type="button"
-                className="grid size-11 place-items-center rounded-xl bg-brand text-brand-foreground shadow-sm transition hover:bg-brand-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-                aria-label="Xem dạng lưới"
-              >
-                <Gamepad2 className="size-4" aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="grid size-11 place-items-center rounded-xl border border-line bg-card text-ink-3 shadow-sm transition hover:border-brand/35 hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-                aria-label="Xem dạng danh sách"
-              >
-                <List className="size-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_170px_170px]">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
             <FilterSelect
               label="Phòng ban"
               value={effectiveDepartmentFilter}
@@ -669,6 +595,62 @@ export function HocTapDashboard({
             </FilterSelect>
 
             <FilterSelect
+              label="Sắp xếp"
+              value={sort}
+              onChange={(value) => {
+                setSort(value as HocTapQuizSort);
+                setExpanded(false);
+              }}
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="question-count">Nhiều câu nhất</option>
+              <option value="xp">XP cao nhất</option>
+            </FilterSelect>
+
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearTeamFilters}
+                className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl border border-line bg-card px-4 text-xs font-extrabold text-ink-2 transition hover:border-brand/35 hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
+              >
+                <X className="size-4" aria-hidden="true" />
+                Xóa lọc
+              </button>
+            ) : null}
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_170px]">
+            <label className="relative block">
+              <span className="block text-[10px] font-extrabold uppercase tracking-[0.08em] text-ink-3">
+                Tìm phòng hoặc chủ đề
+              </span>
+              <Search
+                className="pointer-events-none absolute left-3 top-[calc(50%+10px)] size-4 -translate-y-1/2 text-ink-3"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setExpanded(false);
+                }}
+                placeholder="Tìm phòng hoặc chủ đề..."
+                className="mt-1 h-11 w-full rounded-xl border border-line bg-card pl-10 pr-10 text-xs font-bold text-ink shadow-sm outline-none transition placeholder:text-ink-3 hover:border-brand/35 focus:border-brand focus:ring-4 focus:ring-brand/10"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute right-1 top-[calc(50%+10px)] grid size-9 -translate-y-1/2 place-items-center rounded-lg text-ink-3 transition hover:bg-secondary hover:text-ink focus-visible:ring-2 focus-visible:ring-brand"
+                  aria-label="Xóa từ khóa tìm kiếm"
+                >
+                  <X className="size-4" aria-hidden="true" />
+                </button>
+              ) : null}
+            </label>
+
+            <FilterSelect
               label="Chủ đề"
               value={topic}
               onChange={(value) => {
@@ -682,17 +664,6 @@ export function HocTapDashboard({
                 </option>
               ))}
             </FilterSelect>
-
-            {hasActiveFilters ? (
-              <button
-                type="button"
-                onClick={clearTeamFilters}
-                className="inline-flex h-11 items-center justify-center gap-2 self-end rounded-xl border border-line bg-card px-4 text-xs font-extrabold text-ink-2 transition hover:border-brand/35 hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
-              >
-                <X className="size-4" aria-hidden="true" />
-                Xóa lọc
-              </button>
-            ) : null}
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1">
@@ -799,7 +770,6 @@ export function HocTapDashboard({
           <>
             <LeaderboardPanel />
             <DepartmentLeaderboardPanel />
-            <CreateQuizPanel />
           </>
         ) : (
           <>
@@ -826,21 +796,19 @@ function ProfileCard({
   currentXp,
   targetXp,
   totalXp,
-  extraXpLabel,
   completedMockQuizzes,
   levelPercent,
 }: {
   displayName: string;
-  avatarOptions: Array<{ seed: string; url: string }>;
+  avatarOptions: AppAvatarOption[];
   avatarSeed: string;
   avatarUrl: string;
-  onSelectAvatar: (seed: string) => void;
+  onSelectAvatar: (choice: AppAvatarChoice) => void;
   roleLabel: string;
   level: number;
   currentXp: number;
   targetXp: number;
   totalXp: number;
-  extraXpLabel: string;
   completedMockQuizzes: number;
   levelPercent: number;
 }) {
@@ -854,7 +822,7 @@ function ProfileCard({
           fallbackText={getDisplayInitials(displayName)}
           onSelect={onSelectAvatar}
           options={avatarOptions}
-          selectedSeed={avatarSeed}
+          selectedChoice={parseSerializedAvatarChoice(avatarSeed)}
           size="lg"
         />
         <span className="absolute bottom-8 right-[calc(50%-2.75rem)] grid size-6 place-items-center rounded-full border-2 border-card bg-brand text-brand-foreground">
@@ -893,8 +861,10 @@ function ProfileCard({
 
       <div className="mt-5 space-y-3 border-t border-line pt-4 text-xs">
         <StatRow label="Điểm XP" value={`${totalXp.toLocaleString("vi-VN")} XP`} />
-        <StatRow label="Quiz tự tạo" value={extraXpLabel} brand />
-        <StatRow label="Lượt đã làm" value={completedMockQuizzes.toString()} />
+        <StatRow
+          label="Bộ đề đã làm"
+          value={completedMockQuizzes.toString()}
+        />
         <StatRow label="Hạng của bạn" value="#6" brand />
       </div>
     </section>
@@ -988,7 +958,7 @@ function StudyHero({ activeTab }: { activeTab: HocTapActiveTab }) {
           </h1>
           <p className="max-w-2xl text-sm font-medium leading-6 text-ink-2">
             {isQuiz
-              ? "Học mà chơi - chơi mà học với các bộ quiz được xây dựng sẵn theo chủ đề."
+              ? "Học mà chơi - chơi mà học với các bộ quiz được xây dựng sẵn theo phòng ban."
               : "Vừa học vừa chơi - cùng team chinh phục thử thách và tích lũy XP."}
           </p>
         </div>
@@ -1010,12 +980,11 @@ function QuizLibraryPanel({
   departmentFilter,
   onDepartmentFilterChange,
   departmentOptions,
-  topic,
-  onTopicChange,
   difficulty,
   onDifficultyChange,
   sort,
   onSortChange,
+  attemptedQuizIds,
   hasActiveFilters,
   onClearFilters,
   currentRoleId,
@@ -1029,12 +998,11 @@ function QuizLibraryPanel({
   departmentFilter: HocTapQuizFilter;
   onDepartmentFilterChange: (value: HocTapQuizFilter) => void;
   departmentOptions: HocTapDepartmentOption[];
-  topic: HocTapQuizTopic;
-  onTopicChange: (value: HocTapQuizTopic) => void;
   difficulty: HocTapQuizDifficultyFilter;
   onDifficultyChange: (value: HocTapQuizDifficultyFilter) => void;
   sort: HocTapQuizSort;
   onSortChange: (value: HocTapQuizSort) => void;
+  attemptedQuizIds: Set<string>;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
   currentRoleId: AvailableQuizRoleId | null;
@@ -1047,45 +1015,32 @@ function QuizLibraryPanel({
             Tất cả bộ đề
           </h2>
           <p className="mt-1 text-xs font-medium leading-5 text-ink-3">
-            Luyện tập với các bộ đề có sẵn, được phân loại theo chủ đề và mức
+            Luyện tập với các bộ đề có sẵn, được phân loại theo phòng ban và mức
             độ.
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[560px] xl:grid-cols-3">
-          <label className="relative block sm:col-span-2 xl:col-span-1">
-            <span className="sr-only">Tìm bộ đề</span>
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-3"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Tìm bộ đề..."
-              className="h-9 w-full rounded-lg border border-line bg-card pl-9 pr-9 text-xs font-bold text-ink shadow-sm outline-none transition placeholder:text-ink-3 hover:border-brand/35 focus:border-brand focus:ring-4 focus:ring-brand/10"
-            />
-            {query ? (
-              <button
-                type="button"
-                onClick={() => onQueryChange("")}
-                className="absolute right-1 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-ink-3 transition hover:bg-secondary hover:text-ink focus-visible:ring-2 focus-visible:ring-brand"
-                aria-label="Xóa từ khóa tìm kiếm bộ đề"
-              >
-                <X className="size-3.5" aria-hidden="true" />
-              </button>
-            ) : null}
-          </label>
-
+        <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[400px] xl:grid-cols-2">
           <FilterSelect
-            label="Chọn chủ đề"
-            value={topic}
-            onChange={(value) => onTopicChange(value as HocTapQuizTopic)}
+            label="Phòng ban"
+            value={departmentFilter}
+            onChange={(value) =>
+              onDepartmentFilterChange(value as HocTapQuizFilter)
+            }
           >
-            {TOPIC_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            <option value="all">Tất cả phòng ban</option>
+            {departmentOptions.map((department) => (
+              <option
+                key={department.id}
+                value={getHocTapDepartmentFilterValue(
+                  department.id as AvailableQuizRoleId,
+                )}
+              >
+                {department.label}
+                {department.memberCount > 0
+                  ? ` (${department.memberCount})`
+                  : ""}
+                {department.isCurrentUserDepartment ? " · của bạn" : ""}
               </option>
             ))}
           </FilterSelect>
@@ -1103,29 +1058,32 @@ function QuizLibraryPanel({
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_170px_auto]">
-        <FilterSelect
-          label="Phòng ban"
-          value={departmentFilter}
-          onChange={(value) =>
-            onDepartmentFilterChange(value as HocTapQuizFilter)
-          }
-        >
-          <option value="all">Tất cả phòng ban</option>
-          {departmentOptions.map((department) => (
-            <option
-              key={department.id}
-              value={getHocTapDepartmentFilterValue(
-                department.id as AvailableQuizRoleId,
-              )}
+        <label className="relative block">
+          <span className="block text-[10px] font-extrabold uppercase tracking-[0.08em] text-ink-3">
+            Tìm bộ đề
+          </span>
+          <Search
+            className="pointer-events-none absolute left-3 top-[calc(50%+10px)] size-4 -translate-y-1/2 text-ink-3"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="Tìm bộ đề..."
+            className="mt-1 h-11 w-full rounded-xl border border-line bg-card pl-10 pr-10 text-xs font-bold text-ink shadow-sm outline-none transition placeholder:text-ink-3 hover:border-brand/35 focus:border-brand focus:ring-4 focus:ring-brand/10"
+          />
+          {query ? (
+            <button
+              type="button"
+              onClick={() => onQueryChange("")}
+              className="absolute right-1 top-[calc(50%+10px)] grid size-9 -translate-y-1/2 place-items-center rounded-lg text-ink-3 transition hover:bg-secondary hover:text-ink focus-visible:ring-2 focus-visible:ring-brand"
+              aria-label="Xóa từ khóa tìm kiếm bộ đề"
             >
-              {department.label}
-              {department.memberCount > 0
-                ? ` (${department.memberCount})`
-                : ""}
-              {department.isCurrentUserDepartment ? " · của bạn" : ""}
-            </option>
-          ))}
-        </FilterSelect>
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
+        </label>
 
         <FilterSelect
           label="Độ khó"
@@ -1160,6 +1118,7 @@ function QuizLibraryPanel({
               key={quiz.id}
               quiz={quiz}
               recommended={quiz.roleId === currentRoleId}
+              attempted={attemptedQuizIds.has(quiz.id)}
             />
           ))}
         </div>
@@ -1222,9 +1181,11 @@ function QuizLibraryPanel({
 function QuizPracticeCard({
   quiz,
   recommended,
+  attempted,
 }: {
   quiz: HocTapQuizItem;
   recommended: boolean;
+  attempted: boolean;
 }) {
   const theme = QUIZ_THEME[quiz.theme];
   const Icon = theme.icon;
@@ -1280,7 +1241,7 @@ function QuizPracticeCard({
             href={href}
             className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-brand px-4 text-xs font-extrabold text-brand-foreground transition hover:bg-brand-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
           >
-            Luyện ngay
+            {attempted ? "Xem kiểm tra" : "Làm kiểm tra"}
           </Link>
         ) : (
           <button
@@ -1305,7 +1266,7 @@ function FilterSelect({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <label className="block space-y-1 text-right">
@@ -2351,28 +2312,6 @@ function DepartmentLeaderboardPanel() {
   );
 }
 
-function CreateQuizPanel() {
-  return (
-    <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
-      <h3 className="font-display text-sm font-extrabold text-ink">
-        Tạo quiz mới
-      </h3>
-      <p className="mt-1 text-[10px] font-semibold leading-4 text-ink-3">
-        Tạo quiz riêng hoặc chia sẻ với team.
-      </p>
-      <button
-        type="button"
-        aria-disabled="true"
-        className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-accent px-4 text-xs font-extrabold text-accent transition hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-        title="Tạo quiz thật sẽ được triển khai ở Phase 2.6"
-      >
-        <Plus className="size-4" aria-hidden="true" />
-        Tạo quiz mới
-      </button>
-    </section>
-  );
-}
-
 function PanelHeader({
   title,
   action,
@@ -2600,6 +2539,10 @@ function getDisplayInitials(name: string): string {
   const first = parts[0]?.[0] ?? "";
   const last = parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "";
   return `${first}${last || first}`.toUpperCase();
+}
+
+function parseSerializedAvatarChoice(value: string): AppAvatarChoice {
+  return parseAvatarChoice(value) ?? { provider: "dicebear", id: "ban::default" };
 }
 
 function saveHocTapRoomIdentity(

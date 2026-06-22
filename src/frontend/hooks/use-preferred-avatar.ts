@@ -1,39 +1,56 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import { buildDicebearAvatarUrl } from "@/lib/dicebear";
 import {
   AVATAR_PREFERENCE_EVENT,
-  buildDefaultAvatarSeed,
-  buildDicebearAvatarOptions,
+  buildAvatarPreviewUrl,
+  buildAvatarPickerOptions,
   getPreferredAvatarSeed,
-  setPreferredAvatarSeed,
-  type DicebearAvatarOption,
+  setPreferredAvatarChoice,
+  type AppAvatarChoice,
+  type AppAvatarOption,
 } from "@/lib/avatar-preferences";
+import {
+  buildDefaultAvatarChoice,
+  parseAvatarChoice,
+  serializeAvatarChoice,
+} from "@/lib/app-avatar";
 
-export function usePreferredAvatar(identity: string) {
+export function usePreferredAvatar(
+  identity: string,
+  remoteAvatar?: AppAvatarChoice | null,
+) {
   const normalizedIdentity = identity.trim();
-  const fallbackSeed = useMemo(
-    () => buildDefaultAvatarSeed(normalizedIdentity),
+  const fallbackChoice = useMemo(
+    () => buildDefaultAvatarChoice(normalizedIdentity),
     [normalizedIdentity],
   );
-  const options = useMemo<DicebearAvatarOption[]>(
-    () => buildDicebearAvatarOptions(normalizedIdentity),
+  const options = useMemo<AppAvatarOption[]>(
+    () => buildAvatarPickerOptions(normalizedIdentity),
     [normalizedIdentity],
+  );
+  const fallbackSeed = useMemo(
+    () => serializeAvatarChoice(remoteAvatar ?? fallbackChoice),
+    [fallbackChoice, remoteAvatar],
   );
   const selectedSeed = useSyncExternalStore(
     subscribeToAvatarPreference,
     () => getPreferredAvatarSeed(normalizedIdentity) ?? fallbackSeed,
     () => fallbackSeed,
   );
+  const selectedChoice = useMemo(
+    () => parseAvatarChoice(selectedSeed) ?? remoteAvatar ?? fallbackChoice,
+    [fallbackChoice, remoteAvatar, selectedSeed],
+  );
 
-  function selectAvatar(seed: string) {
-    setPreferredAvatarSeed(normalizedIdentity, seed);
+  function selectAvatar(choice: AppAvatarChoice) {
+    setPreferredAvatarChoice(normalizedIdentity, choice);
   }
 
   return {
-    avatarSeed: selectedSeed,
-    avatarUrl: buildDicebearAvatarUrl(selectedSeed),
+    avatarChoice: selectedChoice,
+    avatarSeed: serializeAvatarChoice(selectedChoice),
+    avatarUrl: buildAvatarPreviewUrl(selectedChoice, normalizedIdentity),
     avatarOptions: options,
     selectAvatar,
   };

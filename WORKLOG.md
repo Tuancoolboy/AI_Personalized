@@ -6,6 +6,38 @@
 
 ---
 
+## [2026-06-22] — Vá migration learning content để tương thích bảng learning_paths cũ
+
+**Context:** `npm run db:sync` bị dừng ở `20260612100000_learning_content_schema.sql` với lỗi `column "status" does not exist`. Nguyên nhân là migration `20260611120000_job_positions_learning_paths.sql` đã tạo `public.learning_paths` trước đó với schema cũ (`name`, chưa có `status/title/path_type/updated_at`), nên khi migration 20260612100000 chạy `create table if not exists` rồi tạo index `(organization_id, status)` thì index đụng cột chưa tồn tại.
+
+**Options:**
+1. Tạo migration timestamp mới để ALTER `learning_paths`.
+2. Vá trực tiếp migration 20260612100000 để nó tự nâng cấp bảng cũ trước khi tạo index/policy.
+
+**Decision:** Chọn phương án 2 vì remote DB mới đang fail ngay ở migration 20260612100000; thêm migration mới phía sau sẽ không bao giờ được chạy. Migration này nay `alter table ... add column if not exists`, backfill `title` từ `name`, set default/not-null cho `scope/path_type/status/updated_at`, và drop legacy policy `learning_paths_select/write` trước khi tạo policy mới.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** `npm run db:validate` pass; `npm run db:sync` pass sau patch; `npm run db:status` xác nhận local = remote tới `20260620080312_learning_study_sessions.sql`.
+
+## [2026-06-22] — Tương thích Supabase publishable key với setup SSR hiện tại
+
+**Context:** User đưa quickstart Supabase mới dùng `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, trong khi repo hiện tại đọc `NEXT_PUBLIC_SUPABASE_ANON_KEY` ở helper SSR/client, Next 16 proxy, auth callback, lead API, và nhiều smoke scripts. Nếu copy nguyên quickstart sẽ tạo thêm lớp helper trùng chỗ canonical và có nguy cơ auth chạy demo mode dù public key đã có.
+
+**Options:**
+1. Copy nguyên quickstart vào `utils/supabase/*` và thêm middleware riêng.
+2. Giữ cấu trúc repo hiện tại, thêm một helper env dùng chung để runtime/script nhận cả publishable key lẫn anon key.
+
+**Decision:** Chọn phương án 2. Tạo `src/frontend/lib/supabase/public-env.ts`, cho runtime ưu tiên `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` rồi fallback `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cập nhật `client.ts`, `server.ts`, `is-configured.ts`, `proxy.ts`, `/auth/callback`, `/api/leads`, cùng các script smoke Supabase. `.env.local` chỉ được bổ sung publishable key cục bộ; chưa tự ý đổi toàn bộ URL/service-role pair vì repo còn nhiều API server-side dùng `SUPABASE_SERVICE_ROLE_KEY` và việc đổi nửa chừng có thể làm lệch project. Theo yêu cầu cài package, `npm install @supabase/supabase-js @supabase/ssr` cũng refresh `@supabase/supabase-js` từ `^2.108.0` lên `^2.108.2`.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** `npm install @supabase/supabase-js @supabase/ssr` thành công; `npm run lint` pass với 5 warning cũ và 0 error; `npm run test` ngoài sandbox đi qua build thành công nhưng còn 3 API failures có sẵn (`POST /api/chat sensitive data warning`, `GET /api/chat/history without auth → 401`, `POST /api/chat manager without role_id streams` khi seed manager membership lỗi); `npx -y -p node@20 node node_modules/next/dist/bin/next build src/frontend` pass.
+
 ## [2026-06-21] — Xoá phòng, khoá phòng theo mã, và avatar DiceBear cho room team
 
 **Context:** User yêu cầu bổ sung 3 capability cho flow team room đang chạy bằng memory store: host có thể xoá phòng bất kỳ lúc nào, phòng có thể bật trạng thái khoá để vẫn hiện ở danh sách nhưng chỉ vào bằng mã, và participant cần có avatar thay vì chỉ hiện initials.
@@ -1607,3 +1639,43 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 **Shipped:** `chat-prompt-safety.ts`, updates to `openai.ts` + `chat-context.ts`, synced `next_clone/`.
 
 **Tests:** `npm run lint` pass (5 warnings cũ); `npm run test` pass (84 pytest + Vitest); `npm run build` pass.
+
+## 2026-06-22 — Harden hoc-tap room create/list/join runtime
+
+**Goal:** Làm nhánh room Supabase bám đúng contract UI để có thể chạy thật phần tạo phòng mà không lệch so với memory runtime.
+
+**Decision:** Phòng `locked` vẫn phải xuất hiện trong live list ở real mode giống nhánh memory, chỉ disable CTA vào trực tiếp; join bằng mã vẫn hợp lệ. Đồng thời dọn các contract room cũ còn sót ở wrapper/runtime (`participantId` null trong memory wrapper, fallback snapshot cũ thiếu `viewerParticipantId`, helper runtime đặt tên `use*` bị ESLint hiểu nhầm là hook) để build production không gãy vì mismatch type.
+
+**Shipped:** bỏ filter ẩn locked room trong `hoc-tap-room-service.ts`, thêm `hoc-tap-room-service.test.ts` với fake Supabase client cho flow create/list/join thật, và vá `hoc-tap-room-runtime.ts` + `services/quizApi.ts` cho shape `HocTapRoomSnapshot` mới.
+
+**Tests:** targeted Node 20 Vitest 4 files / 27 tests pass; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `npm run build` pass.
+
+## 2026-06-22 — Fix avatar snapshot infinite loop on Hoc Tap
+
+**Goal:** Chặn lỗi React `getSnapshot should be cached` và `Maximum update depth exceeded` khi vào `/hoc-tap`.
+
+**Decision:** `useSyncExternalStore` trong `use-preferred-avatar` không được trả object avatar mới mỗi render. Đổi snapshot sang string seed ổn định từ local preference / remote fallback, rồi mới `parseAvatarChoice()` lại bằng `useMemo` để giữ contract React và tránh loop vô hạn.
+
+**Shipped:** cập nhật `src/frontend/hooks/use-preferred-avatar.ts` để snapshot là serialized avatar choice thay vì object trực tiếp.
+
+**Tests:** scoped ESLint cho avatar/hoc-tap files pass với 2 warning cũ ở `hoc-tap-team-room.tsx`; Node 20 `npm run build` pass.
+
+## 2026-06-22 — Simplify Hoc Tap quiz UI and broaden avatar choices
+
+**Goal:** Bỏ luồng “tạo quiz mới” khỏi tab Quiz, đổi bộ lọc sang mental model phòng ban + tìm bộ đề, đồng bộ avatar giữa Học tập và header/tài khoản, đồng thời thêm avatar đa dạng + upload ảnh.
+
+**Decision:** Giữ Phase 2 quiz library ở mức practice catalog sẵn có thay vì nửa vời “quiz tự tạo”; CTA card đổi theo lịch sử làm bài để user quay lại xem kiểm tra. Avatar vẫn lưu local preference trong task này để sync ngay trên toàn bộ client surfaces mà không đụng schema/profile API, nhưng mở rộng từ 1 kiểu DiceBear sang nhiều style chính thức và thêm `upload` data URL đã resize để dùng được ngay.
+
+**Shipped:** xóa panel “Tạo quiz mới” và chỉ giữ thư viện bộ đề trong `hoc-tap-dashboard.tsx`; đổi filter quiz thành `Phòng ban` + `Tìm bộ đề`; bỏ dòng `Quiz tự tạo +153 XP`; đổi copy quiz sang “bộ đề thực hành / AI Trợ Lý”; thêm upload avatar + nhiều style DiceBear trong `app-avatar.ts`, `dicebear-avatar-picker.tsx`, `dicebear.ts`; đồng bộ avatar Học tập sang `account-menu.tsx`.
+
+**Tests:** verification trong task này sẽ chạy lại bằng scoped ESLint, targeted Vitest catalog, và Node 20 `npm run build`.
+
+## 2026-06-22 — Simplify team-room filters on Hoc Tap
+
+**Goal:** Làm phần “Chơi với team” gọn và logic hơn theo feedback UI: bỏ filter trùng chức năng và giữ đúng mental model tìm phòng theo phòng ban/chủ đề.
+
+**Decision:** Bỏ select `Chế độ` và 2 icon đổi view vì chưa có hành vi thật; đưa `Phòng ban` lên hàng trên thay chỗ `Chế độ`, chuyển ô `Tìm phòng hoặc chủ đề` xuống thay hàng `Phòng ban` cũ, và chỉ giữ chip trạng thái còn hữu ích (`Tất cả phòng`, `Đang chờ`, `Đang chơi`) thay vì lẫn cả trạng thái lẫn mode.
+
+**Shipped:** cập nhật layout/filter của tab team trong `src/frontend/components/hoc-tap-dashboard.tsx`; bỏ chip `Sắp bắt đầu`, `Classic`, `Team Battle`; bỏ 2 nút icon view.
+
+**Tests:** verification trong task này sẽ chạy lại bằng scoped ESLint và Node 20 `npm run build`.

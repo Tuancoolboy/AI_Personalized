@@ -57,10 +57,10 @@ export function KiemTraQuiz({
 
   const questions = hocTapQuiz?.questions ?? role?.quiz ?? [];
   const question = questions[idx];
-  const quizModeLabel = isHocTapQuiz ? "Quiz mock tự tạo" : "Bài kiểm tra";
   const progressPct = ((idx + (done ? 1 : 0)) / questions.length) * 100;
   const returnLabel =
     returnHref === "/hoc-tap" ? "Quay lại Học tập" : "Quay lại lộ trình";
+  const quizModeLabel = isHocTapQuiz ? "Bộ đề thực hành" : "Bài kiểm tra";
 
   if (!question) {
     return (
@@ -147,7 +147,7 @@ export function KiemTraQuiz({
     return (
       <div className="mx-auto max-w-xl px-4 py-10 text-center sm:px-6 sm:py-12 md:py-16">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
-          {isHocTapQuiz ? "Kết quả quiz tự tạo" : "Kết quả bài kiểm tra"}
+          {isHocTapQuiz ? "Kết quả bộ đề thực hành" : "Kết quả bài kiểm tra"}
         </p>
         <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl md:text-5xl">
           {isHocTapQuiz
@@ -195,7 +195,7 @@ export function KiemTraQuiz({
           </strong>{" "}
           câu.{" "}
           {isHocTapQuiz
-            ? "Đây là quiz mock tự tạo trong mục Học tập, không ghi vào điểm bài học/lộ trình."
+            ? "Đây là bộ đề thực hành trong mục Học tập, không ghi vào điểm bài học/lộ trình."
             : passed
               ? "Đã đạt ngưỡng pass (≥70%). Bạn nắm chắc cơ bản rồi!"
               : "Cần đạt ≥70% để pass. Hãy quay lại ôn module trước khi làm lại."}

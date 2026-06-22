@@ -23,6 +23,10 @@ import {
   type AccountMenuItemId,
   type AccountMenuSection,
 } from "@/lib/account-menu";
+import { UserAvatar } from "@/components/user-avatar";
+import { useAppProfile } from "@/hooks/use-app-profile";
+import { usePreferredAvatar } from "@/hooks/use-preferred-avatar";
+import { buildAvatarIdentity } from "@/lib/avatar-preferences";
 import type { UserType } from "@/lib/supabase/is-configured";
 import { useAppLogout } from "@/components/app-nav-logout-button";
 
@@ -31,6 +35,7 @@ type AccountMenuProps = {
   userEmail: string;
   userRoleLabel: string;
   userType: UserType;
+  avatarUrl?: string | null;
 };
 
 const ICONS: Record<AccountMenuItemId, LucideIcon> = {
@@ -69,18 +74,24 @@ export function AccountMenuTriggerContent({
   userName,
   userEmail,
   userRoleLabel,
+  avatarUrl,
 }: {
   userName: string;
   userEmail: string;
   userRoleLabel: string;
+  avatarUrl?: string | null;
 }) {
   const initials = getAccountInitials(userName, userEmail);
 
   return (
     <>
-      <span className="grid size-9 flex-none place-items-center rounded-full bg-brand font-display text-sm font-bold text-brand-foreground shadow-sm">
-        {initials}
-      </span>
+      <UserAvatar
+        avatarUrl={avatarUrl}
+        fallbackText={initials}
+        alt={`Avatar của ${userName}`}
+        className="size-9 flex-none rounded-full border border-line bg-secondary object-cover shadow-sm"
+        fallbackClassName="grid size-9 flex-none place-items-center rounded-full bg-brand font-display text-sm font-bold text-brand-foreground shadow-sm"
+      />
       <span className="hidden min-w-0 text-left lg:block">
         <span className="block max-w-[9rem] truncate text-sm font-semibold leading-5 text-ink">
           {userName}
@@ -102,9 +113,19 @@ export function AccountMenu({
   userEmail,
   userRoleLabel,
   userType,
+  avatarUrl,
 }: AccountMenuProps) {
   const logout = useAppLogout();
   const sections = groupItems(getAccountMenuItems(userType));
+  const { avatar: remoteAvatar, fullName, hydrated } = useAppProfile();
+  const avatarIdentity = buildAvatarIdentity(fullName, userName, userEmail);
+  const { avatarUrl: preferredAvatarUrl } = usePreferredAvatar(
+    avatarIdentity,
+    remoteAvatar,
+  );
+  const effectiveAvatarUrl = hydrated
+    ? preferredAvatarUrl
+    : avatarUrl ?? preferredAvatarUrl;
 
   return (
     <Menu.Root modal={false}>
@@ -116,15 +137,20 @@ export function AccountMenu({
           userName={userName}
           userEmail={userEmail}
           userRoleLabel={userRoleLabel}
+          avatarUrl={effectiveAvatarUrl}
         />
       </Menu.Trigger>
       <Menu.Portal>
         <Menu.Positioner align="end" sideOffset={8} className="z-50">
           <Menu.Popup className="w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-line bg-card p-2 text-sm text-ink shadow-2xl outline-none">
             <div className="flex items-center gap-3 border-b border-line px-3 py-3">
-              <span className="grid size-11 flex-none place-items-center rounded-full bg-brand font-display text-base font-bold text-brand-foreground">
-                {getAccountInitials(userName, userEmail)}
-              </span>
+              <UserAvatar
+                avatarUrl={effectiveAvatarUrl}
+                fallbackText={getAccountInitials(userName, userEmail)}
+                alt={`Avatar của ${userName}`}
+                className="size-11 flex-none rounded-full border border-line bg-secondary object-cover"
+                fallbackClassName="grid size-11 flex-none place-items-center rounded-full bg-brand font-display text-base font-bold text-brand-foreground"
+              />
               <div className="min-w-0">
                 <p className="truncate font-semibold text-ink">{userName}</p>
                 <p className="mt-0.5 truncate text-xs text-ink-3">
