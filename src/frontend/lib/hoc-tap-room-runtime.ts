@@ -17,6 +17,7 @@ import {
   createHocTapRoom,
   deleteHocTapRoom,
   getHocTapRoomSnapshot,
+  HocTapRoomError,
   joinHocTapRoom,
   listHocTapPublicRooms,
   startHocTapRoom,
@@ -36,6 +37,13 @@ type RoomRuntimeMeta = {
   source: "memory" | "supabase";
 };
 
+function shouldFallbackToMemoryRuntime(error: unknown): boolean {
+  return (
+    error instanceof HocTapRoomError &&
+    error.code === "FORBIDDEN"
+  );
+}
+
 function shouldUseSupabaseRoomRuntime(session: ApiSession): boolean {
   return (
     session.mode === "supabase" &&
@@ -46,11 +54,17 @@ function shouldUseSupabaseRoomRuntime(session: ApiSession): boolean {
 
 export async function listHocTapRoomsWithRuntime(session: ApiSession) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      rooms: await listSupabaseHocTapRooms({ userId: session.userId }),
-      persisted: true,
-      source: "supabase",
-    } satisfies RoomRuntimeMeta & { rooms: Awaited<ReturnType<typeof listSupabaseHocTapRooms>> };
+    try {
+      return {
+        rooms: await listSupabaseHocTapRooms({ userId: session.userId }),
+        persisted: true,
+        source: "supabase",
+      } satisfies RoomRuntimeMeta & { rooms: Awaited<ReturnType<typeof listSupabaseHocTapRooms>> };
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -65,11 +79,17 @@ export async function createHocTapRoomWithRuntime(
   input: HocTapRoomCreateInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      ...(await createSupabaseHocTapRoom({ userId: session.userId }, input)),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        ...(await createSupabaseHocTapRoom({ userId: session.userId }, input)),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -84,11 +104,17 @@ export async function joinHocTapRoomWithRuntime(
   input: HocTapRoomJoinInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      ...(await joinSupabaseHocTapRoom({ userId: session.userId }, input)),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        ...(await joinSupabaseHocTapRoom({ userId: session.userId }, input)),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -104,15 +130,21 @@ export async function getHocTapRoomWithRuntime(
   participantId?: string | null,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      room: await getSupabaseHocTapRoomSnapshot(
-        { userId: session.userId },
-        code,
-        participantId,
-      ),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        room: await getSupabaseHocTapRoomSnapshot(
+          { userId: session.userId },
+          code,
+          participantId,
+        ),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -128,15 +160,21 @@ export async function startHocTapRoomWithRuntime(
   options: { hostToken?: string; participantId?: string | null },
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      room: await startSupabaseHocTapRoom(
-        { userId: session.userId },
-        code,
-        options.participantId,
-      ),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        room: await startSupabaseHocTapRoom(
+          { userId: session.userId },
+          code,
+          options.participantId,
+        ),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -154,14 +192,20 @@ export async function submitHocTapRoomAnswerWithRuntime(
   input: HocTapRoomAnswerInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      room: await submitSupabaseHocTapRoomAnswer(
-        { userId: session.userId },
-        input,
-      ),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        room: await submitSupabaseHocTapRoomAnswer(
+          { userId: session.userId },
+          input,
+        ),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -176,14 +220,20 @@ export async function updateHocTapRoomSettingsWithRuntime(
   input: HocTapRoomUpdateSettingsInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      room: await updateSupabaseHocTapRoomSettings(
-        { userId: session.userId },
-        input,
-      ),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        room: await updateSupabaseHocTapRoomSettings(
+          { userId: session.userId },
+          input,
+        ),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -198,11 +248,17 @@ export async function deleteHocTapRoomWithRuntime(
   input: HocTapRoomDeleteInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      ...(await deleteSupabaseHocTapRoom({ userId: session.userId }, input)),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        ...(await deleteSupabaseHocTapRoom({ userId: session.userId }, input)),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -218,15 +274,21 @@ export async function advanceHocTapRoomWithRuntime(
   options: { hostToken?: string; participantId?: string | null },
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      room: await advanceSupabaseHocTapRoom(
-        { userId: session.userId },
-        code,
-        options.participantId,
-      ),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        room: await advanceSupabaseHocTapRoom(
+          { userId: session.userId },
+          code,
+          options.participantId,
+        ),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
@@ -241,14 +303,20 @@ export async function updateHocTapRoomQuestionsWithRuntime(
   input: HocTapRoomUpdateQuestionsInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    return {
-      room: await updateSupabaseHocTapRoomQuestions(
-        { userId: session.userId },
-        input,
-      ),
-      persisted: true,
-      source: "supabase",
-    } as const;
+    try {
+      return {
+        room: await updateSupabaseHocTapRoomQuestions(
+          { userId: session.userId },
+          input,
+        ),
+        persisted: true,
+        source: "supabase",
+      } as const;
+    } catch (error) {
+      if (!shouldFallbackToMemoryRuntime(error)) {
+        throw error;
+      }
+    }
   }
 
   return {
