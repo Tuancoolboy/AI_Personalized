@@ -5,6 +5,7 @@ import {
   type HocTapQuizQuestion,
 } from "@/lib/hoc-tap-quiz-catalog";
 import { buildAvatarUrl } from "@/lib/app-avatar";
+import { slugifyOrganizationName } from "@/lib/organization-slug";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
 import {
   HocTapRoomError,
@@ -107,11 +108,14 @@ const REVEAL_DURATION_MS = 5_000;
 const LEADERBOARD_DURATION_MS = 4_000;
 const ACTIVE_ROOM_RETENTION_MS = 12 * 60 * 60 * 1000;
 const FINISHED_ROOM_RETENTION_MS = 24 * 60 * 60 * 1000;
+const COMMUNITY_ORGANIZATION_NAME = "AI Tro Ly Community";
+const COMMUNITY_ORGANIZATION_SLUG =
+  slugifyOrganizationName(COMMUNITY_ORGANIZATION_NAME);
 
 export async function listSupabaseHocTapRooms(
   session: ServiceSession,
 ): Promise<HocTapPublicRoom[]> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   await cleanupExpiredRooms(organizationId);
 
   const supabase = createSupabaseServiceClient();
@@ -142,7 +146,7 @@ export async function createSupabaseHocTapRoom(
   session: ServiceSession,
   input: HocTapRoomCreateInput,
 ): Promise<HocTapRoomCreateResult> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const displayName = normalizeDisplayName(input.hostName);
   const avatarChoice = normalizeAvatarChoice(input.avatarSeed);
   const roomType = input.roomType ?? "host-review";
@@ -251,7 +255,7 @@ export async function joinSupabaseHocTapRoom(
   session: ServiceSession,
   input: HocTapRoomJoinInput,
 ): Promise<HocTapRoomJoinResult> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const code = normalizeRoomCode(input.code);
   const name = normalizeDisplayName(input.playerName);
   const avatarChoice = normalizeAvatarChoice(input.avatarSeed);
@@ -321,7 +325,7 @@ export async function getSupabaseHocTapRoomSnapshot(
   code: string,
   participantId?: string | null,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const loaded = await requireLoadedRoom(code, organizationId);
   const settled = await settleRoomState(loaded);
   return serializeRoom(settled, session.userId, participantId ?? null);
@@ -332,7 +336,7 @@ export async function startSupabaseHocTapRoom(
   code: string,
   participantId?: string | null,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const loaded = await requireLoadedRoom(code, organizationId);
   const settled = await settleRoomState(loaded);
   assertRoomController(settled, session.userId);
@@ -359,7 +363,7 @@ export async function submitSupabaseHocTapRoomAnswer(
   session: ServiceSession,
   input: HocTapRoomAnswerInput,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const loaded = await requireLoadedRoom(input.code, organizationId);
   const settled = await settleRoomState(loaded);
 
@@ -451,7 +455,7 @@ export async function updateSupabaseHocTapRoomSettings(
   session: ServiceSession,
   input: HocTapRoomUpdateSettingsInput,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const loaded = await requireLoadedRoom(input.code, organizationId);
   assertRoomController(loaded, session.userId);
   await updateRoom(loaded.room.id, {
@@ -467,7 +471,7 @@ export async function deleteSupabaseHocTapRoom(
   session: ServiceSession,
   input: HocTapRoomDeleteInput,
 ): Promise<{ code: string }> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const loaded = await requireLoadedRoom(input.code, organizationId);
   assertRoomController(loaded, session.userId);
 
@@ -489,7 +493,7 @@ export async function advanceSupabaseHocTapRoom(
   code: string,
   participantId?: string | null,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const loaded = await requireLoadedRoom(code, organizationId);
   const settled = await settleRoomState(loaded);
   assertRoomController(settled, session.userId);
@@ -518,7 +522,7 @@ export async function updateSupabaseHocTapRoomQuestions(
   session: ServiceSession,
   input: HocTapRoomUpdateQuestionsInput,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await requireOrganizationId(session.userId);
+  const organizationId = await resolveRoomOrganizationId(session.userId);
   const loaded = await requireLoadedRoom(input.code, organizationId);
   assertRoomController(loaded, session.userId);
 
@@ -787,7 +791,7 @@ async function cleanupExpiredRooms(organizationId: string): Promise<void> {
     .lt("last_activity_at", finishedCutoff);
 }
 
-async function requireOrganizationId(userId: string): Promise<string> {
+async function resolveRoomOrganizationId(userId: string): Promise<string> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("organization_members")
@@ -800,13 +804,61 @@ async function requireOrganizationId(userId: string): Promise<string> {
   }
 
   const row = ((data ?? []) as MembershipRow[])[0];
-  if (!row?.organization_id) {
-    throw new HocTapRoomError(
-      "FORBIDDEN",
-      "Bạn cần thuộc một công ty để dùng phòng team.",
+  return row?.organization_id ?? ensureCommunityOrganizationId();
+}
+
+async function ensureCommunityOrganizationId(): Promise<string> {
+  const supabase = createSupabaseServiceClient();
+  const { data: existing, error: selectError } = await supabase
+    .from("organizations")
+    .select("id")
+    .eq("slug", COMMUNITY_ORGANIZATION_SLUG)
+    .maybeSingle();
+
+  if (selectError) {
+    throw new Error(selectError.message);
+  }
+  if (existing?.id) {
+    return existing.id;
+  }
+
+  const now = new Date().toISOString();
+  const { data: inserted, error: insertError } = await supabase
+    .from("organizations")
+    .insert({
+      name: COMMUNITY_ORGANIZATION_NAME,
+      slug: COMMUNITY_ORGANIZATION_SLUG,
+      status: "active",
+      settings_json: {
+        hocTapMode: "community",
+      },
+      created_by: null,
+      updated_at: now,
+    })
+    .select("id")
+    .maybeSingle();
+
+  if (!insertError && inserted?.id) {
+    return inserted.id;
+  }
+
+  const { data: retryExisting, error: retryError } = await supabase
+    .from("organizations")
+    .select("id")
+    .eq("slug", COMMUNITY_ORGANIZATION_SLUG)
+    .maybeSingle();
+
+  if (retryError) {
+    throw new Error(retryError.message);
+  }
+  if (!retryExisting?.id) {
+    throw new Error(
+      insertError?.message ||
+        "Không tạo được community organization cho phòng học tập.",
     );
   }
-  return row.organization_id;
+
+  return retryExisting.id;
 }
 
 async function generateUniqueRoomCode(): Promise<string> {
