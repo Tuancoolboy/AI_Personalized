@@ -1,6 +1,8 @@
 import { resolveApiSession } from "@/lib/api-auth";
 import { apiError, apiOk } from "@/lib/api-error";
+import { buildAvatarUrl } from "@/lib/app-avatar";
 import { resolveFullDisplayName, metadataFullName } from "@/lib/display-name";
+import { mergeLearningProfile, parseLearningProfile } from "@/lib/learning-profile";
 import { syncMemberDepartmentForUser } from "@/lib/member-department-sync";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
@@ -30,7 +32,7 @@ export async function GET() {
   const [{ data, error }, { data: authData }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("role_id, full_name, ai_level, email, phone_number")
+      .select("role_id, full_name, ai_level, email, phone_number, learning_profile")
       .eq("id", session.userId)
       .maybeSingle(),
     supabase.auth.getUser(),
@@ -47,6 +49,8 @@ export async function GET() {
     email: authData.user?.email,
     fallback: "bạn",
   });
+  const learningProfile = parseLearningProfile(data?.learning_profile);
+  const avatar = learningProfile.avatar ?? null;
 
   return apiOk({
     roleId: data?.role_id ?? null,
@@ -54,6 +58,8 @@ export async function GET() {
     email: data?.email ?? authData.user?.email ?? null,
     phoneNumber: data?.phone_number ?? null,
     aiLevel: data?.ai_level ?? 0,
+    avatar,
+    avatarUrl: buildAvatarUrl(avatar, fullName),
   });
 }
 
@@ -62,6 +68,7 @@ type ProfilePayload = {
   fullName?: unknown;
   phoneNumber?: unknown;
   aiLevel?: unknown;
+  avatar?: unknown;
 };
 
 function parseAiLevel(value: unknown): number | undefined {
@@ -88,6 +95,7 @@ export async function PUT(request: Request) {
   if (!session || session.mode !== "supabase") {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
   }
+  const supabase = await createSupabaseServerClient();
 
   let body: ProfilePayload;
   try {
@@ -128,6 +136,40 @@ export async function PUT(request: Request) {
     return apiError("VALIDATION_ERROR", "Cấp độ AI không hợp lệ.");
   }
 
+  const avatar =
+    body.avatar && typeof body.avatar === "object"
+      ? parseLearningProfile({ avatar: body.avatar }).avatar
+      : typeof body.avatar === "string"
+        ? parseLearningProfile({ avatar: body.avatar }).avatar
+        : body.avatar === null
+          ? null
+          : undefined;
+  if (body.avatar !== undefined && avatar === undefined) {
+    return apiError("VALIDATION_ERROR", "Avatar không hợp lệ.");
+  }
+
+  let learningProfilePatch: ReturnType<typeof parseLearningProfile> | undefined;
+  if (avatar !== undefined) {
+    const { data: profileRow, error: profileReadError } = await supabase
+      .from("profiles")
+      .select("learning_profile")
+      .eq("id", session.userId)
+      .maybeSingle();
+
+    if (profileReadError) {
+      console.error("[profile-put:learning-profile]", profileReadError.message);
+      return apiError("INTERNAL_ERROR", "Không đọc được hồ sơ avatar.");
+    }
+
+    learningProfilePatch = mergeLearningProfile(
+      parseLearningProfile(profileRow?.learning_profile),
+      { avatar: avatar ?? undefined },
+    );
+    if (avatar === null) {
+      delete learningProfilePatch.avatar;
+    }
+  }
+
   const updatePayload = {
     ...(roleId !== undefined ? { role_id: roleId } : {}),
     ...(fullName ? { full_name: fullName } : {}),
@@ -135,18 +177,18 @@ export async function PUT(request: Request) {
       ? { phone_number: phoneNumber || null }
       : {}),
     ...(aiLevel !== undefined ? { ai_level: aiLevel } : {}),
+    ...(learningProfilePatch ? { learning_profile: learningProfilePatch } : {}),
   };
 
   if (Object.keys(updatePayload).length === 0) {
     return apiError("VALIDATION_ERROR", "Không có thông tin cần cập nhật.");
   }
 
-  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("profiles")
     .update(updatePayload)
     .eq("id", session.userId)
-    .select("role_id, full_name, ai_level, email, phone_number")
+    .select("role_id, full_name, ai_level, email, phone_number, learning_profile")
     .single();
 
   if (error) {
@@ -170,5 +212,14 @@ export async function PUT(request: Request) {
     email: data.email,
     phoneNumber: data.phone_number,
     aiLevel: data.ai_level ?? 0,
+    avatar: parseLearningProfile(data.learning_profile).avatar ?? null,
+    avatarUrl: buildAvatarUrl(
+      parseLearningProfile(data.learning_profile).avatar,
+      data.full_name ?? authDataNameFallback(data.email),
+    ),
   });
+}
+
+function authDataNameFallback(email: string | null | undefined): string {
+  return email?.trim() || "ban";
 }

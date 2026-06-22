@@ -1699,3 +1699,13 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 **Shipped:** đưa `avatar` return và hydrate logic liên quan từ `useAppProfile()` lên GitHub qua commit follow-up.
 
 **Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.
+
+## 2026-06-22 — Deployment follow-up to sync full avatar profile flow
+
+**Goal:** Ngăn chuỗi fail lặp lại trên Vercel bằng cách đưa toàn bộ flow avatar/profile đang chạy ở local lên GitHub cùng lúc.
+
+**Decision:** Thay vì chờ từng lỗi build mới lộ ra, đồng bộ trọn cụm file avatar liên quan đến account page, app layout/nav, profile API, client API, learning profile parser, account settings và team room.
+
+**Shipped:** bổ sung các thay đổi còn thiếu ở `app/(app)/layout.tsx`, `app/(app)/tai-khoan/page.tsx`, `app/api/profile/route.ts`, `components/account-settings-content.tsx`, `components/app-nav.tsx`, `components/hoc-tap-team-room.tsx`, `lib/client-api.ts`, `lib/learning-profile.ts`.
+
+**Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.

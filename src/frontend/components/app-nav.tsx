@@ -15,6 +15,7 @@ type AppNavProps = {
   userRoleLabel: string;
   userType: UserType;
   homeHref: string;
+  avatarUrl?: string | null;
 };
 
 export function AppNav({
@@ -24,6 +25,7 @@ export function AppNav({
   userRoleLabel,
   userType,
   homeHref,
+  avatarUrl,
 }: AppNavProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -79,6 +81,7 @@ export function AppNav({
               userEmail={userEmail}
               userRoleLabel={userRoleLabel}
               userType={userType}
+              avatarUrl={avatarUrl}
             />
           </nav>
 
@@ -88,6 +91,7 @@ export function AppNav({
               userEmail={userEmail}
               userRoleLabel={userRoleLabel}
               userType={userType}
+              avatarUrl={avatarUrl}
             />
             <button
               type="button"

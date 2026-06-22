@@ -1,9 +1,16 @@
+import {
+  normalizeAvatarChoice,
+  parseAvatarChoice,
+  type AppAvatarChoice,
+} from "@/lib/app-avatar";
+
 export type PreferredAddress = "anh" | "chi" | "neutral";
 
 export type LearningProfile = {
   preferredAddress?: PreferredAddress;
   painPoints?: string[];
   notesFromUser?: string;
+  avatar?: AppAvatarChoice;
 };
 
 const VALID_ADDRESSES = new Set<PreferredAddress>(["anh", "chi", "neutral"]);
@@ -29,6 +36,15 @@ export function parseLearningProfile(raw: unknown): LearningProfile {
   if (typeof obj.notesFromUser === "string" && obj.notesFromUser.trim()) {
     profile.notesFromUser = obj.notesFromUser.trim().slice(0, 500);
   }
+  const parsedAvatar =
+    typeof obj.avatar === "string" ? parseAvatarChoice(obj.avatar) : null;
+  if (parsedAvatar) {
+    profile.avatar = normalizeAvatarChoice(parsedAvatar);
+  } else if (obj.avatar && typeof obj.avatar === "object") {
+    profile.avatar = normalizeAvatarChoice(
+      obj.avatar as AppAvatarChoice,
+    );
+  }
   return profile;
 }
 
@@ -46,5 +62,6 @@ export function mergeLearningProfile(
     preferredAddress: patch.preferredAddress ?? existing.preferredAddress ?? "neutral",
     painPoints: patch.painPoints ?? existing.painPoints,
     notesFromUser: patch.notesFromUser ?? existing.notesFromUser,
+    avatar: patch.avatar ?? existing.avatar,
   };
 }

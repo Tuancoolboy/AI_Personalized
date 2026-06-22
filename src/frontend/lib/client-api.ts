@@ -1,6 +1,7 @@
 // Client helpers gọi API khi Supabase đã cấu hình.
 
 import type { LearningModuleRecord } from "@/lib/learning-modules-data";
+import type { AppAvatarChoice } from "@/lib/app-avatar";
 import type {
   HocTapDepartmentOption,
   HocTapDepartmentSource,
@@ -42,6 +43,8 @@ export type ProfileResponse = {
   email?: string | null;
   phoneNumber?: string | null;
   aiLevel?: number;
+  avatar?: AppAvatarChoice | null;
+  avatarUrl?: string | null;
 };
 
 export async function fetchProfile(): Promise<ProfileResponse> {
@@ -53,6 +56,7 @@ export async function updateProfile(payload: {
   fullName?: string;
   phoneNumber?: string | null;
   aiLevel?: number;
+  avatar?: AppAvatarChoice | null;
 }): Promise<ProfileResponse> {
   return parseJson(
     await fetch("/api/profile", {
@@ -198,7 +202,7 @@ export async function fetchHocTapRooms(): Promise<{
   ok: boolean;
   rooms: HocTapPublicRoom[];
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(await fetch("/api/hoc-tap/rooms"));
 }
@@ -256,7 +260,7 @@ export async function createHocTapRoom(payload: {
   {
     ok: boolean;
     persisted: boolean;
-    source: "memory";
+    source: "memory" | "supabase";
     questionSource?: "openai" | "fallback" | "selected";
   } & HocTapRoomCreateResult
 > {
@@ -278,7 +282,7 @@ export async function joinHocTapRoomByCode(payload: {
   room: HocTapRoomSnapshot;
   participantId: string;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(
     await fetch("/api/hoc-tap/rooms/join", {
@@ -296,7 +300,7 @@ export async function fetchHocTapRoom(
   ok: boolean;
   room: HocTapRoomSnapshot;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   const search = participantId
     ? `?participantId=${encodeURIComponent(participantId)}`
@@ -314,7 +318,7 @@ export async function startHocTapRoomGame(payload: {
   ok: boolean;
   room: HocTapRoomSnapshot;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(
     await fetch(`/api/hoc-tap/rooms/${encodeURIComponent(payload.code)}/start`, {
@@ -337,7 +341,7 @@ export async function updateHocTapRoomSettings(payload: {
   ok: boolean;
   room: HocTapRoomSnapshot;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(
     await fetch(`/api/hoc-tap/rooms/${encodeURIComponent(payload.code)}`, {
@@ -361,7 +365,7 @@ export async function deleteHocTapRoomGame(payload: {
   code: string;
   deleted: true;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(
     await fetch(`/api/hoc-tap/rooms/${encodeURIComponent(payload.code)}`, {
@@ -384,7 +388,7 @@ export async function submitHocTapRoomAnswer(payload: {
   ok: boolean;
   room: HocTapRoomSnapshot;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(
     await fetch(`/api/hoc-tap/rooms/${encodeURIComponent(payload.code)}/answer`, {
@@ -401,12 +405,13 @@ export async function submitHocTapRoomAnswer(payload: {
 
 export async function advanceHocTapRoomGame(payload: {
   code: string;
-  hostToken: string;
+  hostToken?: string;
+  participantId?: string;
 }): Promise<{
   ok: boolean;
   room: HocTapRoomSnapshot;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(
     await fetch(
@@ -414,7 +419,10 @@ export async function advanceHocTapRoomGame(payload: {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hostToken: payload.hostToken }),
+        body: JSON.stringify({
+          hostToken: payload.hostToken,
+          participantId: payload.participantId,
+        }),
       },
     ),
   );
@@ -428,7 +436,7 @@ export async function updateHocTapRoomQuestions(payload: {
   ok: boolean;
   room: HocTapRoomSnapshot;
   persisted: boolean;
-  source: "memory";
+  source: "memory" | "supabase";
 }> {
   return parseJson(
     await fetch(

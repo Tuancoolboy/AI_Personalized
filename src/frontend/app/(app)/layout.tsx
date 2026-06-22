@@ -16,6 +16,12 @@ import {
 } from "@/lib/supabase/is-configured";
 import { AppAssistantHost } from "@/components/app-assistant-host";
 import { AppNav } from "@/components/app-nav";
+import { buildAvatarUrl } from "@/lib/app-avatar";
+import {
+  metadataFullName,
+  resolveFullDisplayName,
+} from "@/lib/display-name";
+import { parseLearningProfile } from "@/lib/learning-profile";
 import { getManagerMembershipForUser } from "@/lib/manager-auth";
 import { isPlatformAdminUser } from "@/lib/platform-admin-auth";
 
@@ -36,11 +42,6 @@ const MANAGER_NAV = [
   { href: "/tro-ly", label: "Trợ lý AI" },
 ];
 
-import {
-  metadataFullName,
-  resolveFullDisplayName,
-} from "@/lib/display-name";
-
 export default async function AppLayout({
   children,
 }: {
@@ -52,6 +53,7 @@ export default async function AppLayout({
   let userDisplayName = "Demo User";
   let isDemo = false;
   let userType: UserType = "employee";
+  let avatarUrl = buildAvatarUrl(null, userDisplayName);
 
   if (supabaseReady) {
     const user = await getCurrentUser();
@@ -63,7 +65,7 @@ export default async function AppLayout({
     const supabase = await createSupabaseServerClient();
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, learning_profile")
       .eq("id", user.id)
       .maybeSingle();
     userDisplayName = resolveFullDisplayName({
@@ -72,6 +74,10 @@ export default async function AppLayout({
       email: user.email,
       fallback: userEmail,
     });
+    avatarUrl = buildAvatarUrl(
+      parseLearningProfile(profile?.learning_profile).avatar,
+      userDisplayName,
+    );
 
     userType = (await getManagerMembershipForUser(user.id))
       ? "manager"
@@ -88,6 +94,7 @@ export default async function AppLayout({
     if (typeCookie === "manager") userType = "manager";
     userEmail = userType === "manager" ? "Chị Quản lý" : "Demo User";
     userDisplayName = userEmail;
+    avatarUrl = buildAvatarUrl(null, userDisplayName);
   }
 
   const isPlatformAdmin = await isPlatformAdminUser();
@@ -126,6 +133,7 @@ export default async function AppLayout({
         userRoleLabel={userRoleLabel}
         userType={userType}
         homeHref={userType === "manager" ? "/quan-ly" : "/lo-trinh"}
+        avatarUrl={avatarUrl}
       />
       <main className="flex min-h-0 flex-1 flex-col">{children}</main>
       <AppAssistantHost

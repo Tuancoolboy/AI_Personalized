@@ -18,9 +18,11 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
+import { UserAvatar } from "@/components/user-avatar";
+import { useAppProfile } from "@/hooks/use-app-profile";
+import { usePreferredAvatar } from "@/hooks/use-preferred-avatar";
 import {
   buildAvatarIdentity,
-  getPreferredAvatarSeed,
 } from "@/lib/avatar-preferences";
 import {
   deleteHocTapRoomGame,
@@ -47,6 +49,12 @@ type HocTapTeamRoomProps = {
 export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
   const router = useRouter();
   const normalizedCode = code.toUpperCase();
+  const { fullName, avatar: remoteAvatar } = useAppProfile();
+  const preferredAvatarIdentity = buildAvatarIdentity(fullName, displayName);
+  const { avatarSeed } = usePreferredAvatar(
+    preferredAvatarIdentity,
+    remoteAvatar,
+  );
   const [room, setRoom] = useState<HocTapRoomSnapshot | null>(null);
   const [identity, setIdentity] = useState<RoomIdentity | null>(() =>
     readRoomIdentity(normalizedCode),
@@ -70,6 +78,14 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
       .then((response) => {
         if (!active) return;
         setRoom(response.room);
+        if (response.room.viewerParticipantId) {
+          const nextIdentity = {
+            participantId: response.room.viewerParticipantId,
+            hostToken: identity?.hostToken,
+          };
+          saveRoomIdentity(normalizedCode, nextIdentity);
+          setIdentity(nextIdentity);
+        }
         setDeletedByHost(false);
         setError("");
       })
@@ -97,6 +113,14 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
       fetchHocTapRoom(normalizedCode, identity?.participantId)
         .then((response) => {
           setRoom(response.room);
+          if (response.room.viewerParticipantId) {
+            const nextIdentity = {
+              participantId: response.room.viewerParticipantId,
+              hostToken: identity?.hostToken,
+            };
+            saveRoomIdentity(normalizedCode, nextIdentity);
+            setIdentity(nextIdentity);
+          }
           setDeletedByHost(false);
           setError("");
         })
@@ -139,11 +163,10 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
 
     setActionLoading(true);
     try {
-      const avatarIdentity = buildAvatarIdentity(joinName, displayName);
       const response = await joinHocTapRoomByCode({
         code: normalizedCode,
         playerName: joinName.trim(),
-        avatarSeed: getPreferredAvatarSeed(avatarIdentity) ?? undefined,
+        avatarSeed,
       });
       const nextIdentity = { participantId: response.participantId };
       saveRoomIdentity(normalizedCode, nextIdentity);
@@ -838,7 +861,6 @@ function ParticipantAvatar({
   participant: HocTapRoomSnapshot["participants"][number];
   size: "md" | "lg" | "xl";
 }) {
-  const [failed, setFailed] = useState(false);
   const sizeClass =
     size === "xl"
       ? "size-12 text-sm"
@@ -846,23 +868,13 @@ function ParticipantAvatar({
         ? "size-10 text-[10px]"
         : "size-8 text-[10px]";
 
-  if (failed) {
-    return (
-      <span
-        className={`grid ${sizeClass} flex-none place-items-center rounded-full bg-brand-soft font-black text-brand`}
-      >
-        {participant.initials}
-      </span>
-    );
-  }
-
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={participant.avatarUrl}
+    <UserAvatar
+      avatarUrl={participant.avatarUrl}
+      fallbackText={participant.initials}
       alt={`Avatar của ${participant.name}`}
       className={`${sizeClass} flex-none rounded-full border border-line bg-card object-cover`}
-      onError={() => setFailed(true)}
+      fallbackClassName={`grid ${sizeClass} flex-none place-items-center rounded-full bg-brand-soft font-black text-brand`}
     />
   );
 }

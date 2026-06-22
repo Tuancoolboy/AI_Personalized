@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AccountSettingsContent } from "@/components/account-settings-content";
+import { buildAvatarUrl, type AppAvatarChoice } from "@/lib/app-avatar";
 import {
   normalizeAccountTab,
   resolveAccountRoleLabel,
 } from "@/lib/account-settings";
 import { metadataFullName, resolveFullDisplayName } from "@/lib/display-name";
+import { parseLearningProfile } from "@/lib/learning-profile";
 import { getManagerMembershipForUser } from "@/lib/manager-auth";
 import {
   createSupabaseServerClient,
@@ -38,6 +40,8 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   let email = "demo@aitroly.local";
   let phoneNumber = "";
   let roleId: string | null = null;
+  let avatar: AppAvatarChoice | null = null;
+  let avatarUrl = buildAvatarUrl(null, fullName);
 
   if (supabaseReady) {
     const user = await getCurrentUser();
@@ -51,7 +55,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     const supabase = await createSupabaseServerClient();
     const { data: profile } = await supabase
       .from("profiles")
-      .select("role_id, full_name, email, phone_number")
+      .select("role_id, full_name, email, phone_number, learning_profile")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -64,6 +68,8 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     });
     email = profile?.email ?? email;
     phoneNumber = profile?.phone_number ?? "";
+    avatar = parseLearningProfile(profile?.learning_profile).avatar ?? null;
+    avatarUrl = buildAvatarUrl(avatar, fullName);
   } else {
     const cookieStore = await cookies();
     const hasDemoSession =
@@ -78,6 +84,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
       userType === "manager"
         ? "quanly@congty.vn"
         : "nhanvien@congty.vn";
+    avatarUrl = buildAvatarUrl(null, fullName);
   }
 
   const roleLabel = resolveAccountRoleLabel(roleId, userType);
@@ -92,6 +99,8 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         email,
         phoneNumber,
         roleLabel,
+        avatar,
+        avatarUrl,
       }}
     />
   );

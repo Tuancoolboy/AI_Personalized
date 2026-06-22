@@ -103,6 +103,7 @@
     <li>Cập nhật ngày 22/06/2026 cho team room filter: bỏ select <code>Chế độ</code> và 2 icon đổi view; chuyển <code>Phòng ban</code> lên hàng trên thay chỗ chế độ, đưa ô <code>Tìm phòng hoặc chủ đề</code> xuống hàng dưới thay block phòng ban cũ; chip lọc chỉ giữ <code>Tất cả phòng</code>, <code>Đang chờ</code>, <code>Đang chơi</code>.</li>
     <li>Follow-up deploy ngày 22/06/2026: Vercel fail do commit trước thiếu file helper avatar mới và component avatar dùng chung. Bổ sung <code>avatar-preferences.ts</code> bản có <code>setPreferredAvatarChoice</code> cùng <code>user-avatar.tsx</code> để source trên GitHub khớp với local build.</li>
     <li>Follow-up deploy ngày 22/06/2026 (lượt 2): Vercel còn fail vì <code>useAppProfile()</code> trên GitHub chưa trả field <code>avatar</code> như source local đang dùng. Bổ sung hook này để contract avatar sync thống nhất giữa local và cloud.</li>
+    <li>Follow-up deploy ngày 22/06/2026 (lượt 3): đồng bộ luôn toàn bộ flow avatar/profile còn thiếu trên GitHub, gồm layout/nav, trang tài khoản, profile API, client API, parser learning profile, account settings và room team để tránh chuỗi lỗi build do source cloud bị lệch local từng mắt xích.</li>
   </ul>
 </body>
 </html>

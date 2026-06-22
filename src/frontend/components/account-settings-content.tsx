@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DicebearAvatarPicker } from "@/components/dicebear-avatar-picker";
 import { usePreferredAvatar } from "@/hooks/use-preferred-avatar";
+import type { AppAvatarChoice } from "@/lib/app-avatar";
 import { getAccountInitials } from "@/lib/account-menu";
 import { buildAvatarIdentity } from "@/lib/avatar-preferences";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -26,6 +27,8 @@ type AccountProfile = {
   email: string;
   phoneNumber: string;
   roleLabel: string;
+  avatar?: AppAvatarChoice | null;
+  avatarUrl?: string | null;
 };
 
 type AccountSettingsContentProps = {
@@ -120,10 +123,10 @@ export function AccountSettingsContent({
   );
   const {
     avatarOptions,
-    avatarSeed,
+    avatarChoice,
     avatarUrl,
     selectAvatar,
-  } = usePreferredAvatar(avatarIdentity);
+  } = usePreferredAvatar(avatarIdentity, initialProfile.avatar ?? null);
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -156,6 +159,7 @@ export function AccountSettingsContent({
       const result = await updateProfile({
         fullName: nameResult.value,
         phoneNumber: phoneResult.value || null,
+        avatar: avatarChoice,
       });
       setFullName(result.fullName ?? nameResult.value);
       setPhoneNumber(result.phoneNumber ?? "");
@@ -342,7 +346,7 @@ export function AccountSettingsContent({
                 fallbackText={getAccountInitials(fullName, email)}
                 onSelect={selectAvatar}
                 options={avatarOptions}
-                selectedSeed={avatarSeed}
+                selectedChoice={avatarChoice}
                 size="lg"
               />
               <div className="min-w-0">
@@ -351,7 +355,7 @@ export function AccountSettingsContent({
               </div>
             </div>
             <p className="rounded-xl border border-line bg-background px-4 py-3 text-sm text-ink-2">
-              Avatar hiện dùng cho trải nghiệm học tập và phòng team trên trình duyệt này.
+              Avatar này sẽ đồng bộ cho hồ sơ, menu tài khoản, học tập và phòng team.
             </p>
             <dl className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-line bg-background px-4 py-3">
