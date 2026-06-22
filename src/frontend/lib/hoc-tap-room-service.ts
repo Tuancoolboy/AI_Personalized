@@ -616,14 +616,10 @@ function serializeRoom(
   userId: string,
   requestedParticipantId: string | null,
 ): HocTapRoomSnapshot {
+  void requestedParticipantId;
   const viewer =
-    loaded.participants.find((participant) => participant.user_id === userId) ??
-    loaded.participants.find(
-      (participant) =>
-        requestedParticipantId !== null && participant.id === requestedParticipantId,
-    ) ??
-    null;
-  const viewerParticipantId = viewer?.id ?? requestedParticipantId ?? null;
+    loaded.participants.find((participant) => participant.user_id === userId) ?? null;
+  const viewerParticipantId = viewer?.id ?? null;
   const isHost = viewer?.is_host ?? false;
   const canManageRoom = loaded.room.created_by_user_id === userId;
   const question =

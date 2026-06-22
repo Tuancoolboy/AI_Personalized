@@ -53,6 +53,7 @@ import {
   createHocTapRoom,
   fetchHocTapDepartments,
   fetchHocTapRooms,
+  isSupabaseBackend,
   joinHocTapRoomByCode,
   previewHocTapRoomQuestions,
   type HocTapAiRoomDifficulty,
@@ -394,9 +395,13 @@ export function HocTapDashboard({
     () => getVisibleHocTapQuizzes(filteredQuizCatalog, quizExpanded, 8),
     [filteredQuizCatalog, quizExpanded],
   );
+  const useRealTimeRoomsOnly = isSupabaseBackend();
   const teamRooms = useMemo(
-    () => [...buildLiveTeamRooms(liveRooms, catalog), ...buildTeamRooms(catalog)],
-    [catalog, liveRooms],
+    () =>
+      useRealTimeRoomsOnly
+        ? buildLiveTeamRooms(liveRooms, catalog)
+        : [...buildLiveTeamRooms(liveRooms, catalog), ...buildTeamRooms(catalog)],
+    [catalog, liveRooms, useRealTimeRoomsOnly],
   );
   const filteredRooms = useMemo(
     () =>

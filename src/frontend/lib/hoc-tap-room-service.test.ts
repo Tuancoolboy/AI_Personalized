@@ -15,6 +15,7 @@ vi.mock("@/lib/supabase/server", () => ({
 
 import {
   createSupabaseHocTapRoom,
+  getSupabaseHocTapRoomSnapshot,
   joinSupabaseHocTapRoom,
   listSupabaseHocTapRooms,
 } from "@/lib/hoc-tap-room-service";
@@ -266,5 +267,26 @@ describe("hoc-tap room service", () => {
         (participant) => participant.id === firstJoin.participantId,
       )?.avatarUrl,
     ).toContain("vibrent_7");
+  });
+
+  it("does not trust a stale participant id from another account", async () => {
+    const created = await createSupabaseHocTapRoom(
+      { userId: "host-user" },
+      {
+        hostName: "Host One",
+        quizId: "ai-marketing",
+        mode: "classic",
+      },
+    );
+
+    const snapshot = await getSupabaseHocTapRoomSnapshot(
+      { userId: "player-user" },
+      created.room.code,
+      created.participantId,
+    );
+
+    expect(snapshot.viewerParticipantId).toBeNull();
+    expect(snapshot.isHost).toBe(false);
+    expect(snapshot.canManageRoom).toBe(false);
   });
 });

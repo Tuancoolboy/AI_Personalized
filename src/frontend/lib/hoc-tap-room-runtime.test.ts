@@ -72,103 +72,35 @@ describe("hoc-tap room runtime", () => {
     vi.clearAllMocks();
   });
 
-  it("falls back to memory rooms when the Supabase list runtime throws", async () => {
+  it("throws the Supabase list error in real mode instead of falling back to memory", async () => {
     serviceMocks.listSupabaseHocTapRooms.mockRejectedValueOnce(
       new Error('relation "hoc_tap_rooms" does not exist'),
     );
-    storeMocks.listHocTapPublicRooms.mockReturnValueOnce([
-      {
-        code: "ABC123",
-        quizId: "ai-marketing",
-        title: "AI Marketing",
-        category: "Marketing",
-        isLocked: false,
-        status: "waiting",
-        mode: "classic",
-        roomType: "host-review",
-        hostMode: "human",
-        phase: "waiting",
-        hostName: "Lan Anh",
-        hostAvatarUrl: "/avatar.png",
-        participantCount: 1,
-        maxPlayers: 20,
-        questionCount: 10,
-        createdAt: "2026-06-22T10:00:00.000Z",
-        updatedAt: "2026-06-22T10:00:00.000Z",
-      },
-    ]);
 
-    const response = await listHocTapRoomsWithRuntime({
-      mode: "supabase",
-      userId: "user-1",
-    });
-
-    expect(response).toMatchObject({
-      persisted: false,
-      source: "memory",
-      rooms: [
-        expect.objectContaining({
-          code: "ABC123",
-        }),
-      ],
-    });
+    await expect(
+      listHocTapRoomsWithRuntime({
+        mode: "supabase",
+        userId: "user-1",
+      }),
+    ).rejects.toThrow('relation "hoc_tap_rooms" does not exist');
+    expect(storeMocks.listHocTapPublicRooms).not.toHaveBeenCalled();
   });
 
-  it("falls back to memory snapshot when Supabase cannot find a room created in fallback mode", async () => {
+  it("throws the Supabase snapshot error in real mode instead of falling back to memory", async () => {
     serviceMocks.getSupabaseHocTapRoomSnapshot.mockRejectedValueOnce(
       new storeMocks.HocTapRoomError(
         "ROOM_NOT_FOUND",
         "Không tìm thấy phòng trong Supabase runtime.",
       ),
     );
-    storeMocks.getHocTapRoomSnapshot.mockReturnValueOnce({
-      code: "ROOM42",
-      quizId: "ai-marketing",
-      title: "AI Marketing",
-      category: "Marketing",
-      isLocked: false,
-      status: "waiting",
-      mode: "classic",
-      roomType: "host-review",
-      hostMode: "human",
-      phase: "waiting",
-      hostName: "Lan Anh",
-      hostParticipantId: "host-1",
-      participantCount: 1,
-      maxPlayers: 20,
-      questionCount: 10,
-      currentQuestionIndex: 0,
-      questionEndsAt: null,
-      phaseEndsAt: null,
-      answeredPlayerCount: 0,
-      createdAt: "2026-06-22T10:00:00.000Z",
-      updatedAt: "2026-06-22T10:00:00.000Z",
-      participants: [],
-      currentQuestion: null,
-      reviewQuestions: null,
-      viewerAnswer: null,
-      viewerParticipantId: "player-1",
-      isHost: false,
-      canManageRoom: false,
-      canStart: false,
-      leaderboard: [],
-      roundTopFive: [],
-      finalTopThree: [],
-    });
 
-    const response = await getHocTapRoomWithRuntime(
-      { mode: "supabase", userId: "user-1" },
-      "ROOM42",
-      "player-1",
-    );
-
-    expect(response).toMatchObject({
-      persisted: false,
-      source: "memory",
-      room: expect.objectContaining({
-        code: "ROOM42",
-        viewerParticipantId: "player-1",
-      }),
-    });
+    await expect(
+      getHocTapRoomWithRuntime(
+        { mode: "supabase", userId: "user-1" },
+        "ROOM42",
+        "player-1",
+      ),
+    ).rejects.toThrow("Không tìm thấy phòng trong Supabase runtime.");
+    expect(storeMocks.getHocTapRoomSnapshot).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,22 @@
 
 ---
 
+## [2026-06-22] — Tắt mock/fallback room khi test Supabase thật và cô lập identity theo account
+
+**Context:** Sau patch fallback trước đó, user xác nhận flow test 2 account vẫn lệch kỳ vọng: khi đổi sang account khác để vào cùng mã phòng thì có lúc không thấy phòng hoặc rơi vào trạng thái “phòng đã bị xoá”. Phân tích cho thấy có 3 nguồn nhiễu cùng lúc: dashboard Học tập vẫn trộn seed room mock với room thật, real mode Supabase vẫn có nhánh fallback về memory nếu room backend lỗi, và trang room lưu `participantId` localStorage chỉ theo `code`, nên đổi account trong cùng browser có thể tái dùng identity của account cũ.
+
+**Options:**
+1. Giữ fallback/memory để “an toàn demo”, chỉ vá localStorage stale identity.
+2. Chuyển hẳn room team sang strict Supabase mode khi env thật đã bật: tắt mock room seed, không fallback về memory, và namespace room identity theo account hiện tại.
+
+**Decision:** Chọn phương án 2 theo yêu cầu test đồng bộ thật bằng Supabase. `hoc-tap-room-runtime` nay chỉ dùng memory khi đang demo mode; nếu đã vào real Supabase mode mà room backend/service-role lỗi thì trả lỗi thật thay vì silently quay về memory. Dashboard tab team chỉ render `buildLiveTeamRooms()` khi `isSupabaseBackend()` bật, không cộng thêm `TEAM_ROOM_SEEDS`. Ngoài ra, `hoc-tap-team-room` lưu `participantId/hostToken` theo cặp `account + room code`, và service snapshot Supabase không còn trust `requestedParticipantId` của account khác, nên đổi user trong cùng browser không còn “mượn” participant cũ rồi nhìn nhầm sang trạng thái đã bị xoá.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** Targeted Vitest room runtime/service/routes pass 12/12; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. Full `npx -y -p node@20 node scripts/run-all-tests.mjs` vẫn dừng ở API integration vì môi trường hiện tại thiếu native WebSocket support cho Node 20 (`scripts/test-phase1-apis.mjs`), nhưng unit phase trong full suite pass 324/324.
+
 ## [2026-06-22] — Harden fallback cho Học tập room API + chặn warning chart âm kích thước
 
 **Context:** User báo tab “Chơi với team” trên production lặp `GET /api/hoc-tap/rooms 500` và banner “Phòng quiz tạm thời chưa phản hồi.”, đồng thời console hiện warning Recharts `The width(-1) and height(-1) of chart should be greater than 0`. Trace code cho thấy `GET /api/hoc-tap/rooms` là route room hiếm hoi chưa bọc `try/catch`, còn runtime `hoc-tap-room-runtime.ts` gần như không bao giờ fallback về memory vì chỉ cho phép code `FORBIDDEN`.
