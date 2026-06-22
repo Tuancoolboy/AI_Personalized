@@ -6,7 +6,7 @@ import {
   parseHocTapRoomQuestions,
   readHocTapRoomJson,
 } from "@/lib/hoc-tap-room-api";
-import { updateHocTapRoomQuestions } from "@/lib/hoc-tap-room-store";
+import { updateHocTapRoomQuestionsWithRuntime } from "@/lib/hoc-tap-room-runtime";
 
 type Params = { params: Promise<{ code: string }> };
 
@@ -23,17 +23,12 @@ export async function PATCH(request: Request, { params }: Params) {
       params,
       readHocTapRoomJson(request),
     ]);
-    const room = updateHocTapRoomQuestions({
+    const result = await updateHocTapRoomQuestionsWithRuntime(session, {
       code,
       hostToken: getStringField(body, "hostToken"),
       questions: parseHocTapRoomQuestions(body.questions),
     });
-
-    return apiOk({
-      room,
-      persisted: false,
-      source: "memory",
-    });
+    return apiOk(result);
   } catch (error) {
     return hocTapRoomRouteError(error);
   }

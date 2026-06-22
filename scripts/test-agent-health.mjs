@@ -27,10 +27,18 @@ loadEnvLocal();
 
 const checks = [];
 
+function getSupabasePublicKey() {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    ""
+  );
+}
+
 function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim(),
+      getSupabasePublicKey(),
   );
 }
 
@@ -39,7 +47,7 @@ async function loginTestUser(prefix) {
   const { createServerClient } = await import("@supabase/ssr");
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "");
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anon = getSupabasePublicKey();
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const email = `${prefix}-${Date.now()}@test.local`;
   const password = "TestPass123!";

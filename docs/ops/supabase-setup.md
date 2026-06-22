@@ -19,10 +19,11 @@ Sau khi project ready, vào **Settings → API**:
 | Tên | Dùng ở đâu | Mức nhạy cảm |
 |---|---|---|
 | `Project URL` | `NEXT_PUBLIC_SUPABASE_URL` | Public OK |
-| `anon` public key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public OK |
+| `publishable` public key | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public OK |
+| `anon` public key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public OK — alias legacy, app vẫn fallback được |
 | `service_role` secret | `SUPABASE_SERVICE_ROLE_KEY` | **BÍ MẬT** — chỉ server, không lộ client |
 
-Copy 3 giá trị này vào `.env.local` (không commit) + Vercel dashboard (Production + Preview).
+Copy `Project URL`, `publishable key`, và `service_role` vào `.env.local` (không commit) + Vercel dashboard (Production + Preview). Nếu project cũ vẫn đang dùng `NEXT_PUBLIC_SUPABASE_ANON_KEY`, app hiện vẫn tương thích.
 
 Thêm cho **Supabase CLI auto-sync** (khuyến nghị):
 

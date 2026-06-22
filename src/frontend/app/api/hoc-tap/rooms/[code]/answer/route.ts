@@ -6,7 +6,7 @@ import {
   hocTapRoomRouteError,
   readHocTapRoomJson,
 } from "@/lib/hoc-tap-room-api";
-import { submitHocTapRoomAnswer } from "@/lib/hoc-tap-room-store";
+import { submitHocTapRoomAnswerWithRuntime } from "@/lib/hoc-tap-room-runtime";
 
 type Params = { params: Promise<{ code: string }> };
 
@@ -23,18 +23,13 @@ export async function POST(request: Request, { params }: Params) {
       params,
       readHocTapRoomJson(request),
     ]);
-    const room = submitHocTapRoomAnswer({
+    const result = await submitHocTapRoomAnswerWithRuntime(session, {
       code,
       participantId: getStringField(body, "participantId"),
       questionIndex: getNumberField(body, "questionIndex") ?? -1,
       answerIndex: getNumberField(body, "answerIndex") ?? -1,
     });
-
-    return apiOk({
-      room,
-      persisted: false,
-      source: "memory",
-    });
+    return apiOk(result);
   } catch (error) {
     return hocTapRoomRouteError(error);
   }

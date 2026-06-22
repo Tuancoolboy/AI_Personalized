@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { sanitizeNextPath } from "@/lib/post-auth-redirect";
+import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/public-env";
 
 // Xử lý link xác nhận email / Google OAuth (PKCE) từ Supabase → session cookie.
 export async function GET(request: NextRequest) {
@@ -8,10 +9,10 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const next = sanitizeNextPath(searchParams.get("next")) ?? "/onboarding";
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = getSupabaseUrl();
+  const supabasePublicKey = getSupabasePublicKey();
 
-  if (!code || !supabaseUrl || !supabaseAnonKey) {
+  if (!code || !supabaseUrl || !supabasePublicKey) {
     return NextResponse.redirect(
       new URL("/verified?status=error", origin),
     );
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   const redirectUrl = new URL(next, origin);
   const response = NextResponse.redirect(redirectUrl);
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(supabaseUrl, supabasePublicKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {

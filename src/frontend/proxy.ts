@@ -16,6 +16,7 @@ import {
   DEMO_USER_TYPE_COOKIE,
   type UserType,
 } from "@/lib/supabase/is-configured";
+import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/public-env";
 
 const PROTECTED_PREFIXES = [
   "/onboarding",
@@ -70,11 +71,11 @@ export async function proxy(request: NextRequest) {
   const demoUserType = request.cookies.get(DEMO_USER_TYPE_COOKIE)?.value;
   const demoIsManager = demoUserType === "manager";
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = getSupabaseUrl();
+  const supabasePublicKey = getSupabasePublicKey();
 
   // Env chưa cấu hình → demo mode
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublicKey) {
     if (isProtected && !hasDemoSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
@@ -111,7 +112,7 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(supabaseUrl, supabasePublicKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (toSet) => {

@@ -5,7 +5,7 @@ import {
   hocTapRoomRouteError,
   readHocTapRoomJson,
 } from "@/lib/hoc-tap-room-api";
-import { advanceHocTapRoom } from "@/lib/hoc-tap-room-store";
+import { advanceHocTapRoomWithRuntime } from "@/lib/hoc-tap-room-runtime";
 
 type Params = { params: Promise<{ code: string }> };
 
@@ -22,13 +22,11 @@ export async function POST(request: Request, { params }: Params) {
       params,
       readHocTapRoomJson(request),
     ]);
-    const room = advanceHocTapRoom(code, getStringField(body, "hostToken"));
-
-    return apiOk({
-      room,
-      persisted: false,
-      source: "memory",
+    const result = await advanceHocTapRoomWithRuntime(session, code, {
+      hostToken: getStringField(body, "hostToken"),
+      participantId: getStringField(body, "participantId"),
     });
+    return apiOk(result);
   } catch (error) {
     return hocTapRoomRouteError(error);
   }

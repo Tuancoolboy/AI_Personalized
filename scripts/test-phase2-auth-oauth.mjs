@@ -25,6 +25,14 @@ loadEnvLocal();
 
 const results = [];
 
+function getSupabasePublicKey() {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    ""
+  );
+}
+
 function record(name, ok, detail = "") {
   results.push({ name, ok, detail });
   console.log(`${ok ? "✓" : "✗"} ${name}${detail ? ` — ${detail}` : ""}`);
@@ -33,7 +41,7 @@ function record(name, ok, detail = "") {
 function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() &&
+      getSupabasePublicKey() &&
       process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   );
 }

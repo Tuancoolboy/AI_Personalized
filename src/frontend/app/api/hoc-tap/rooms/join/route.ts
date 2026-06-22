@@ -5,7 +5,7 @@ import {
   hocTapRoomRouteError,
   readHocTapRoomJson,
 } from "@/lib/hoc-tap-room-api";
-import { joinHocTapRoom } from "@/lib/hoc-tap-room-store";
+import { joinHocTapRoomWithRuntime } from "@/lib/hoc-tap-room-runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -17,17 +17,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await readHocTapRoomJson(request);
-    const result = joinHocTapRoom({
+    const result = await joinHocTapRoomWithRuntime(session, {
       code: getStringField(body, "code"),
       playerName: getStringField(body, "playerName"),
       avatarSeed: getStringField(body, "avatarSeed"),
     });
 
-    return apiOk({
-      ...result,
-      persisted: false,
-      source: "memory",
-    });
+    return apiOk(result);
   } catch (error) {
     return hocTapRoomRouteError(error);
   }

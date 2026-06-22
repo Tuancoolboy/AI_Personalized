@@ -2,11 +2,10 @@
 // Client-safe vì chỉ check NEXT_PUBLIC_* vars (luôn lộ ra client bundle).
 // Demo mode bật khi return false — auth + (app) chạy không cần Supabase.
 
+import { hasSupabasePublicEnv } from "@/lib/supabase/public-env";
+
 export function isSupabaseConfigured(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  );
+  return hasSupabasePublicEnv();
 }
 
 // Cookie name dùng để đánh dấu demo session.

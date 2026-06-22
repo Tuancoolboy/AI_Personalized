@@ -118,6 +118,7 @@ export type HocTapRoomSnapshot = {
   currentQuestion: HocTapRoomQuestionSnapshot | null;
   reviewQuestions: HocTapRoomQuestionSnapshot[] | null;
   viewerAnswer: HocTapRoomViewerAnswer | null;
+  viewerParticipantId: string | null;
   isHost: boolean;
   canManageRoom: boolean;
   canStart: boolean;
@@ -697,6 +698,7 @@ function serializeRoom(
               : undefined,
           }
         : null,
+    viewerParticipantId: viewer?.id ?? viewerParticipantId,
     isHost,
     canManageRoom,
     canStart: room.status === "waiting" && canManageRoom,

@@ -8,10 +8,10 @@ import {
   readHocTapRoomJson,
 } from "@/lib/hoc-tap-room-api";
 import {
-  deleteHocTapRoom,
-  getHocTapRoomSnapshot,
-  updateHocTapRoomSettings,
-} from "@/lib/hoc-tap-room-store";
+  deleteHocTapRoomWithRuntime,
+  getHocTapRoomWithRuntime,
+  updateHocTapRoomSettingsWithRuntime,
+} from "@/lib/hoc-tap-room-runtime";
 
 type Params = { params: Promise<{ code: string }> };
 
@@ -26,13 +26,7 @@ export async function GET(request: NextRequest, { params }: Params) {
   try {
     const { code } = await params;
     const participantId = request.nextUrl.searchParams.get("participantId");
-    const room = getHocTapRoomSnapshot(code, participantId);
-
-    return apiOk({
-      room,
-      persisted: false,
-      source: "memory",
-    });
+    return apiOk(await getHocTapRoomWithRuntime(session, code, participantId));
   } catch (error) {
     return hocTapRoomRouteError(error);
   }
@@ -50,18 +44,13 @@ export async function PATCH(request: Request, { params }: Params) {
       readHocTapRoomJson(request),
     ]);
     const locked = getBooleanField(body, "locked");
-    const room = updateHocTapRoomSettings({
+    const result = await updateHocTapRoomSettingsWithRuntime(session, {
       code,
       locked: locked ?? false,
       hostToken: getStringField(body, "hostToken"),
       participantId: getStringField(body, "participantId"),
     });
-
-    return apiOk({
-      room,
-      persisted: false,
-      source: "memory",
-    });
+    return apiOk(result);
   } catch (error) {
     return hocTapRoomRouteError(error);
   }
@@ -78,7 +67,7 @@ export async function DELETE(request: Request, { params }: Params) {
       params,
       readHocTapRoomJson(request),
     ]);
-    const result = deleteHocTapRoom({
+    const result = await deleteHocTapRoomWithRuntime(session, {
       code,
       hostToken: getStringField(body, "hostToken"),
       participantId: getStringField(body, "participantId"),
@@ -87,8 +76,6 @@ export async function DELETE(request: Request, { params }: Params) {
     return apiOk({
       ...result,
       deleted: true,
-      persisted: false,
-      source: "memory",
     });
   } catch (error) {
     return hocTapRoomRouteError(error);

@@ -9,6 +9,7 @@ import {
   createSupabaseServerClient,
   createSupabaseServiceClient,
 } from "@/lib/supabase/server";
+import { hasSupabasePublicEnv } from "@/lib/supabase/public-env";
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit-memory";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
 
   // 4. Insert vào Supabase. Anon client + policy "leads_insert_anyone" cho phép.
   // Nếu Supabase env chưa cấu hình → trả 503 (gracefully degrade, không crash app).
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!hasSupabasePublicEnv()) {
     console.warn("[lead] Supabase env chưa cấu hình — log only, không persist.");
     console.log("[lead:no-db]", { email, name, source });
     return NextResponse.json({ ok: true, persisted: false });

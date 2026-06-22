@@ -16,9 +16,11 @@ import {
   readHocTapRoomJson,
 } from "@/lib/hoc-tap-room-api";
 import {
+  createHocTapRoomWithRuntime,
+  listHocTapRoomsWithRuntime,
+} from "@/lib/hoc-tap-room-runtime";
+import {
   HocTapRoomError,
-  createHocTapRoom,
-  listHocTapPublicRooms,
   type HocTapRoomCreateResult,
 } from "@/lib/hoc-tap-room-store";
 
@@ -30,11 +32,7 @@ export async function GET() {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
   }
 
-  return apiOk({
-    rooms: listHocTapPublicRooms(),
-    persisted: false,
-    source: "memory",
-  });
+  return apiOk(await listHocTapRoomsWithRuntime(session));
 }
 
 export async function POST(request: Request) {
@@ -48,11 +46,11 @@ export async function POST(request: Request) {
     const roomType = parseHocTapRoomType(body.roomType);
     const aiProject = getObjectField(body, "aiProject");
     const aiResult = aiProject
-      ? await createAiProjectRoom(body, aiProject, roomType)
+      ? await createAiProjectRoom(session, body, aiProject, roomType)
       : null;
     const result =
       aiResult ??
-      createHocTapRoom({
+      (await createHocTapRoomWithRuntime(session, {
         hostName: getStringField(body, "hostName"),
         avatarSeed: getStringField(body, "avatarSeed"),
         quizId: getStringField(body, "quizId"),
@@ -61,15 +59,13 @@ export async function POST(request: Request) {
         maxPlayers: getNumberField(body, "maxPlayers"),
         entryRole: parseHocTapRoomEntryRole(body.entryRole),
         locked: getBooleanField(body, "locked"),
-      });
+      }));
     const questionSource =
       aiResult?.questionSource ?? (aiProject ? "selected" : undefined);
 
     return apiOk({
       ...result,
       questionSource,
-      persisted: false,
-      source: "memory",
     });
   } catch (error) {
     return hocTapRoomRouteError(error);
@@ -77,6 +73,7 @@ export async function POST(request: Request) {
 }
 
 async function createAiProjectRoom(
+  session: Awaited<ReturnType<typeof resolveApiSession>>,
   body: Record<string, unknown>,
   aiProject: Record<string, unknown>,
   roomType: ReturnType<typeof parseHocTapRoomType>,
@@ -98,7 +95,7 @@ async function createAiProjectRoom(
     ? generated.questions
     : parseHocTapRoomQuestions(body.questions);
 
-  const result = createHocTapRoom({
+  const result = await createHocTapRoomWithRuntime(session!, {
     hostName: getStringField(body, "hostName"),
     avatarSeed: getStringField(body, "avatarSeed"),
     aiProject: projectInput,
