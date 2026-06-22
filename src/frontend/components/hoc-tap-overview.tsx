@@ -236,11 +236,11 @@ export function HocTapOverview({
           description="XP kiếm được và XP tích lũy theo ngày."
         >
           <div
-            className="h-64 w-full"
+            className="h-64 min-w-0 w-full"
             role="img"
             aria-label="Biểu đồ đường XP minh họa theo ngày"
           >
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <AreaChart
                 data={xpRows}
                 margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
@@ -284,11 +284,11 @@ export function HocTapOverview({
           description="Chỉ tính lúc trang bài học đang được mở và hiển thị."
         >
           <div
-            className="h-64 w-full"
+            className="h-64 min-w-0 w-full"
             role="img"
             aria-label="Biểu đồ cột số phút học theo ngày"
           >
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart
                 data={studyRows}
                 margin={{ top: 8, right: 8, left: -20, bottom: 0 }}

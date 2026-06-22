@@ -38,9 +38,16 @@ type RoomRuntimeMeta = {
 };
 
 function shouldFallbackToMemoryRuntime(error: unknown): boolean {
-  return (
-    error instanceof HocTapRoomError &&
-    error.code === "FORBIDDEN"
+  if (error instanceof HocTapRoomError) {
+    return error.code === "FORBIDDEN" || error.code === "ROOM_NOT_FOUND";
+  }
+  return error instanceof Error;
+}
+
+function logRoomRuntimeFallback(action: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.warn(
+    `[hoc-tap-rooms:${action}] Supabase room runtime unavailable, fallback to memory: ${message}`,
   );
 }
 
@@ -64,6 +71,7 @@ export async function listHocTapRoomsWithRuntime(session: ApiSession) {
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("list", error);
     }
   }
 
@@ -89,6 +97,7 @@ export async function createHocTapRoomWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("create", error);
     }
   }
 
@@ -114,6 +123,7 @@ export async function joinHocTapRoomWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("join", error);
     }
   }
 
@@ -144,6 +154,7 @@ export async function getHocTapRoomWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("get", error);
     }
   }
 
@@ -174,6 +185,7 @@ export async function startHocTapRoomWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("start", error);
     }
   }
 
@@ -205,6 +217,7 @@ export async function submitHocTapRoomAnswerWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("answer", error);
     }
   }
 
@@ -233,6 +246,7 @@ export async function updateHocTapRoomSettingsWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("settings", error);
     }
   }
 
@@ -258,6 +272,7 @@ export async function deleteHocTapRoomWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("delete", error);
     }
   }
 
@@ -288,6 +303,7 @@ export async function advanceHocTapRoomWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("advance", error);
     }
   }
 
@@ -316,6 +332,7 @@ export async function updateHocTapRoomQuestionsWithRuntime(
       if (!shouldFallbackToMemoryRuntime(error)) {
         throw error;
       }
+      logRoomRuntimeFallback("questions", error);
     }
   }
 

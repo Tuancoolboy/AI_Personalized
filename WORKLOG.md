@@ -6,6 +6,22 @@
 
 ---
 
+## [2026-06-22] — Harden fallback cho Học tập room API + chặn warning chart âm kích thước
+
+**Context:** User báo tab “Chơi với team” trên production lặp `GET /api/hoc-tap/rooms 500` và banner “Phòng quiz tạm thời chưa phản hồi.”, đồng thời console hiện warning Recharts `The width(-1) and height(-1) of chart should be greater than 0`. Trace code cho thấy `GET /api/hoc-tap/rooms` là route room hiếm hoi chưa bọc `try/catch`, còn runtime `hoc-tap-room-runtime.ts` gần như không bao giờ fallback về memory vì chỉ cho phép code `FORBIDDEN`.
+
+**Options:**
+1. Chỉ thêm `try/catch` cho GET route để user nhận JSON lỗi đẹp hơn, giữ nguyên Supabase-first runtime.
+2. Vừa bọc GET route, vừa nới fallback của room runtime để khi Supabase room backend/migration/service role lệch ở production thì flow room vẫn rơi về memory runtime thay vì chết cứng.
+
+**Decision:** Chọn phương án 2. Runtime giờ fallback về memory cho lỗi hạ tầng Supabase kiểu generic `Error` và `ROOM_NOT_FOUND`/`FORBIDDEN`, đồng thời log cảnh báo rõ action bị degrade. `GET /api/hoc-tap/rooms` nay dùng cùng `hocTapRoomRouteError()` như POST/PATCH/DELETE để response nhất quán. Ở mặt Overview, các `ResponsiveContainer` được thêm `minWidth={0}` và wrapper `min-w-0` để chặn warning kích thước âm khi chart mount trong layout hẹp/chuyển tab.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** Targeted Vitest cho `hoc-tap-room-runtime`, `GET /api/hoc-tap/rooms`, room routes/service pass 11/11; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. Full `npm run test` trên Node mặc định bị chặn ở bước build Turbopack trong sandbox (`binding to a port`), còn khi ép `run-all-tests.mjs` bằng Node 20 thì unit pass nhưng API integration script fail vì môi trường hiện tại thiếu native WebSocket support cho Node 20 (`scripts/test-phase1-apis.mjs`), ngoài phạm vi patch này.
+
 ## [2026-06-22] — Vá migration learning content để tương thích bảng learning_paths cũ
 
 **Context:** `npm run db:sync` bị dừng ở `20260612100000_learning_content_schema.sql` với lỗi `column "status" does not exist`. Nguyên nhân là migration `20260611120000_job_positions_learning_paths.sql` đã tạo `public.learning_paths` trước đó với schema cũ (`name`, chưa có `status/title/path_type/updated_at`), nên khi migration 20260612100000 chạy `create table if not exists` rồi tạo index `(organization_id, status)` thì index đụng cột chưa tồn tại.
