@@ -1330,6 +1330,7 @@ function TeamActionCards({
     [quizzes],
   );
   const defaultQuizId =
+    playableQuizzes.find((quiz) => quiz.id === "ai-van-phong")?.id ??
     playableQuizzes.find((quiz) => quiz.roleId === currentRoleId)?.id ??
     playableQuizzes[0]?.id ??
     "";
@@ -1547,7 +1548,7 @@ function TeamActionCards({
                 Tạo phòng mới
               </h2>
               <p className="mt-1 text-xs font-medium leading-5 text-ink-3">
-                AI gen câu hỏi từ project hoặc dùng bộ quiz có sẵn.
+                Tạo phòng học tập dùng chung cho team từ AI project hoặc bộ đề có sẵn.
               </p>
             </div>
             <span className="grid size-10 flex-none place-items-center rounded-xl bg-amber-50 text-amber-600">
@@ -1558,7 +1559,7 @@ function TeamActionCards({
           <div className="grid grid-cols-2 gap-2 rounded-2xl bg-secondary p-1">
             {[
               { value: "ai-project", label: "AI project" },
-              { value: "quiz", label: "Quiz có sẵn" },
+              { value: "quiz", label: "Bộ đề có sẵn" },
             ].map((option) => {
               const active = createSource === option.value;
               return (
@@ -1955,8 +1956,8 @@ function TeamActionCards({
           {createSource === "quiz" ? (
             <div className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] font-bold leading-4 text-amber-700">
               {entryRole === "host"
-                ? "Quiz có sẵn cho phép bạn làm chủ phòng để quan sát người chơi và theo dõi top 5 sau mỗi câu."
-                : "Quiz có sẵn sẽ tạo phòng chờ với host hệ thống, đưa bạn vào vai người chơi và chỉ bắt đầu khi người tạo bấm mở trận."}
+                ? "Bộ đề có sẵn đang ở chế độ dùng chung toàn team. Bạn vào vai chủ phòng để quan sát người chơi và theo dõi top 5 sau mỗi câu."
+                : "Bộ đề có sẵn sẽ tạo phòng chờ dùng chung, đưa bạn vào vai người chơi và chỉ bắt đầu khi người tạo bấm mở trận."}
               {lockedRoom ? " Phòng này sẽ được gắn trạng thái khoá theo mã." : ""}
             </div>
           ) : (
