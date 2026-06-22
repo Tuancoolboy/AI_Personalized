@@ -49,11 +49,16 @@ type HocTapTeamRoomProps = {
 export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
   const router = useRouter();
   const normalizedCode = code.toUpperCase();
-  const { fullName, avatar: remoteAvatar } = useAppProfile();
-  const preferredAvatarIdentity = buildAvatarIdentity(fullName, displayName);
+  const { fullName, email, avatar: remoteAvatar } = useAppProfile();
+  const preferredAvatarIdentity = buildAvatarIdentity(
+    fullName,
+    displayName,
+    email,
+  );
   const { avatarSeed } = usePreferredAvatar(
     preferredAvatarIdentity,
     remoteAvatar,
+    [fullName, displayName, email],
   );
   const [room, setRoom] = useState<HocTapRoomSnapshot | null>(null);
   const [identity, setIdentity] = useState<RoomIdentity | null>(() =>

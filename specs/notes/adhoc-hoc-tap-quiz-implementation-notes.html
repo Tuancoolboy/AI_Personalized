@@ -104,6 +104,7 @@
     <li>Follow-up deploy ngày 22/06/2026: Vercel fail do commit trước thiếu file helper avatar mới và component avatar dùng chung. Bổ sung <code>avatar-preferences.ts</code> bản có <code>setPreferredAvatarChoice</code> cùng <code>user-avatar.tsx</code> để source trên GitHub khớp với local build.</li>
     <li>Follow-up deploy ngày 22/06/2026 (lượt 2): Vercel còn fail vì <code>useAppProfile()</code> trên GitHub chưa trả field <code>avatar</code> như source local đang dùng. Bổ sung hook này để contract avatar sync thống nhất giữa local và cloud.</li>
     <li>Follow-up deploy ngày 22/06/2026 (lượt 3): đồng bộ luôn toàn bộ flow avatar/profile còn thiếu trên GitHub, gồm layout/nav, trang tài khoản, profile API, client API, parser learning profile, account settings và room team để tránh chuỗi lỗi build do source cloud bị lệch local từng mắt xích.</li>
+    <li>Fix ngày 22/06/2026 cho bug avatar bị reset: preference key nay ưu tiên email thay vì bám vào display name/full name dễ đổi giữa SSR và hydrate; hook avatar cũng đọc được alias key cũ rồi migrate sang key canonical nên avatar đã chọn không còn tự quay về mặc định khi rời trang và vào lại.</li>
   </ul>
 </body>
 </html>

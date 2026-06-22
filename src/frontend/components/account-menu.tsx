@@ -117,11 +117,17 @@ export function AccountMenu({
 }: AccountMenuProps) {
   const logout = useAppLogout();
   const sections = groupItems(getAccountMenuItems(userType));
-  const { avatar: remoteAvatar, fullName, hydrated } = useAppProfile();
-  const avatarIdentity = buildAvatarIdentity(fullName, userName, userEmail);
+  const { avatar: remoteAvatar, fullName, email, hydrated } = useAppProfile();
+  const avatarIdentity = buildAvatarIdentity(
+    fullName,
+    email,
+    userName,
+    userEmail,
+  );
   const { avatarUrl: preferredAvatarUrl } = usePreferredAvatar(
     avatarIdentity,
     remoteAvatar,
+    [fullName, email, userName, userEmail],
   );
   const effectiveAvatarUrl = hydrated
     ? preferredAvatarUrl

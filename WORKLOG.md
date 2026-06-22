@@ -1709,3 +1709,13 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 **Shipped:** bổ sung các thay đổi còn thiếu ở `app/(app)/layout.tsx`, `app/(app)/tai-khoan/page.tsx`, `app/api/profile/route.ts`, `components/account-settings-content.tsx`, `components/app-nav.tsx`, `components/hoc-tap-team-room.tsx`, `lib/client-api.ts`, `lib/learning-profile.ts`.
 
 **Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.
+
+## 2026-06-22 — Fix avatar preference resetting to default after navigation
+
+**Goal:** Chặn bug đổi avatar xong thoát ra vào lại thì về avatar mặc định.
+
+**Decision:** Vấn đề đến từ việc key local preference của avatar đang phụ thuộc vào tên hiển thị, trong khi tên/email/fullName có thể đổi giữa server render và client hydrate. Đổi sang identity ổn định hơn, ưu tiên email khi có, và cho hook avatar đọc/migrate được cả các alias key cũ để không mất avatar đã lưu trước đó.
+
+**Shipped:** cập nhật `avatar-preferences.ts`, `use-preferred-avatar.ts`, `use-app-profile.ts` và các caller ở account/hoc-tap/team-room/account-settings để dùng identity canonical + alias fallback.
+
+**Tests:** scoped ESLint pass với 2 warning cũ ở `hoc-tap-team-room.tsx`; Node 20 `npm run build` pass.

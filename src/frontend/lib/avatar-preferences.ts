@@ -20,11 +20,31 @@ export type { AppAvatarChoice, AppAvatarOption };
 export function buildAvatarIdentity(
   ...candidates: Array<string | null | undefined>
 ): string {
-  for (const candidate of candidates) {
-    const normalized = normalizeAvatarIdentity(candidate ?? "");
-    if (normalized) return normalized;
-  }
-  return "ban";
+  return buildAvatarIdentityCandidates(...candidates).primary;
+}
+
+export function buildAvatarIdentityCandidates(
+  ...candidates: Array<string | null | undefined>
+): {
+  primary: string;
+  aliases: string[];
+} {
+  const normalizedCandidates = Array.from(
+    new Set(
+      candidates
+        .map((candidate) => normalizeAvatarIdentity(candidate ?? ""))
+        .filter(Boolean),
+    ),
+  );
+  const primary =
+    normalizedCandidates.find((candidate) => candidate.includes("@")) ??
+    normalizedCandidates[0] ??
+    "ban";
+
+  return {
+    primary,
+    aliases: normalizedCandidates.filter((candidate) => candidate !== primary),
+  };
 }
 
 export function buildAvatarPreviewUrl(
@@ -51,6 +71,36 @@ export function getPreferredAvatarChoice(identity: string): AppAvatarChoice | nu
 
 export function getPreferredAvatarSeed(identity: string): string | null {
   const choice = getPreferredAvatarChoice(identity);
+  return choice ? serializeAvatarChoice(choice) : null;
+}
+
+export function getPreferredAvatarChoiceForIdentities(
+  identities: Array<string | null | undefined>,
+): AppAvatarChoice | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const store = readAvatarPreferenceStore();
+  for (const identity of identities) {
+    const normalizedIdentity = normalizeAvatarIdentity(identity ?? "");
+    if (!normalizedIdentity) continue;
+    const value = store[normalizedIdentity];
+    if (!value) continue;
+    const choice = normalizeAvatarChoice(
+      parseAvatarChoice(value),
+      normalizedIdentity,
+    );
+    if (choice) return choice;
+  }
+
+  return null;
+}
+
+export function getPreferredAvatarSeedForIdentities(
+  identities: Array<string | null | undefined>,
+): string | null {
+  const choice = getPreferredAvatarChoiceForIdentities(identities);
   return choice ? serializeAvatarChoice(choice) : null;
 }
 

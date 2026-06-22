@@ -118,15 +118,19 @@ export function AccountSettingsContent({
   const [savingEmail, setSavingEmail] = useState(false);
   const avatarIdentity = buildAvatarIdentity(
     fullName,
-    initialProfile.fullName,
     email,
+    initialProfile.fullName,
   );
   const {
     avatarOptions,
     avatarChoice,
     avatarUrl,
     selectAvatar,
-  } = usePreferredAvatar(avatarIdentity, initialProfile.avatar ?? null);
+  } = usePreferredAvatar(avatarIdentity, initialProfile.avatar ?? null, [
+    fullName,
+    email,
+    initialProfile.fullName,
+  ]);
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

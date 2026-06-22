@@ -8,6 +8,7 @@ import { getDemoProfile, type DemoProfile } from "@/lib/demo-storage";
 export function useAppProfile() {
   const [profile, setProfile] = useState<DemoProfile | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [avatar, setAvatar] = useState<AppAvatarChoice | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -17,6 +18,7 @@ export function useAppProfile() {
         try {
           const prof = await fetchProfile();
           setFullName(prof.fullName);
+          setEmail(prof.email ?? null);
           setAvatar(prof.avatar ?? null);
           if (prof.roleId) {
             setProfile({
@@ -46,12 +48,14 @@ export function useAppProfile() {
           const demo = getDemoProfile();
           setProfile(demo);
           setFullName(null);
+          setEmail(null);
           setAvatar(demo?.learningProfile?.avatar ?? null);
         }
       } else {
         const demo = getDemoProfile();
         setProfile(demo);
         setFullName(null);
+        setEmail(null);
         setAvatar(demo?.learningProfile?.avatar ?? null);
       }
       setHydrated(true);
@@ -64,6 +68,7 @@ export function useAppProfile() {
     hydrated,
     roleId: profile?.roleId ?? null,
     fullName,
+    email,
     avatar,
   };
 }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import {
   AVATAR_PREFERENCE_EVENT,
   buildAvatarPreviewUrl,
   buildAvatarPickerOptions,
-  getPreferredAvatarSeed,
+  getPreferredAvatarSeedForIdentities,
   setPreferredAvatarChoice,
   type AppAvatarChoice,
   type AppAvatarOption,
@@ -19,8 +19,23 @@ import {
 export function usePreferredAvatar(
   identity: string,
   remoteAvatar?: AppAvatarChoice | null,
+  aliasIdentities: Array<string | null | undefined> = [],
 ) {
   const normalizedIdentity = identity.trim();
+  const normalizedAliasIdentities = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          aliasIdentities
+            .map((candidate) => candidate?.trim() ?? "")
+            .filter(
+              (candidate) =>
+                candidate.length > 0 && candidate !== normalizedIdentity,
+            ),
+        ),
+      ),
+    [aliasIdentities, normalizedIdentity],
+  );
   const fallbackChoice = useMemo(
     () => buildDefaultAvatarChoice(normalizedIdentity),
     [normalizedIdentity],
@@ -33,15 +48,33 @@ export function usePreferredAvatar(
     () => serializeAvatarChoice(remoteAvatar ?? fallbackChoice),
     [fallbackChoice, remoteAvatar],
   );
+  const lookupIdentities = useMemo(
+    () => [normalizedIdentity, ...normalizedAliasIdentities],
+    [normalizedAliasIdentities, normalizedIdentity],
+  );
   const selectedSeed = useSyncExternalStore(
     subscribeToAvatarPreference,
-    () => getPreferredAvatarSeed(normalizedIdentity) ?? fallbackSeed,
+    () => getPreferredAvatarSeedForIdentities(lookupIdentities) ?? fallbackSeed,
     () => fallbackSeed,
   );
   const selectedChoice = useMemo(
     () => parseAvatarChoice(selectedSeed) ?? remoteAvatar ?? fallbackChoice,
     [fallbackChoice, remoteAvatar, selectedSeed],
   );
+
+  useEffect(() => {
+    if (!normalizedAliasIdentities.length) return;
+    const currentSeed = getPreferredAvatarSeedForIdentities([normalizedIdentity]);
+    if (currentSeed) return;
+
+    const aliasSeed = getPreferredAvatarSeedForIdentities(
+      normalizedAliasIdentities,
+    );
+    const aliasChoice = parseAvatarChoice(aliasSeed);
+    if (!aliasChoice) return;
+
+    setPreferredAvatarChoice(normalizedIdentity, aliasChoice);
+  }, [normalizedAliasIdentities, normalizedIdentity]);
 
   function selectAvatar(choice: AppAvatarChoice) {
     setPreferredAvatarChoice(normalizedIdentity, choice);

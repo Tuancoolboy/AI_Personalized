@@ -313,18 +313,22 @@ export function HocTapDashboard({
   displayName,
   initialTab = "overview",
 }: HocTapDashboardProps) {
-  const { profile, fullName, avatar: remoteAvatar } = useAppProfile();
+  const { profile, fullName, email, avatar: remoteAvatar } = useAppProfile();
   const currentRoleId =
     profile?.roleId && isAvailableQuizRoleId(profile.roleId)
       ? profile.roleId
       : null;
-  const avatarIdentity = buildAvatarIdentity(fullName, displayName);
+  const avatarIdentity = buildAvatarIdentity(fullName, displayName, email);
   const {
     avatarOptions,
     avatarSeed,
     avatarUrl,
     selectAvatar,
-  } = usePreferredAvatar(avatarIdentity, remoteAvatar);
+  } = usePreferredAvatar(avatarIdentity, remoteAvatar, [
+    fullName,
+    displayName,
+    email,
+  ]);
   const [activeTab, setActiveTab] = useState<HocTapActiveTab>(initialTab);
   const [quizQuery, setQuizQuery] = useState("");
   const [quizDepartmentFilter, setQuizDepartmentFilter] =
