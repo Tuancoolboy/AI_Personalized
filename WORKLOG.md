@@ -1679,3 +1679,13 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 **Shipped:** cập nhật layout/filter của tab team trong `src/frontend/components/hoc-tap-dashboard.tsx`; bỏ chip `Sắp bắt đầu`, `Classic`, `Team Battle`; bỏ 2 nút icon view.
 
 **Tests:** verification trong task này sẽ chạy lại bằng scoped ESLint và Node 20 `npm run build`.
+
+## 2026-06-22 — Deployment follow-up for avatar module sync
+
+**Goal:** Vá lỗi build Vercel sau deploy commit `1ff20a1` khi source trên GitHub thiếu một phần dependency avatar đang có ở local.
+
+**Decision:** Giữ nguyên logic avatar mới đã shipped, chỉ bổ sung các file bị sót khỏi commit trước: helper `avatar-preferences.ts` bản mới có `setPreferredAvatarChoice` và component dùng chung `user-avatar.tsx`.
+
+**Shipped:** thêm `src/frontend/lib/avatar-preferences.ts` vào commit follow-up cùng `src/frontend/components/user-avatar.tsx` để build cloud khớp với local.
+
+**Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.

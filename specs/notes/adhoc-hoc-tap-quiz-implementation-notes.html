@@ -101,6 +101,7 @@
     <li>Cập nhật ngày 22/06/2026 theo feedback UI: bỏ hoàn toàn block “Tạo quiz mới” ở tab Quiz; bộ lọc quiz đổi thành <code>Phòng ban</code> + <code>Tìm bộ đề</code>; bỏ copy “Quiz tự tạo”, “+153 XP” và đổi CTA card thành “Xem kiểm tra” khi đã có attempt local.</li>
     <li>Cập nhật ngày 22/06/2026 cho avatar: picker Học tập bỏ dòng helper dưới avatar, thêm upload ảnh client-side, mở rộng nhiều style DiceBear chính thức, và avatar chọn ở Học tập được dùng lại ngay cho account menu/header qua local preference chung.</li>
     <li>Cập nhật ngày 22/06/2026 cho team room filter: bỏ select <code>Chế độ</code> và 2 icon đổi view; chuyển <code>Phòng ban</code> lên hàng trên thay chỗ chế độ, đưa ô <code>Tìm phòng hoặc chủ đề</code> xuống hàng dưới thay block phòng ban cũ; chip lọc chỉ giữ <code>Tất cả phòng</code>, <code>Đang chờ</code>, <code>Đang chơi</code>.</li>
+    <li>Follow-up deploy ngày 22/06/2026: Vercel fail do commit trước thiếu file helper avatar mới và component avatar dùng chung. Bổ sung <code>avatar-preferences.ts</code> bản có <code>setPreferredAvatarChoice</code> cùng <code>user-avatar.tsx</code> để source trên GitHub khớp với local build.</li>
   </ul>
 </body>
 </html>
