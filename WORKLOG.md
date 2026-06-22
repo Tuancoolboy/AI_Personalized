@@ -1689,3 +1689,13 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 **Shipped:** thêm `src/frontend/lib/avatar-preferences.ts` vào commit follow-up cùng `src/frontend/components/user-avatar.tsx` để build cloud khớp với local.
 
 **Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.
+
+## 2026-06-22 — Deployment follow-up for useAppProfile avatar return
+
+**Goal:** Vá tiếp lỗi build Vercel còn lại sau commit `18284c4`, khi `account-menu.tsx` destructure `avatar` nhưng source GitHub của `useAppProfile()` chưa trả field này.
+
+**Decision:** Giữ contract mới của avatar sync; chỉ bổ sung đúng hook `src/frontend/hooks/use-app-profile.ts` đang có ở local để cloud/source thống nhất với code đã dùng ở `account-menu`, `hoc-tap-dashboard`, và `hoc-tap-team-room`.
+
+**Shipped:** đưa `avatar` return và hydrate logic liên quan từ `useAppProfile()` lên GitHub qua commit follow-up.
+
+**Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.
