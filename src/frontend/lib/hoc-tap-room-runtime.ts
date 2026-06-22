@@ -40,17 +40,8 @@ function shouldUseSupabaseRoomRuntime(session: ApiSession): boolean {
   return session.mode === "supabase" && isSupabaseConfigured();
 }
 
-function assertSupabaseRoomRuntimeReady() {
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    throw new Error(
-      "Thiếu SUPABASE_SERVICE_ROLE_KEY nên chưa thể đồng bộ phòng quiz thật.",
-    );
-  }
-}
-
 export async function listHocTapRoomsWithRuntime(session: ApiSession) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       rooms: await listSupabaseHocTapRooms({ userId: session.userId }),
       persisted: true,
@@ -70,7 +61,6 @@ export async function createHocTapRoomWithRuntime(
   input: HocTapRoomCreateInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       ...(await createSupabaseHocTapRoom({ userId: session.userId }, input)),
       persisted: true,
@@ -90,7 +80,6 @@ export async function joinHocTapRoomWithRuntime(
   input: HocTapRoomJoinInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       ...(await joinSupabaseHocTapRoom({ userId: session.userId }, input)),
       persisted: true,
@@ -111,7 +100,6 @@ export async function getHocTapRoomWithRuntime(
   participantId?: string | null,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       room: await getSupabaseHocTapRoomSnapshot(
         { userId: session.userId },
@@ -136,7 +124,6 @@ export async function startHocTapRoomWithRuntime(
   options: { hostToken?: string; participantId?: string | null },
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       room: await startSupabaseHocTapRoom(
         { userId: session.userId },
@@ -163,7 +150,6 @@ export async function submitHocTapRoomAnswerWithRuntime(
   input: HocTapRoomAnswerInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       room: await submitSupabaseHocTapRoomAnswer(
         { userId: session.userId },
@@ -186,7 +172,6 @@ export async function updateHocTapRoomSettingsWithRuntime(
   input: HocTapRoomUpdateSettingsInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       room: await updateSupabaseHocTapRoomSettings(
         { userId: session.userId },
@@ -209,7 +194,6 @@ export async function deleteHocTapRoomWithRuntime(
   input: HocTapRoomDeleteInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       ...(await deleteSupabaseHocTapRoom({ userId: session.userId }, input)),
       persisted: true,
@@ -230,7 +214,6 @@ export async function advanceHocTapRoomWithRuntime(
   options: { hostToken?: string; participantId?: string | null },
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       room: await advanceSupabaseHocTapRoom(
         { userId: session.userId },
@@ -254,7 +237,6 @@ export async function updateHocTapRoomQuestionsWithRuntime(
   input: HocTapRoomUpdateQuestionsInput,
 ) {
   if (shouldUseSupabaseRoomRuntime(session)) {
-    assertSupabaseRoomRuntimeReady();
     return {
       room: await updateSupabaseHocTapRoomQuestions(
         { userId: session.userId },

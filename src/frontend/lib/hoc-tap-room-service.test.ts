@@ -2,10 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSupabase = vi.hoisted(() => ({
   client: null as ReturnType<typeof createFakeSupabase> | null,
+  userId: "host-user",
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServiceClient: () => {
+  createSupabaseServerClient: async () => {
     if (!mockSupabase.client) {
       throw new Error("Fake Supabase client chưa được khởi tạo.");
     }
@@ -156,6 +157,64 @@ function createFakeSupabase(seed?: Partial<FakeDb>) {
     getRows(table: TableName) {
       return tables[table].map(cloneRow);
     },
+    async rpc(
+      name: string,
+      args: Record<string, unknown>,
+    ): Promise<{ data: Record<string, unknown> | null; error: null }> {
+      if (name === "join_hoc_tap_room_by_code") {
+        const room = tables.hoc_tap_rooms.find(
+          (row) => row.code === args.room_code,
+        );
+        if (!room) {
+          return { data: { error_code: "ROOM_NOT_FOUND" }, error: null };
+        }
+
+        const existing = tables.hoc_tap_room_participants.find(
+          (row) =>
+            row.room_id === room.id &&
+            row.user_id === mockSupabase.userId,
+        );
+        if (existing) {
+          existing.display_name = args.player_name;
+          existing.avatar_choice = args.player_avatar_choice;
+          return {
+            data: {
+              room_id: room.id,
+              organization_id: room.organization_id,
+              participant_id: existing.id,
+            },
+            error: null,
+          };
+        }
+
+        const participantId = String(args.requested_participant_id);
+        const now = new Date().toISOString();
+        tables.hoc_tap_room_participants.push({
+          id: participantId,
+          room_id: room.id,
+          organization_id: room.organization_id,
+          user_id: mockSupabase.userId,
+          display_name: args.player_name,
+          avatar_choice: args.player_avatar_choice,
+          score: 0,
+          is_host: false,
+          joined_at: now,
+          last_seen_at: now,
+          created_at: now,
+          updated_at: now,
+        });
+        return {
+          data: {
+            room_id: room.id,
+            organization_id: room.organization_id,
+            participant_id: participantId,
+          },
+          error: null,
+        };
+      }
+
+      return { data: null, error: null };
+    },
   };
 }
 
@@ -177,6 +236,7 @@ function compareValues(
 
 describe("hoc-tap room service", () => {
   beforeEach(() => {
+    mockSupabase.userId = "host-user";
     mockSupabase.client = createFakeSupabase({
       organization_members: [
         { organization_id: "org-1", user_id: "host-user" },
@@ -206,6 +266,7 @@ describe("hoc-tap room service", () => {
       }),
     ]);
 
+    mockSupabase.userId = "player-user";
     const joined = await joinSupabaseHocTapRoom(
       { userId: "player-user" },
       {
@@ -236,6 +297,7 @@ describe("hoc-tap room service", () => {
       },
     );
 
+    mockSupabase.userId = "player-user";
     const firstJoin = await joinSupabaseHocTapRoom(
       { userId: "player-user" },
       {
@@ -267,6 +329,38 @@ describe("hoc-tap room service", () => {
         (participant) => participant.id === firstJoin.participantId,
       )?.avatarUrl,
     ).toContain("vibrent_7");
+  });
+
+  it("lets an authenticated account outside the host organization join by code", async () => {
+    const created = await createSupabaseHocTapRoom(
+      { userId: "host-user" },
+      {
+        hostName: "Host One",
+        quizId: "ai-marketing",
+        mode: "classic",
+      },
+    );
+
+    mockSupabase.userId = "outside-user";
+    const joined = await joinSupabaseHocTapRoom(
+      { userId: "outside-user" },
+      {
+        code: created.room.code,
+        playerName: "Khách ngoài công ty",
+      },
+    );
+
+    expect(joined.room.viewerParticipantId).toBe(joined.participantId);
+    expect(
+      mockSupabase.client!
+        .getRows("hoc_tap_room_participants")
+        .find((row) => row.id === joined.participantId),
+    ).toEqual(
+      expect.objectContaining({
+        organization_id: "org-1",
+        user_id: "outside-user",
+      }),
+    );
   });
 
   it("does not trust a stale participant id from another account", async () => {

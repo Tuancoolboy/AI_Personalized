@@ -6,6 +6,23 @@
 
 ---
 
+## [2026-06-22] — Chuyển room team sang session + RLS và cho join xuyên công ty bằng mã
+
+**Context:** User tiếp tục báo production preview vẫn `500` ở `GET /api/hoc-tap/rooms`, sau đó account thứ hai mở đúng URL phòng lại nhận `404` và UI hiểu nhầm thành “Phòng đã bị xoá”. Trace cho thấy có hai nguyên nhân nối tiếp: service layer phụ thuộc `createSupabaseServiceClient()` nên Vercel thiếu/lệch service-role sẽ nổ `500`; đồng thời lookup room dùng cả `code + organization_id`, nên mã phòng toàn cục vẫn vô dụng với account thuộc công ty khác.
+
+**Options:**
+1. Giữ service-role và chỉ nhắc team cấu hình env Vercel cho đúng.
+2. Chuyển room service sang `createSupabaseServerClient()` và bắt buộc hai account cùng công ty.
+3. Dùng session + RLS, nhưng thêm RPC security-definer chỉ trả metadata sảnh chờ và join participant bằng đúng mã phòng để account ngoài công ty có thể vào mà chưa đọc được bộ câu hỏi trước khi tham gia.
+
+**Decision:** Chọn phương án 3. Room service dùng server session client cho mọi thao tác và không còn phụ thuộc `SUPABASE_SERVICE_ROLE_KEY`. Migration `20260622054535_allow_cross_org_hoc_tap_room_join.sql` thêm preview/join RPC theo mã toàn cục và mở RLS đọc/cập nhật cho participant thật sau khi join; list phòng vẫn company-scoped. Account ngoài công ty chỉ nhận metadata sảnh chờ trước khi bấm “Vào phòng”, không nhận `questions_json`. Đồng thời bổ sung `minWidth={0}` + wrapper `min-w-0` cho các Recharts còn thiếu ở manager dashboard.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** Targeted Vitest room runtime/service/routes pass 13/13; full unit phase pass 325/325 rồi API integration dừng ở lỗi nền Node 20 thiếu native WebSocket; `npm run db:validate` pass 37 migrations; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. `tsc --noEmit` riêng vẫn báo các lỗi test type có sẵn ở `path-agent-input.test.ts` và `hoc-tap-room-store.test.ts`, trong khi Next production type-check pass. `npm run db:sync` đã apply thành công hai migration room `20260621183748` và `20260622054535` lên remote project `cuyyhasurnxxdvzysngt`.
+
 ## [2026-06-22] — Tắt mock/fallback room khi test Supabase thật và cô lập identity theo account
 
 **Context:** Sau patch fallback trước đó, user xác nhận flow test 2 account vẫn lệch kỳ vọng: khi đổi sang account khác để vào cùng mã phòng thì có lúc không thấy phòng hoặc rơi vào trạng thái “phòng đã bị xoá”. Phân tích cho thấy có 3 nguồn nhiễu cùng lúc: dashboard Học tập vẫn trộn seed room mock với room thật, real mode Supabase vẫn có nhánh fallback về memory nếu room backend lỗi, và trang room lưu `participantId` localStorage chỉ theo `code`, nên đổi account trong cùng browser có thể tái dùng identity của account cũ.
