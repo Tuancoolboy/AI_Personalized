@@ -63,9 +63,12 @@ import {
   mergeHocTapDepartmentFilterOptions,
   type HocTapDepartmentOption,
 } from "@/lib/hoc-tap-departments";
+import { getHocTapRoomMapThemeLabel } from "@/lib/hoc-tap-duck-race";
+import { saveHocTapRoomIdentity } from "@/lib/hoc-tap-room-identity";
 import type {
   HocTapPublicRoom,
   HocTapRoomEntryRole,
+  HocTapRoomMapTheme,
   HocTapRoomQuestionInput,
   HocTapRoomType,
 } from "@/lib/hoc-tap-room-store";
@@ -191,6 +194,8 @@ type TeamRoom = {
   hostInitials: string;
   status: TeamRoomStatus;
   mode: TeamRoomMode;
+  mapTheme: HocTapRoomMapTheme;
+  mapLabel: string;
   participants: number;
   capacity: number;
   cta: string;
@@ -209,6 +214,23 @@ type TeamRoom = {
   publishedOrder: number;
   theme: HocTapQuizTheme;
 };
+
+const ROOM_MAP_OPTIONS: Array<{
+  value: HocTapRoomMapTheme;
+  label: string;
+  desc: string;
+}> = [
+  {
+    value: "classic",
+    label: "Classic",
+    desc: "Giữ nguyên flow hiện tại khi kết thúc phòng.",
+  },
+  {
+    value: "duck-race",
+    label: "Đua vịt",
+    desc: "Trong lúc chơi sẽ hiện đường đua theo từng câu, cuối session tổng kết thứ hạng.",
+  },
+];
 
 const ROOM_FILTER_OPTIONS: Array<{ value: TeamRoomFilter; label: string }> = [
   { value: "all", label: "Tất cả phòng" },
@@ -252,15 +274,10 @@ export function HocTapDashboard({
   const [query, setQuery] = useState("");
   const [departmentFilter, setDepartmentFilter] =
     useState<HocTapQuizFilter>("all");
-  const [departmentFilterTouched, setDepartmentFilterTouched] =
-    useState(false);
   const [departmentOptions, setDepartmentOptions] = useState<
     HocTapDepartmentOption[]
   >(() => buildAllHocTapDepartmentOptions());
-  const effectiveDepartmentFilter =
-    !departmentFilterTouched && departmentFilter === "all" && currentRoleId
-      ? getHocTapDepartmentFilterValue(currentRoleId)
-      : departmentFilter;
+  const effectiveDepartmentFilter = departmentFilter;
   const [topic, setTopic] = useState<HocTapQuizTopic>("all");
   const [roomFilter, setRoomFilter] = useState<TeamRoomFilter>("all");
   const [sort, setSort] = useState<HocTapQuizSort>("newest");
@@ -438,7 +455,6 @@ export function HocTapDashboard({
   function clearTeamFilters() {
     setQuery("");
     setDepartmentFilter("all");
-    setDepartmentFilterTouched(true);
     setTopic("all");
     setRoomFilter("all");
     setExpanded(false);
@@ -527,6 +543,7 @@ export function HocTapDashboard({
 
         <TeamActionCards
           avatarSeed={avatarSeed}
+          identityKey={avatarIdentity}
           displayName={displayName}
           quizzes={catalog}
           currentRoleId={currentRoleId}
@@ -539,7 +556,6 @@ export function HocTapDashboard({
               value={effectiveDepartmentFilter}
               onChange={(value) => {
                 setDepartmentFilter(value as HocTapQuizFilter);
-                setDepartmentFilterTouched(true);
                 setExpanded(false);
               }}
             >
@@ -1296,11 +1312,13 @@ const AI_ROOM_DIFFICULTY_OPTIONS: HocTapAiRoomDifficulty[] = [
 
 function TeamActionCards({
   avatarSeed,
+  identityKey,
   displayName,
   quizzes,
   currentRoleId,
 }: {
   avatarSeed: string;
+  identityKey: string;
   displayName: string;
   quizzes: HocTapQuizItem[];
   currentRoleId: AvailableQuizRoleId | null;
@@ -1327,6 +1345,7 @@ function TeamActionCards({
   const [createSource, setCreateSource] =
     useState<RoomCreateSource>("ai-project");
   const [entryRole, setEntryRole] = useState<HocTapRoomEntryRole>("host");
+  const [mapTheme, setMapTheme] = useState<HocTapRoomMapTheme>("classic");
   const [roomType, setRoomType] = useState<HocTapRoomType>("host-review");
   const [roomTitle, setRoomTitle] = useState("Project AI Quiz");
   const [projectTopic, setProjectTopic] = useState(
@@ -1430,6 +1449,7 @@ function TeamActionCards({
               questions:
                 roomType === "host-review" ? selectedQuestions : undefined,
               mode: "classic",
+              mapTheme,
               roomType,
               maxPlayers: 20,
               entryRole,
@@ -1440,12 +1460,13 @@ function TeamActionCards({
               avatarSeed,
               quizId: effectiveSelectedQuizId,
               mode: "classic",
+              mapTheme,
               roomType,
               maxPlayers: 20,
               entryRole,
               locked: lockedRoom,
             });
-      saveHocTapRoomIdentity(response.room.code, response.hostToken
+      saveHocTapRoomIdentity(response.room.code, identityKey, response.hostToken
         ? {
             participantId: response.participantId,
             hostToken: response.hostToken,
@@ -1512,7 +1533,7 @@ function TeamActionCards({
         playerName: playerName.trim(),
         avatarSeed,
       });
-      saveHocTapRoomIdentity(response.room.code, {
+      saveHocTapRoomIdentity(response.room.code, identityKey, {
         participantId: response.participantId,
       });
       router.push(`/hoc-tap/phong/${response.room.code}`);
@@ -1938,6 +1959,40 @@ function TeamActionCards({
               </>
             )}
 
+            <div className="space-y-2">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.12em] text-ink-3">
+                  Bản đồ
+                </p>
+                <p className="mt-1 text-[11px] font-semibold leading-4 text-ink-3">
+                  Chỉ ảnh hưởng màn kết thúc phòng, không đổi flow quiz đang chơi.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {ROOM_MAP_OPTIONS.map((option) => {
+                  const active = mapTheme === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setMapTheme(option.value)}
+                      className={`rounded-2xl border p-3 text-left transition focus-visible:ring-2 focus-visible:ring-brand ${
+                        active
+                          ? "border-brand/25 bg-brand-soft text-brand"
+                          : "border-line bg-white/80 text-ink-2 hover:border-brand/25 hover:text-brand"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      <span className="text-xs font-black">{option.label}</span>
+                      <span className="mt-1 block text-[10px] font-semibold leading-4 text-current/75">
+                        {option.desc}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
 
           {createSource === "quiz" ? (
@@ -1945,6 +2000,7 @@ function TeamActionCards({
               {entryRole === "host"
                 ? "Bộ đề có sẵn đang ở chế độ dùng chung toàn team. Bạn vào vai chủ phòng để quan sát người chơi và theo dõi top 5 sau mỗi câu."
                 : "Bộ đề có sẵn sẽ tạo phòng chờ dùng chung, đưa bạn vào vai người chơi và chỉ bắt đầu khi người tạo bấm mở trận."}
+              {` Bản đồ đang chọn: ${getHocTapRoomMapThemeLabel(mapTheme)}.`}
               {lockedRoom ? " Phòng này sẽ được gắn trạng thái khoá theo mã." : ""}
             </div>
           ) : (
@@ -1956,6 +2012,7 @@ function TeamActionCards({
                 : roomType === "host-review"
                   ? "Bạn vẫn được xem/chọn bộ đề trước khi tạo, nhưng khi vào phòng sẽ ở vai người chơi trong sảnh chờ và hệ thống chỉ chạy sau khi người tạo bấm bắt đầu."
                   : "Bạn sẽ vào phòng dưới vai người chơi trong sảnh chờ; host hệ thống giữ bộ đề bí mật và chỉ điều phối sau khi người tạo bấm bắt đầu."}
+              {` Bản đồ đang chọn: ${getHocTapRoomMapThemeLabel(mapTheme)}.`}
               {lockedRoom ? " Phòng này sẽ hiện nhãn khoá và người mới phải nhập mã phòng để vào." : ""}
             </div>
           )}
@@ -2113,6 +2170,9 @@ function TeamRoomCard({
                 Phòng khoá
               </span>
             ) : null}
+            <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[9px] font-black text-sky-700">
+              {room.mapLabel}
+            </span>
           </div>
 
           <h3 className="line-clamp-2 font-display text-base font-extrabold leading-snug text-ink transition group-hover:text-brand">
@@ -2136,13 +2196,19 @@ function TeamRoomCard({
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
-        <div className="grid grid-cols-2 gap-5 text-[10px] font-semibold text-ink-3">
+        <div className="grid grid-cols-3 gap-5 text-[10px] font-semibold text-ink-3">
           <span>
             Chế độ
             <strong className="mt-0.5 block text-xs text-ink">{room.mode}</strong>
           </span>
           <span>
-            Thời gian
+            Bản đồ
+            <strong className="mt-0.5 block text-xs text-ink">
+              {room.mapLabel}
+            </strong>
+          </span>
+          <span>
+            Câu hỏi
             <strong className="mt-0.5 block text-xs text-ink">
               {room.questionCount} câu hỏi
             </strong>
@@ -2357,6 +2423,7 @@ function buildLiveTeamRooms(
     const quiz = catalog.find((item) => item.id === room.quizId) ?? null;
     const mode: TeamRoomMode =
       room.mode === "team-battle" ? "Team Battle" : "Classic";
+    const mapLabel = getHocTapRoomMapThemeLabel(room.mapTheme);
 
     return {
       id: `live-${room.code}`,
@@ -2368,6 +2435,8 @@ function buildLiveTeamRooms(
       hostInitials: getDisplayInitials(room.hostName),
       status: room.status === "playing" ? "playing" : "waiting",
       mode,
+      mapTheme: room.mapTheme,
+      mapLabel,
       participants: room.participantCount,
       capacity: room.maxPlayers,
       cta: room.status === "playing" ? "Vào phòng" : "Tham gia",
@@ -2519,15 +2588,4 @@ function getDisplayInitials(name: string): string {
 
 function parseSerializedAvatarChoice(value: string): AppAvatarChoice {
   return parseAvatarChoice(value) ?? { provider: "dicebear", id: "ban::default" };
-}
-
-function saveHocTapRoomIdentity(
-  code: string,
-  identity: { participantId: string; hostToken?: string },
-) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    `ai_troly_hoc_tap_room_${code}`,
-    JSON.stringify(identity),
-  );
 }

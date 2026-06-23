@@ -5,6 +5,7 @@ import {
   deleteHocTapRoom,
   getHocTapRoomSnapshot,
   joinHocTapRoom,
+  leaveHocTapRoom,
   listHocTapPublicRooms,
   resetHocTapRoomStoreForTests,
   startHocTapRoom,
@@ -27,12 +28,14 @@ describe("hoc-tap room store", () => {
       hostName: "Demo User",
       quizId: "ai-marketing",
       mode: "team-battle",
+      mapTheme: "duck-race",
       maxPlayers: 12,
     });
 
     expect(result.room.code).toMatch(/^[A-Z0-9]{6}$/);
     expect(result.room.status).toBe("waiting");
     expect(result.room.mode).toBe("team-battle");
+    expect(result.room.mapTheme).toBe("duck-race");
     expect(result.room.participants).toHaveLength(1);
     expect(result.room.participants[0]).toMatchObject({
       name: "Demo User",
@@ -46,7 +49,8 @@ describe("hoc-tap room store", () => {
         code: result.room.code,
         quizId: "ai-marketing",
         isLocked: false,
-        participantCount: 0,
+        mapTheme: "duck-race",
+        participantCount: 1,
         hostAvatarUrl: expect.stringContaining("api.dicebear.com"),
       }),
     ]);
@@ -61,6 +65,7 @@ describe("hoc-tap room store", () => {
     });
 
     expect(result.room.isLocked).toBe(true);
+    expect(result.room.mapTheme).toBe("classic");
     expect(result.room.participants[0]?.avatarUrl).toContain(
       "demo-user%3A%3Aoption-2",
     );
@@ -72,25 +77,20 @@ describe("hoc-tap room store", () => {
     ]);
   });
 
-  it("does not count the host as a player and requires a real player to start", () => {
+  it("counts a human host as a player and lets the host start solo", () => {
     const host = createHocTapRoom({
       hostName: "Host One",
       quizId: "ai-marketing",
     });
 
-    expect(host.room.participantCount).toBe(0);
-    expect(() =>
-      startHocTapRoom(host.room.code, { hostToken: host.hostToken }),
-    ).toThrow(
-      "Cần ít nhất 1 người chơi trước khi bắt đầu.",
-    );
-
-    const joined = joinHocTapRoom({
-      code: host.room.code,
-      playerName: "Player Two",
+    expect(host.room.participantCount).toBe(1);
+    const started = startHocTapRoom(host.room.code, {
+      hostToken: host.hostToken,
     });
 
-    expect(joined.room.participantCount).toBe(1);
+    expect(started.status).toBe("playing");
+    expect(started.isLocked).toBe(true);
+    expect(started.participantCount).toBe(1);
     expect(listHocTapPublicRooms()[0]).toMatchObject({
       code: host.room.code,
       participantCount: 1,
@@ -122,6 +122,33 @@ describe("hoc-tap room store", () => {
         (participant) => participant.id === joined.participantId,
       )?.avatarUrl,
     ).toContain("lan-anh%3A%3Aoption-4");
+  });
+
+  it("locks new entrants after start while keeping existing players resumable", () => {
+    const host = createHocTapRoom({
+      hostName: "Host One",
+      quizId: "ai-ban-hang",
+    });
+    const joined = joinHocTapRoom({
+      code: host.room.code,
+      playerName: "Lan Anh",
+    });
+
+    startHocTapRoom(host.room.code, { hostToken: host.hostToken });
+
+    expect(() =>
+      joinHocTapRoom({
+        code: host.room.code,
+        playerName: "Người mới",
+      }),
+    ).toThrow("Phòng đã bắt đầu và không nhận thêm người chơi.");
+
+    expect(
+      joinHocTapRoom({
+        code: host.room.code,
+        playerName: "Lan Anh",
+      }).participantId,
+    ).toBe(joined.participantId);
   });
 
   it("creates a system-hosted room when quiz entry role is player", () => {
@@ -216,6 +243,8 @@ describe("hoc-tap room store", () => {
       code: host.room.code,
       playerName: "Player Two",
     });
+    const correctIndex =
+      host.room.reviewQuestions?.[0]?.correctIndex ?? 0;
 
     const started = startHocTapRoom(host.room.code, {
       hostToken: host.hostToken,
@@ -225,13 +254,21 @@ describe("hoc-tap room store", () => {
       question: expect.any(String),
       options: expect.any(Array),
     });
-    expect(started.currentQuestion?.correctIndex).toEqual(expect.any(Number));
+    expect(started.currentQuestion?.correctIndex).toBeUndefined();
+
+    const hostAnswered = submitHocTapRoomAnswer({
+      code: host.room.code,
+      participantId: host.participantId,
+      questionIndex: 0,
+      answerIndex: correctIndex,
+    });
+    expect(hostAnswered.phase).toBe("question");
 
     const answered = submitHocTapRoomAnswer({
       code: host.room.code,
       participantId: player.participantId,
       questionIndex: 0,
-      answerIndex: 0,
+      answerIndex: correctIndex,
     });
     expect(answered.phase).toBe("reveal");
     expect(answered.viewerAnswer).toMatchObject({
@@ -241,7 +278,7 @@ describe("hoc-tap room store", () => {
       points: 100,
       isCorrect: true,
     });
-    expect(answered.leaderboard[0]?.name).toBe("Player Two");
+    expect(answered.leaderboard[0]?.name).toBe("Host One");
 
     const next = advanceHocTapRoom(host.room.code, host.hostToken);
     expect(next.status).toBe("playing");
@@ -294,6 +331,15 @@ describe("hoc-tap room store", () => {
     });
     expect(afterFirstAnswer.viewerAnswer?.isCorrect).toBeUndefined();
     expect(afterFirstAnswer.viewerAnswer?.points).toBeUndefined();
+
+    const afterHostAnswer = submitHocTapRoomAnswer({
+      code: host.room.code,
+      participantId: host.participantId,
+      questionIndex: 0,
+      answerIndex: 0,
+    });
+    expect(afterHostAnswer.phase).toBe("question");
+    expect(afterHostAnswer.answeredPlayerCount).toBe(2);
 
     const reveal = submitHocTapRoomAnswer({
       code: host.room.code,
@@ -414,25 +460,23 @@ describe("hoc-tap room store", () => {
     ]);
   });
 
-  it("rejects host answers because the host only moderates the room", () => {
+  it("lets a human host answer while retaining room controls", () => {
     const host = createHocTapRoom({
       hostName: "Host One",
       quizId: "ai-van-phong",
     });
-    joinHocTapRoom({
-      code: host.room.code,
-      playerName: "Player Two",
-    });
     startHocTapRoom(host.room.code, { hostToken: host.hostToken });
 
-    expect(() =>
-      submitHocTapRoomAnswer({
-        code: host.room.code,
-        participantId: host.participantId,
-        questionIndex: 0,
-        answerIndex: 0,
-      }),
-    ).toThrow("Host chỉ điều khiển phòng và không tham gia trả lời.");
+    const answered = submitHocTapRoomAnswer({
+      code: host.room.code,
+      participantId: host.participantId,
+      questionIndex: 0,
+      answerIndex: host.room.reviewQuestions?.[0]?.correctIndex ?? 0,
+    });
+
+    expect(answered.phase).toBe("reveal");
+    expect(answered.viewerAnswer?.revealed).toBe(true);
+    expect(answered.leaderboard[0]?.name).toBe("Host One");
   });
 
   it("rejects non-host start attempts", () => {
@@ -526,7 +570,44 @@ describe("hoc-tap room store", () => {
     );
   });
 
-  it("caps round top five and final top three without counting the host", () => {
+  it("lets a player leave without deleting the host room", () => {
+    const host = createHocTapRoom({
+      hostName: "Host One",
+      quizId: "ai-ke-toan",
+    });
+    const player = joinHocTapRoom({
+      code: host.room.code,
+      playerName: "Lan Anh",
+    });
+
+    expect(
+      leaveHocTapRoom({
+        code: host.room.code,
+        participantId: player.participantId,
+      }),
+    ).toEqual({ code: host.room.code, roomDeleted: false });
+    expect(getHocTapRoomSnapshot(host.room.code).participantCount).toBe(1);
+  });
+
+  it("deletes the entire room when its host leaves", () => {
+    const host = createHocTapRoom({
+      hostName: "Host One",
+      quizId: "ai-ke-toan",
+    });
+
+    expect(
+      leaveHocTapRoom({
+        code: host.room.code,
+        participantId: host.participantId,
+        hostToken: host.hostToken,
+      }),
+    ).toEqual({ code: host.room.code, roomDeleted: true });
+    expect(() => getHocTapRoomSnapshot(host.room.code)).toThrow(
+      "Không tìm thấy phòng",
+    );
+  });
+
+  it("caps round top five and final top three including a human host", () => {
     const host = createHocTapRoom({
       hostName: "Host One",
       quizId: "ai-ke-toan",
@@ -545,9 +626,16 @@ describe("hoc-tap room store", () => {
     const hostViewId = host.participantId;
 
     while (snapshot.status === "playing" && snapshot.phase === "question") {
-      const correctIndex = snapshot.currentQuestion?.correctIndex;
+      const correctIndex =
+        host.room.reviewQuestions?.[snapshot.currentQuestionIndex]?.correctIndex;
       expect(correctIndex).toEqual(expect.any(Number));
 
+      submitHocTapRoomAnswer({
+        code: host.room.code,
+        participantId: host.participantId,
+        questionIndex: snapshot.currentQuestionIndex,
+        answerIndex: correctIndex as number,
+      });
       players.forEach((player) => {
         submitHocTapRoomAnswer({
           code: host.room.code,
@@ -562,25 +650,17 @@ describe("hoc-tap room store", () => {
       snapshot = advanceHocTapRoom(host.room.code, host.hostToken);
       expect(snapshot.phase).toBe("leaderboard");
       expect(snapshot.roundTopFive).toHaveLength(5);
-      expect(snapshot.roundTopFive.every((participant) => !participant.isHost)).toBe(
-        true,
-      );
-      expect(snapshot.roundTopFive.map((participant) => participant.name)).not.toContain(
-        "Host One",
-      );
+      expect(snapshot.roundTopFive[0]?.name).toBe("Host One");
 
       snapshot = advanceHocTapRoom(host.room.code, host.hostToken);
     }
 
     expect(snapshot.status).toBe("finished");
     expect(snapshot.finalTopThree).toHaveLength(3);
-    expect(snapshot.finalTopThree.every((participant) => !participant.isHost)).toBe(
-      true,
-    );
     expect(snapshot.finalTopThree.map((participant) => participant.name)).toEqual([
+      "Host One",
       "An",
       "Binh",
-      "Chi",
     ]);
   });
 
@@ -627,9 +707,7 @@ describe("hoc-tap room store", () => {
       hostToken: secretHost.hostToken,
     });
 
-    expect(startedReview.currentQuestion?.correctIndex).toEqual(
-      expect.any(Number),
-    );
+    expect(startedReview.currentQuestion?.correctIndex).toBeUndefined();
     expect(startedSecret.currentQuestion?.correctIndex).toBeUndefined();
     expect(startedSecret.currentQuestion?.explanation).toBeUndefined();
   });

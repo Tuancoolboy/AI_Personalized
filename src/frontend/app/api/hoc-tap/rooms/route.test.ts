@@ -22,6 +22,7 @@ describe("POST /api/hoc-tap/rooms", () => {
           avatarSeed: "lan-anh::option-5",
           quizId: "ai-marketing",
           mode: "classic",
+          mapTheme: "duck-race",
           roomType: "host-review",
           maxPlayers: 20,
           entryRole: "player",
@@ -42,6 +43,7 @@ describe("POST /api/hoc-tap/rooms", () => {
         hostMode: "system",
         hostName: "AI Host",
         isLocked: true,
+        mapTheme: "duck-race",
         participantCount: 1,
       },
     });
@@ -63,6 +65,7 @@ describe("POST /api/hoc-tap/rooms", () => {
         body: JSON.stringify({
           hostName: "Lan Anh",
           mode: "classic",
+          mapTheme: "duck-race",
           roomType: "host-review",
           maxPlayers: 20,
           entryRole: "player",
@@ -118,6 +121,7 @@ describe("POST /api/hoc-tap/rooms", () => {
         phase: "waiting",
         hostMode: "system",
         hostName: "AI Host",
+        mapTheme: "duck-race",
         participantCount: 1,
       },
     });

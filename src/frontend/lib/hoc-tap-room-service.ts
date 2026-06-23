@@ -14,8 +14,11 @@ import {
   type HocTapRoomCreateInput,
   type HocTapRoomCreateResult,
   type HocTapRoomHostMode,
+  type HocTapRoomMapTheme,
   type HocTapRoomJoinInput,
   type HocTapRoomJoinResult,
+  type HocTapRoomLeaveInput,
+  type HocTapRoomLeaveResult,
   type HocTapRoomParticipant,
   type HocTapRoomPhase,
   type HocTapRoomQuestionInput,
@@ -44,6 +47,7 @@ type RoomRow = {
   status: HocTapRoomStatus;
   phase: HocTapRoomPhase;
   mode: "classic" | "team-battle";
+  map_theme: HocTapRoomMapTheme;
   room_type: HocTapRoomType;
   host_mode: HocTapRoomHostMode;
   locked: boolean;
@@ -95,6 +99,7 @@ type RoomPreviewRow = {
   status: HocTapRoomStatus;
   phase: HocTapRoomPhase;
   mode: "classic" | "team-battle";
+  map_theme: HocTapRoomMapTheme;
   room_type: HocTapRoomType;
   host_mode: HocTapRoomHostMode;
   locked: boolean;
@@ -199,6 +204,7 @@ export async function createSupabaseHocTapRoom(
     status: "waiting",
     phase: "waiting",
     mode: input.mode ?? "classic",
+    map_theme: input.mapTheme ?? "classic",
     room_type: roomType,
     host_mode: hostMode,
     locked: input.locked ?? false,
@@ -397,10 +403,10 @@ export async function submitSupabaseHocTapRoomAnswer(
       "Bạn chưa tham gia phòng này.",
     );
   }
-  if (participant.is_host) {
+  if (participant.is_host && settled.room.host_mode === "system") {
     throw new HocTapRoomError(
       "HOST_CANNOT_ANSWER",
-      "Host chỉ điều khiển phòng và không tham gia trả lời.",
+      "AI Host chỉ điều khiển phòng và không tham gia trả lời.",
     );
   }
 
@@ -499,6 +505,50 @@ export async function deleteSupabaseHocTapRoom(
   }
 
   return { code: loaded.room.code };
+}
+
+export async function leaveSupabaseHocTapRoom(
+  session: ServiceSession,
+  input: HocTapRoomLeaveInput,
+): Promise<HocTapRoomLeaveResult> {
+  const loaded = await requireAccessibleRoom(input.code);
+
+  if (loaded.room.created_by_user_id === session.userId) {
+    await deleteSupabaseHocTapRoom(session, {
+      code: loaded.room.code,
+      hostToken: input.hostToken,
+      participantId: input.participantId,
+    });
+    return { code: loaded.room.code, roomDeleted: true };
+  }
+
+  const participant = loaded.participants.find(
+    (item) => item.user_id === session.userId,
+  );
+  if (!participant) {
+    throw new HocTapRoomError(
+      "PLAYER_NOT_FOUND",
+      "Bạn chưa tham gia phòng này.",
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from("hoc_tap_room_participants")
+    .delete()
+    .eq("id", participant.id)
+    .eq("user_id", session.userId);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  await touchRoom(loaded.room.id);
+  const refreshed = await requireLoadedRoom(
+    loaded.room.code,
+    loaded.room.organization_id,
+  );
+  await settleRoomState(refreshed);
+  return { code: loaded.room.code, roomDeleted: false };
 }
 
 export async function advanceSupabaseHocTapRoom(
@@ -658,10 +708,7 @@ function serializeRoom(
     loaded.room.phase === "reveal" || loaded.room.phase === "leaderboard";
   const currentQuestion =
     question && loaded.room.status === "playing"
-      ? serializeQuestion(
-          question,
-          isAnswerRevealVisible || (canManageRoom && loaded.room.room_type === "host-review"),
-        )
+      ? serializeQuestion(question, isAnswerRevealVisible)
       : null;
   const leaderboard = buildLeaderboard(loaded);
   const answeredPlayerCount =
@@ -692,6 +739,7 @@ function serializeRoom(
     isLocked: loaded.room.locked,
     status: loaded.room.status,
     mode: loaded.room.mode,
+    mapTheme: loaded.room.map_theme,
     roomType: loaded.room.room_type,
     hostMode: loaded.room.host_mode,
     phase: loaded.room.phase,
@@ -753,6 +801,7 @@ function serializeRoomPreview(preview: RoomPreviewRow): HocTapRoomSnapshot {
     isLocked: preview.locked,
     status: preview.status,
     mode: preview.mode,
+    mapTheme: preview.map_theme === "duck-race" ? "duck-race" : "classic",
     roomType: preview.room_type,
     hostMode: preview.host_mode,
     phase: preview.phase,
@@ -793,6 +842,7 @@ function serializePublicRoom(loaded: LoadedRoom): HocTapPublicRoom {
     isLocked: loaded.room.locked,
     status: loaded.room.status,
     mode: loaded.room.mode,
+    mapTheme: loaded.room.map_theme,
     roomType: loaded.room.room_type,
     hostMode: loaded.room.host_mode,
     phase: loaded.room.phase,
@@ -1000,6 +1050,8 @@ async function requireLoadedRoom(
 function normalizeRoomRow(room: RoomRow): RoomRow {
   return {
     ...room,
+    map_theme:
+      room.map_theme === "duck-race" ? "duck-race" : "classic",
     questions_json: Array.isArray(room.questions_json)
       ? room.questions_json
       : [],
@@ -1043,6 +1095,7 @@ function startQuestionPatch(now = Date.now()) {
   const endsAt = new Date(now + QUESTION_DURATION_MS).toISOString();
   return {
     status: "playing",
+    locked: true,
     phase: "question",
     phase_ends_at: endsAt,
     question_ends_at: endsAt,
@@ -1239,7 +1292,9 @@ function getQuestionAt(
 }
 
 function getPlayers(loaded: LoadedRoom): ParticipantRow[] {
-  return loaded.participants.filter((participant) => !participant.is_host);
+  return loaded.room.host_mode === "human"
+    ? loaded.participants
+    : loaded.participants.filter((participant) => !participant.is_host);
 }
 
 function countAnsweredPlayers(
@@ -1301,6 +1356,12 @@ function throwJoinRoomRpcError(errorCode?: string) {
   }
   if (errorCode === "ROOM_FULL") {
     throw new HocTapRoomError("ROOM_FULL", "Phòng đã đủ người chơi.");
+  }
+  if (errorCode === "ROOM_LOCKED") {
+    throw new HocTapRoomError(
+      "ROOM_LOCKED",
+      "Phòng đã bắt đầu và không nhận thêm người chơi.",
+    );
   }
   if (errorCode === "FORBIDDEN") {
     throw new HocTapRoomError("FORBIDDEN", "Bạn cần đăng nhập để vào phòng.");

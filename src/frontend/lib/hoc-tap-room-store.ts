@@ -7,6 +7,7 @@ import { buildDicebearAvatarUrl } from "@/lib/dicebear";
 
 export type HocTapRoomStatus = "waiting" | "playing" | "finished";
 export type HocTapRoomMode = "classic" | "team-battle";
+export type HocTapRoomMapTheme = "classic" | "duck-race";
 export type HocTapRoomType = "host-review" | "ai-secret";
 export type HocTapRoomEntryRole = "host" | "player";
 export type HocTapRoomHostMode = "human" | "system";
@@ -32,6 +33,7 @@ export type HocTapRoomCreateInput = {
   aiProject?: HocTapRoomAiProjectInput;
   questions?: HocTapRoomQuestionInput[];
   mode?: HocTapRoomMode;
+  mapTheme?: HocTapRoomMapTheme;
   roomType?: HocTapRoomType;
   maxPlayers?: number;
   entryRole?: HocTapRoomEntryRole;
@@ -100,6 +102,7 @@ export type HocTapRoomSnapshot = {
   isLocked: boolean;
   status: HocTapRoomStatus;
   mode: HocTapRoomMode;
+  mapTheme: HocTapRoomMapTheme;
   roomType: HocTapRoomType;
   hostMode: HocTapRoomHostMode;
   phase: HocTapRoomPhase;
@@ -135,6 +138,7 @@ export type HocTapPublicRoom = {
   isLocked: boolean;
   status: HocTapRoomStatus;
   mode: HocTapRoomMode;
+  mapTheme: HocTapRoomMapTheme;
   roomType: HocTapRoomType;
   hostMode: HocTapRoomHostMode;
   phase: HocTapRoomPhase;
@@ -166,6 +170,17 @@ export type HocTapRoomDeleteInput = {
   participantId?: string;
 };
 
+export type HocTapRoomLeaveInput = {
+  code: string;
+  participantId?: string;
+  hostToken?: string;
+};
+
+export type HocTapRoomLeaveResult = {
+  code: string;
+  roomDeleted: boolean;
+};
+
 export type HocTapRoomJoinResult = {
   room: HocTapRoomSnapshot;
   participantId: string;
@@ -191,6 +206,7 @@ type StoredRoom = {
   hostToken: string | null;
   status: HocTapRoomStatus;
   mode: HocTapRoomMode;
+  mapTheme: HocTapRoomMapTheme;
   roomType: HocTapRoomType;
   hostMode: HocTapRoomHostMode;
   phase: HocTapRoomPhase;
@@ -291,6 +307,7 @@ export function createHocTapRoom(
     hostToken,
     status: "waiting",
     mode: input.mode ?? "classic",
+    mapTheme: input.mapTheme ?? "classic",
     roomType,
     hostMode,
     phase: "waiting",
@@ -352,6 +369,13 @@ export function joinHocTapRoom(
     };
   }
 
+  if (room.status === "playing") {
+    throw new HocTapRoomError(
+      "ROOM_LOCKED",
+      "Phòng đã bắt đầu và không nhận thêm người chơi.",
+    );
+  }
+
   if (getPlayers(room).length >= room.maxPlayers) {
     throw new HocTapRoomError("ROOM_FULL", "Phòng đã đủ người chơi.");
   }
@@ -406,6 +430,7 @@ export function listHocTapPublicRooms(): HocTapPublicRoom[] {
       isLocked: room.isLocked,
       status: room.status,
       mode: room.mode,
+      mapTheme: room.mapTheme,
       roomType: room.roomType,
       hostMode: room.hostMode,
       phase: room.phase,
@@ -478,10 +503,10 @@ export function submitHocTapRoomAnswer(
       "Bạn chưa tham gia phòng này.",
     );
   }
-  if (participant.isHost) {
+  if (participant.isHost && room.hostMode === "system") {
     throw new HocTapRoomError(
       "HOST_CANNOT_ANSWER",
-      "Host chỉ điều khiển phòng và không tham gia trả lời.",
+      "AI Host chỉ điều khiển phòng và không tham gia trả lời.",
     );
   }
 
@@ -589,6 +614,43 @@ export function deleteHocTapRoom(
   return { code };
 }
 
+export function leaveHocTapRoom(
+  input: HocTapRoomLeaveInput,
+): HocTapRoomLeaveResult {
+  const code = normalizeRoomCode(input.code);
+  const room = getRequiredRoom(code);
+  settleRoomState(room);
+
+  if (canViewerManageRoom(room, input.participantId ?? null)) {
+    assertRoomController(room, input, "Chỉ người tạo phòng mới xoá được phòng.");
+    getStoreState().rooms.delete(code);
+    return { code, roomDeleted: true };
+  }
+
+  const participantId = input.participantId;
+  const participantIndex = room.participants.findIndex(
+    (participant) => participant.id === participantId,
+  );
+  if (participantIndex < 0) {
+    throw new HocTapRoomError(
+      "PLAYER_NOT_FOUND",
+      "Bạn chưa tham gia phòng này.",
+    );
+  }
+
+  if (room.participants[participantIndex]?.isHost) {
+    throw new HocTapRoomError(
+      "FORBIDDEN",
+      "Host cần dùng thao tác rời và xoá phòng.",
+    );
+  }
+
+  room.participants.splice(participantIndex, 1);
+  room.updatedAt = new Date().toISOString();
+  settleRoomState(room);
+  return { code, roomDeleted: false };
+}
+
 export function resetHocTapRoomStoreForTests() {
   getStoreState().rooms.clear();
 }
@@ -600,6 +662,7 @@ export class HocTapRoomError extends Error {
       | "INVALID_QUIZ"
       | "ROOM_NOT_FOUND"
       | "ROOM_FULL"
+      | "ROOM_LOCKED"
       | "ROOM_FINISHED"
       | "ROOM_NOT_WAITING"
       | "ROOM_NOT_PLAYING"
@@ -637,10 +700,7 @@ function serializeRoom(
     room.phase === "reveal" || room.phase === "leaderboard";
   const currentQuestion =
     question && room.status === "playing"
-      ? serializeQuestion(
-          question,
-          isAnswerRevealVisible || (isHost && room.roomType === "host-review"),
-        )
+      ? serializeQuestion(question, isAnswerRevealVisible)
       : null;
   const leaderboard = buildLeaderboard(room);
   const answeredPlayerCount =
@@ -659,6 +719,7 @@ function serializeRoom(
     isLocked: room.isLocked,
     status: room.status,
     mode: room.mode,
+    mapTheme: room.mapTheme,
     roomType: room.roomType,
     hostMode: room.hostMode,
     phase: room.phase,
@@ -793,6 +854,7 @@ function forceAdvancePhase(room: StoredRoom) {
 
 function startQuestionPhase(room: StoredRoom, now = Date.now()) {
   room.status = "playing";
+  room.isLocked = true;
   room.phase = "question";
   room.phaseEndsAt = new Date(now + QUESTION_DURATION_MS).toISOString();
   room.questionEndsAt = room.phaseEndsAt;
@@ -920,7 +982,9 @@ function getQuestionAt(
 }
 
 function getPlayers(room: StoredRoom): StoredParticipant[] {
-  return room.participants.filter((participant) => !participant.isHost);
+  return room.hostMode === "human"
+    ? room.participants
+    : room.participants.filter((participant) => !participant.isHost);
 }
 
 function cloneQuestions(questions: HocTapQuizQuestion[]): HocTapQuizQuestion[] {

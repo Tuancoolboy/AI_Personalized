@@ -125,5 +125,45 @@
   <p>Demo mode vẫn dùng memory để app chạy không cần Supabase nhưng bắt đầu từ 0 và không seed giả; real mode tuyệt đối không đọc key XP localStorage cũ hoặc fallback sang memory.</p>
   <h3>Bất kỳ điều gì khác cần lưu ý</h3>
   <p>Migration mới là <code>20260623023753_hoc_tap_real_xp_audience.sql</code> và đã được apply lên remote bằng <code>db:push</code>. Cần smoke nhiều account. <code>db:validate</code>, targeted Vitest 30/30, full unit 336/336, lint 0 error và build Node 20 đã pass; full API integration đang bị chặn trước case đầu tiên bởi credential Supabase inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header.</p>
+
+  <h2>6. Update 2026-06-23 — Map Đua vịt sau team quiz</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Thêm contract <code>mapTheme: "classic" | "duck-race"</code> độc lập với <code>mode</code>, giữ Classic làm mặc định và chỉ branch UI khi room đã <code>finished</code>. Cảnh đua dùng canvas client-side nhỏ gọn, sprite vịt copy vào public assets, shared rank cho người bằng điểm, joined time làm tie-break thứ tự render, và tự tắt animation khi người dùng bật reduced motion.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Không port nguyên app <code>duck-race-master</code>, không kéo Vite, React Router, socket backend, betting, wallet hay audio loop. Race scene không chạy xen giữa từng câu; toàn bộ flow question/reveal/round leaderboard cũ được giữ nguyên và chỉ màn tổng kết cuối session thay đổi.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Dùng canvas giúp scene nhiều lane gọn và không thêm dependency animation, nhưng nội dung canvas không tự semantic. Vì vậy leaderboard tổng kết vẫn render bằng DOM ngay dưới canvas, canvas có nhãn mô tả, ảnh tải xong kích hoạt redraw, và layout dùng kích thước vịt/lane thích ứng cho màn hẹp.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Supabase real mode cần apply migration <code>20260623093000_hoc_tap_room_map_theme.sql</code> trước khi tạo room mới có map Đua vịt. Verification: targeted Node 20 Vitest 36/36; full unit 343/343; lint 0 error/7 warning cũ; Node 20 và Node 22 production build pass; <code>db:validate</code> pass 39 migrations; <code>git diff --check</code> pass. Full runner Node 20 dừng trước API cases vì thiếu WebSocket native; chạy lại Node 22 vẫn dừng trước case đầu tiên do credential Supabase local chứa ký tự Unicode không hợp lệ trong HTTP header. Browser smoke nhiều người chơi vẫn cần chạy sau khi apply migration.</p>
+
+  <h2>7. Update 2026-06-23 — Human host vào và chơi team quiz</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Chuẩn hóa identity room thành helper account-scoped dùng chung cho dashboard và room detail, có migration mềm từ localStorage key cũ để không làm mất <code>hostToken</code>. Human host được coi là player có thêm quyền controller; AI Host vẫn là participant điều phối không trả lời.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Rule cũ “host không tính là người chơi và không trả lời” được thay bằng “chỉ AI Host không chơi”. Human host được tính trong participant count, capacity, điều kiện cả phòng trả lời xong, leaderboard và Duck Race. Để tránh lợi thế không công bằng, host-review chỉ cho xem đáp án lúc review ở sảnh; khi trận đã bắt đầu, human host không nhận <code>correctIndex</code> trước pha reveal.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Giữ cùng một row <code>is_host=true</code> cho human host giúp không phải đổi schema hoặc tách controller/player identity, nhưng mọi helper gameplay phải phân biệt bằng <code>host_mode</code>: human host được chơi, system host bị loại. Migration mới cập nhật preview count và capacity RPC để Supabase khớp memory runtime.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Migration bổ sung là <code>20260623133848_hoc_tap_human_host_player.sql</code>. Targeted Vitest 45/45, full unit 348/348, scoped ESLint và <code>db:validate</code> 40 migrations đã pass; full lint/build đang chạy ở vòng verification cuối.</p>
+
+  <h2>8. Update 2026-06-23 — Đua vịt theo pha, khóa/rời phòng và default all</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Giữ renderer Đua vịt dùng chung cho lúc chơi và tổng kết, nhưng đổi helper để quãng đường không còn tính từ điểm. <code>buildDuckRaceStandings()</code> chỉ quyết định rank/skin/thứ tự, còn <code>applyDuckRaceQuestionProgress()</code> đặt cùng một phần trăm đường đua cho mọi vịt theo phase hiện tại.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Copy chọn bản đồ được sửa lại vì Đua vịt không chỉ hiện ở màn kết thúc nữa. Migration lifecycle được đổi tên từ slug có dấu gạch ngang sang <code>20260623145414_hoc_tap_room_leave_and_start_lock.sql</code> để khớp validator hiện tại của repo.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không gắn thao tác rời phòng vào browser back/close tab vì request cleanup không đảm bảo chạy an toàn. UI chỉ xóa identity local và chuyển về <code>/choi-voi-team</code> sau khi người dùng bấm nút rời phòng rõ ràng. Supabase RPC cho phép participant cũ rejoin trước khi kiểm tra <code>status &lt;&gt; 'waiting'</code>, nên reload giữa trận vẫn ổn nhưng người mới bị chặn.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Verification: <code>npm run db:validate</code> pass 41 migrations; targeted Vitest room/duck/migration/route pass 56/56; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run test</code> unit pass 359/359 và production build trong phase API pass, nhưng API integration dừng trước case đầu tiên vì credential Supabase trong <code>.env.local</code> có ký tự Unicode không hợp lệ khi đưa vào HTTP header (<code>ByteString</code> value 7852); Node 20 build riêng pass; <code>git diff --check</code> pass. Cần smoke UI thật trên desktop/mobile sau khi apply migration lifecycle lên Supabase.</p>
+
+  <h2>9. Update 2026-06-23 — Tên vịt và vòng sprite</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Thêm bộ 10 tên vịt cố định và gán sprite theo thứ tự người chơi vào phòng. Khi số người chơi vượt quá số sprite, index quay lại từ đầu để người thứ 11 dùng lại <code>Vịt Vàng</code>, người thứ 12 dùng <code>Vịt Lá</code>.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Canvas và leaderboard tổng kết không hiển thị <code>Vịt #n</code> nữa; thay vào đó hiện tên vịt. Rank vẫn giữ riêng để phục vụ bảng xếp hạng.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Dùng thứ tự tham gia thay vì hash participant id để tránh trùng sprite sớm khi chưa đủ 10 người. Tradeoff là nếu dữ liệu joined time bị đổi, tên vịt có thể đổi theo, nhưng trong room runtime hiện tại <code>joinedAt</code> ổn định.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Verification: targeted Vitest <code>hoc-tap-duck-race.test.ts</code> pass 7/7; <code>npm run lint</code> pass với 5 warning cũ; Node 20 build pass.</p>
 </body>
 </html>

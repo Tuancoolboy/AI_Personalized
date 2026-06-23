@@ -6,6 +6,30 @@
 
 ---
 
+## [2026-06-23] — Đặt tên vịt và vòng sprite khi đông người
+
+**Context:** User muốn khi số người chơi nhiều hơn số sprite vịt thì danh sách vịt quay vòng lại, đồng thời UI không hiển thị số vịt nữa mà hiển thị tên con vịt.
+
+**Decision:** Đua vịt nay có 10 tên cố định (`Vịt Vàng`, `Vịt Lá`, ...). Skin được gán theo thứ tự người vào phòng, dùng hết 10 sprite thì quay lại sprite đầu tiên; rank/điểm vẫn xếp hạng riêng. Canvas và leaderboard tổng kết hiển thị tên vịt thay cho `Vịt #n`.
+
+**Tests:** Targeted Vitest `hoc-tap-duck-race.test.ts` pass 7/7; `npm run lint` pass với 5 warning cũ; Node 20 build pass.
+
+## [2026-06-23] — Đua vịt theo pha, khoá/rời phòng và default all cho Học tập
+
+**Context:** User yêu cầu tiếp tục trên `feat/hoc-tap-real-data` để đồng bộ memory + Supabase cho bốn hành vi: vịt tiến theo từng câu, phòng tự khóa khi start và chặn người mới, host/player rời phòng đúng vai trò, và tab Học tập/Chơi với team mặc định lọc `Tất cả phòng ban`.
+
+**Options:**
+1. Chỉ vá UI Đua vịt và giữ các helper room hiện có.
+2. Siết lại invariant ở helper/test: progress đường đua theo phase, điểm chỉ xếp hạng; route/service/store đều có regression start-lock/leave; migration RPC join chặn account mới sau khi room đã chơi.
+
+**Decision:** Chọn phương án 2. `buildDuckRaceStandings()` chỉ xếp hạng theo điểm/joined time và không tự biến điểm thành quãng đường; `applyDuckRaceQuestionProgress()` là nguồn quyết định vị trí vịt, nên trong lúc chơi cả team tiến 0 → 1/N → … và màn tổng kết đưa mọi vịt tới 100%. Room memory và Supabase đều set locked khi start; RPC `join_hoc_tap_room_by_code` kiểm tra existing participant trước rồi mới chặn room không còn `waiting`, nên người cũ reload/rejoin được nhưng người mới bị từ chối. `/leave` xóa cả room nếu creator/host rời, còn player chỉ xóa participant của chính mình; DB cascade answer theo participant.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** `npm run db:validate` pass 41 migrations; targeted Vitest room/duck/migration/route pass 56/56; `npm run lint` pass với 5 warning cũ; `npm run test` unit pass 359/359 và production build trong phase API pass, nhưng API integration dừng trước case đầu tiên vì credential Supabase trong `.env.local` chứa ký tự Unicode không hợp lệ khi đưa vào HTTP header (`ByteString`, value 7852); Node 20 build riêng pass; `git diff --check` pass.
+
 ## [2026-06-23] — Dữ liệu thật cho Học tập, XP và phân tách Công ty/Cộng đồng
 
 **Context:** `/hoc-tap` còn dùng XP, cấp độ, thứ hạng, biểu đồ, leaderboard và room seed mẫu. Quiz Học tập ghi localStorage nên không đồng bộ thiết bị; migration ngày 22/06 còn cho phép account ngoài công ty xem/join phòng bằng mã, trái với yêu cầu công ty riêng.
@@ -1785,3 +1809,23 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 **Shipped:** cập nhật `avatar-preferences.ts`, `use-preferred-avatar.ts`, `use-app-profile.ts` và các caller ở account/hoc-tap/team-room/account-settings để dùng identity canonical + alias fallback.
 
 **Tests:** scoped ESLint pass với 2 warning cũ ở `hoc-tap-team-room.tsx`; Node 20 `npm run build` pass.
+
+## 2026-06-23 — Add Duck Race finish map for team quiz
+
+**Goal:** Cho người tạo room chọn Classic hoặc Đua vịt, giữ nguyên gameplay quiz và chỉ đổi màn tổng kết cuối session.
+
+**Decision:** Thêm `mapTheme` riêng thay vì overload `mode`; persist qua memory/Supabase/API với default Classic. Duck Race tính quãng đường từ tổng điểm trên điểm tối đa, loại AI Host, dùng shared rank khi hòa. Scene canvas là client leaf, responsive, retina-safe, redraw sau khi sprite tải và tôn trọng `prefers-reduced-motion`; leaderboard DOM vẫn là nguồn nội dung accessible.
+
+**Shipped:** selector bản đồ trong flow tạo room, badge map ở room card/summary, migration `20260623093000_hoc_tap_room_map_theme.sql`, 10 sprite vịt runtime, finish panel canvas + leaderboard và regression tests cho contract/ranking/tie/default.
+
+**Tests:** targeted Node 20 Vitest 36/36; full unit 343/343; lint 0 error/7 warning cũ; Node 20 và Node 22 production build pass; `npm run db:validate` pass 39 migrations; `git diff --check` pass. Full runner Node 20 dừng trước API cases vì thiếu WebSocket native; chạy lại Node 22 vẫn dừng trước case đầu tiên do credential Supabase local chứa ký tự Unicode không hợp lệ trong HTTP header.
+
+## 2026-06-23 — Fix human host cannot enter the team quiz
+
+**Goal:** Sửa trường hợp người tạo phòng hiện đúng crown/quyền quản lý nhưng mất `hostToken` khi chuyển trang và không thể bắt đầu/tham gia trả lời.
+
+**Decision:** Dùng chung helper identity account-scoped cho cả màn tạo room và room detail, đồng thời migrate key localStorage cũ. Human host nay vừa là controller vừa là player; AI Host vẫn chỉ điều phối. Đáp án đúng của host-review chỉ xuất hiện ở sảnh review hoặc pha reveal, không lộ trong lúc human host đang trả lời.
+
+**Shipped:** helper `hoc-tap-room-identity`, cập nhật dashboard/team room handoff, gameplay memory + Supabase tính human host vào participant count/leaderboard/answer completion, migration `20260623133848_hoc_tap_human_host_player.sql`, và regression tests.
+
+**Tests:** targeted Vitest 45/45; full unit 348/348; scoped ESLint và `db:validate` pass. Full lint/build pending.
