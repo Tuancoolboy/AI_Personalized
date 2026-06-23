@@ -19,9 +19,9 @@
 
 **Owner:** Codex
 
-**Status:** Ready to push; migration remote và smoke nhiều account còn chờ triển khai có chủ đích.
+**Status:** Đã apply migration lên Supabase; smoke nhiều account còn chờ thực hiện.
 
-**Tests:** `npm run db:validate` pass (38 migrations); targeted Vitest 30/30 và full unit 336/336 pass; `npm run lint` pass (0 error, 7 warning cũ ngoài scope); build production bằng Node 20 pass. `npm run test` đã build + khởi động test server thành công, nhưng API integration dừng trước case đầu tiên vì credential Supabase được inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header; không phải assertion hoặc lỗi feature. `npm run db:status` xác nhận migration `20260623023753` đang pending trên remote.
+**Tests:** `npm run db:validate` pass (38 migrations); targeted Vitest 30/30 và full unit 336/336 pass; `npm run lint` pass (0 error, 7 warning cũ ngoài scope); build production bằng Node 20 pass. `npm run test` đã build + khởi động test server thành công, nhưng API integration dừng trước case đầu tiên vì credential Supabase được inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header; không phải assertion hoặc lỗi feature. `npm run db:push` đã apply thành công migration `20260623023753` lên remote.
 
 ## [2026-06-22] — Chuyển room team sang session + RLS và cho join xuyên công ty bằng mã
 

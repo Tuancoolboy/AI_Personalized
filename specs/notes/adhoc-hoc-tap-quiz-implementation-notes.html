@@ -124,6 +124,6 @@
   <h3>Tradeoff AI phải cân nhắc</h3>
   <p>Demo mode vẫn dùng memory để app chạy không cần Supabase nhưng bắt đầu từ 0 và không seed giả; real mode tuyệt đối không đọc key XP localStorage cũ hoặc fallback sang memory.</p>
   <h3>Bất kỳ điều gì khác cần lưu ý</h3>
-  <p>Migration mới là <code>20260623023753_hoc_tap_real_xp_audience.sql</code>; <code>db:status</code> xác nhận file còn pending remote. Cần apply trước khi smoke nhiều account. <code>db:validate</code>, targeted Vitest 30/30, full unit 336/336, lint 0 error và build Node 20 đã pass; full API integration đang bị chặn trước case đầu tiên bởi credential Supabase inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header.</p>
+  <p>Migration mới là <code>20260623023753_hoc_tap_real_xp_audience.sql</code> và đã được apply lên remote bằng <code>db:push</code>. Cần smoke nhiều account. <code>db:validate</code>, targeted Vitest 30/30, full unit 336/336, lint 0 error và build Node 20 đã pass; full API integration đang bị chặn trước case đầu tiên bởi credential Supabase inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header.</p>
 </body>
 </html>
