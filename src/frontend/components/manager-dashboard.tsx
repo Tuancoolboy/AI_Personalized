@@ -187,7 +187,7 @@ export function ManagerDashboard() {
           subtitle="Phòng nào đang dẫn đầu, phòng nào cần hỗ trợ"
           height={260}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <BarChart
               data={stats.byDept}
               margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
@@ -229,7 +229,7 @@ export function ManagerDashboard() {
           subtitle="Phân bổ tiến độ học"
           height={260}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <PieChart>
               <Pie
                 data={stats.statusDistribution}
@@ -274,7 +274,7 @@ export function ManagerDashboard() {
         height={220}
         className="mt-3"
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <LineChart
             data={stats.trend}
             margin={{ top: 8, right: 16, left: -16, bottom: 0 }}
@@ -382,11 +382,13 @@ function ChartBox({
 }) {
   return (
     <div
-      className={`rounded-2xl border border-line bg-card p-5 shadow-sm ${className ?? ""}`}
+      className={`min-w-0 rounded-2xl border border-line bg-card p-5 shadow-sm ${className ?? ""}`}
     >
       <h3 className="font-display text-base font-bold text-ink">{title}</h3>
       <p className="mb-3 text-xs text-ink-2">{subtitle}</p>
-      <div style={{ height }}>{children}</div>
+      <div className="min-w-0 overflow-hidden" style={{ height }}>
+        {children}
+      </div>
     </div>
   );
 }

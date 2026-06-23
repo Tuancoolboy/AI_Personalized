@@ -2,10 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSupabase = vi.hoisted(() => ({
   client: null as ReturnType<typeof createFakeSupabase> | null,
+  userId: "host-user",
+  audiences: {
+    "host-user": "org-1",
+    "player-user": "org-1",
+    "outside-user": "org-2",
+  } as Record<string, string>,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createSupabaseServiceClient: () => {
+  createSupabaseServerClient: async () => {
     if (!mockSupabase.client) {
       throw new Error("Fake Supabase client chưa được khởi tạo.");
     }
@@ -13,8 +19,23 @@ vi.mock("@/lib/supabase/server", () => ({
   },
 }));
 
+vi.mock("@/lib/hoc-tap-audience", () => ({
+  resolveHocTapAudience: async () => {
+    const organizationId = mockSupabase.audiences[mockSupabase.userId];
+    if (!organizationId) throw new Error("Audience not configured");
+    return {
+      organizationId,
+      organizationName:
+        organizationId === "community-org" ? "Cộng đồng AI Trợ Lý" : organizationId,
+      type: organizationId === "community-org" ? "community" : "company",
+      departmentId: "khac",
+    };
+  },
+}));
+
 import {
   createSupabaseHocTapRoom,
+  getSupabaseHocTapRoomSnapshot,
   joinSupabaseHocTapRoom,
   listSupabaseHocTapRooms,
 } from "@/lib/hoc-tap-room-service";
@@ -155,6 +176,67 @@ function createFakeSupabase(seed?: Partial<FakeDb>) {
     getRows(table: TableName) {
       return tables[table].map(cloneRow);
     },
+    async rpc(
+      name: string,
+      args: Record<string, unknown>,
+    ): Promise<{ data: Record<string, unknown> | null; error: null }> {
+      if (name === "join_hoc_tap_room_by_code") {
+        const room = tables.hoc_tap_rooms.find(
+          (row) => row.code === args.room_code,
+        );
+        if (
+          !room ||
+          room.organization_id !== mockSupabase.audiences[mockSupabase.userId]
+        ) {
+          return { data: { error_code: "ROOM_NOT_FOUND" }, error: null };
+        }
+
+        const existing = tables.hoc_tap_room_participants.find(
+          (row) =>
+            row.room_id === room.id &&
+            row.user_id === mockSupabase.userId,
+        );
+        if (existing) {
+          existing.display_name = args.player_name;
+          existing.avatar_choice = args.player_avatar_choice;
+          return {
+            data: {
+              room_id: room.id,
+              organization_id: room.organization_id,
+              participant_id: existing.id,
+            },
+            error: null,
+          };
+        }
+
+        const participantId = String(args.requested_participant_id);
+        const now = new Date().toISOString();
+        tables.hoc_tap_room_participants.push({
+          id: participantId,
+          room_id: room.id,
+          organization_id: room.organization_id,
+          user_id: mockSupabase.userId,
+          display_name: args.player_name,
+          avatar_choice: args.player_avatar_choice,
+          score: 0,
+          is_host: false,
+          joined_at: now,
+          last_seen_at: now,
+          created_at: now,
+          updated_at: now,
+        });
+        return {
+          data: {
+            room_id: room.id,
+            organization_id: room.organization_id,
+            participant_id: participantId,
+          },
+          error: null,
+        };
+      }
+
+      return { data: null, error: null };
+    },
   };
 }
 
@@ -176,6 +258,14 @@ function compareValues(
 
 describe("hoc-tap room service", () => {
   beforeEach(() => {
+    mockSupabase.userId = "host-user";
+    mockSupabase.audiences = {
+      "host-user": "org-1",
+      "player-user": "org-1",
+      "outside-user": "org-2",
+      "community-a": "community-org",
+      "community-b": "community-org",
+    };
     mockSupabase.client = createFakeSupabase({
       organization_members: [
         { organization_id: "org-1", user_id: "host-user" },
@@ -205,6 +295,7 @@ describe("hoc-tap room service", () => {
       }),
     ]);
 
+    mockSupabase.userId = "player-user";
     const joined = await joinSupabaseHocTapRoom(
       { userId: "player-user" },
       {
@@ -235,6 +326,7 @@ describe("hoc-tap room service", () => {
       },
     );
 
+    mockSupabase.userId = "player-user";
     const firstJoin = await joinSupabaseHocTapRoom(
       { userId: "player-user" },
       {
@@ -266,5 +358,80 @@ describe("hoc-tap room service", () => {
         (participant) => participant.id === firstJoin.participantId,
       )?.avatarUrl,
     ).toContain("vibrent_7");
+  });
+
+  it("blocks an account from another company even when it knows the room code", async () => {
+    const created = await createSupabaseHocTapRoom(
+      { userId: "host-user" },
+      {
+        hostName: "Host One",
+        quizId: "ai-marketing",
+        mode: "classic",
+      },
+    );
+
+    mockSupabase.userId = "outside-user";
+    await expect(
+      joinSupabaseHocTapRoom(
+        { userId: "outside-user" },
+        {
+          code: created.room.code,
+          playerName: "Khách ngoài công ty",
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "ROOM_NOT_FOUND",
+    });
+    expect(
+      mockSupabase.client!
+        .getRows("hoc_tap_room_participants")
+        .some((row) => row.user_id === "outside-user"),
+    ).toBe(false);
+  });
+
+  it("lets personal accounts share the community room audience", async () => {
+    mockSupabase.userId = "community-a";
+    const created = await createSupabaseHocTapRoom(
+      { userId: "community-a" },
+      {
+        hostName: "Cộng đồng A",
+        quizId: "ai-marketing",
+        mode: "classic",
+      },
+    );
+
+    mockSupabase.userId = "community-b";
+    const rooms = await listSupabaseHocTapRooms({ userId: "community-b" });
+    expect(rooms.map((room) => room.code)).toContain(created.room.code);
+
+    const joined = await joinSupabaseHocTapRoom(
+      { userId: "community-b" },
+      {
+        code: created.room.code,
+        playerName: "Cộng đồng B",
+      },
+    );
+    expect(joined.room.viewerParticipantId).toBe(joined.participantId);
+  });
+
+  it("does not trust a stale participant id from another account", async () => {
+    const created = await createSupabaseHocTapRoom(
+      { userId: "host-user" },
+      {
+        hostName: "Host One",
+        quizId: "ai-marketing",
+        mode: "classic",
+      },
+    );
+
+    const snapshot = await getSupabaseHocTapRoomSnapshot(
+      { userId: "player-user" },
+      created.room.code,
+      created.participantId,
+    );
+
+    expect(snapshot.viewerParticipantId).toBeNull();
+    expect(snapshot.isHost).toBe(false);
+    expect(snapshot.canManageRoom).toBe(false);
   });
 });

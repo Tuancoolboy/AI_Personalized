@@ -2,77 +2,81 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  buildLeaderboard,
-  getHideName,
-  getYouDepartment,
-  setHideName,
-  type LeaderboardRow,
-} from "@/lib/demo-leaderboard";
-import { DashboardFeed } from "@/components/dashboard-feed";
+import { RefreshCw, Trophy } from "lucide-react";
+import { fetchHocTapOverview } from "@/lib/client-api";
+import type {
+  HocTapLeaderboardRow,
+  HocTapOverviewResponse,
+} from "@/lib/hoc-tap-overview";
 
-// Bảng xếp hạng 3 góc nhìn (Phòng / Cả công ty / Cá nhân) + bảng tuần & tổng.
-// Phòng: luôn hiện tên. Cả công ty: cho phép tự ẩn tên (opt-in). Luôn hiện "Bạn".
-
-type Scope = "department" | "company" | "personal";
-type Board = "weekly" | "total";
+type Scope = "department" | "audience" | "personal";
 
 export function LeaderboardView() {
-  const all = useMemo(() => buildLeaderboard(), []);
-  const myDept = getYouDepartment();
   const [scope, setScope] = useState<Scope>("department");
-  const [board, setBoard] = useState<Board>("weekly");
-  const [hideName, setHideNameState] = useState(false);
+  const [data, setData] = useState<HocTapOverviewResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
-  // Đọc cờ ẩn tên từ localStorage sau khi mount (tránh hydration mismatch).
   useEffect(() => {
-    const stored = getHideName();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- đồng bộ 1 lần từ localStorage sau mount
-    if (stored) setHideNameState(true);
-  }, []);
+    let active = true;
 
-  const me = all.find((r) => r.isYou);
+    async function load() {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetchHocTapOverview(30);
+        if (active) setData(response);
+      } catch (loadError) {
+        console.warn("[leaderboard]", loadError);
+        if (active) {
+          setError("Chưa tải được bảng xếp hạng. Vui lòng thử lại.");
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
 
+    void load();
+    return () => {
+      active = false;
+    };
+  }, [reloadKey]);
+
+  const me = data?.leaderboard.individuals.find((row) => row.isCurrentUser);
   const ranked = useMemo(() => {
-    const base =
-      scope === "department" ? all.filter((r) => r.department === myDept) : all;
-    return [...base].sort((a, b) =>
-      board === "weekly"
-        ? b.weeklyPoints - a.weeklyPoints
-        : b.totalPoints - a.totalPoints,
-    );
-  }, [all, scope, board, myDept]);
-
-  function toggleHide(v: boolean) {
-    setHideName(v);
-    setHideNameState(v);
-  }
-
-  function displayName(row: LeaderboardRow): string {
-    if (row.isYou) return "Bạn";
-    // Bảng cả công ty: tôn trọng opt-in ẩn tên của người khác (demo: cờ chung).
-    if (scope === "company" && hideName) return "Ẩn danh";
-    return row.name;
-  }
+    const rows = data?.leaderboard.individuals ?? [];
+    if (scope !== "department" || !me) return rows;
+    return rows.filter((row) => row.departmentId === me.departmentId);
+  }, [data?.leaderboard.individuals, me, scope]);
+  const audienceLabel =
+    data?.audience.type === "company" ? "Cả công ty" : "Cộng đồng";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-8 md:py-12">
-      <Link href="/lo-trinh" className="text-sm font-medium text-brand hover:underline">
-        ← Về lộ trình
+      <Link
+        href="/hoc-tap"
+        className="text-sm font-medium text-brand hover:underline"
+      >
+        ← Về Học tập
       </Link>
-      <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-        Bảng xếp hạng
-      </h1>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <h1 className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+          Bảng xếp hạng
+        </h1>
+        <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-brand">
+          {data?.audience.name ?? "Đang tải"}
+        </span>
+      </div>
       <p className="mt-1.5 text-sm text-ink-2">
-        Điểm đến từ nhiều nguồn: hoàn thành bài, chia sẻ cho phòng, làm thử thách.
+        XP được tính từ quiz đã chấm trên server và tách riêng theo không gian.
       </p>
 
-      {/* Tabs góc nhìn */}
       <div className="mt-6 flex gap-1 rounded-full bg-secondary/50 p-1">
         {(
           [
-            ["department", "Phòng"],
-            ["company", "Cả công ty"],
+            ["department", "Phòng của bạn"],
+            ["audience", audienceLabel],
             ["personal", "Cá nhân"],
           ] as const
         ).map(([key, label]) => (
@@ -91,100 +95,135 @@ export function LeaderboardView() {
         ))}
       </div>
 
+      {error ? (
+        <div
+          role="alert"
+          className="mt-4 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={() => setReloadKey((value) => value + 1)}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-rose-700 px-4 font-bold text-white"
+          >
+            <RefreshCw className="size-4" aria-hidden="true" />
+            Thử lại
+          </button>
+        </div>
+      ) : null}
+
       {scope === "personal" ? (
-        <PersonalCard me={me} />
+        <PersonalCard data={data} me={me} loading={loading} />
       ) : (
-        <>
-          {/* Bảng tuần / tổng */}
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <div className="flex gap-1 rounded-full bg-secondary/50 p-1">
-              {(
-                [
-                  ["weekly", "Bảng tuần"],
-                  ["total", "Bảng tổng"],
-                ] as const
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setBoard(key)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                    board === key
-                      ? "bg-ink text-brand-foreground"
-                      : "text-ink-2 hover:text-ink"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {scope === "company" && (
-              <label className="flex items-center gap-2 text-xs text-ink-2">
-                <input
-                  type="checkbox"
-                  checked={hideName}
-                  onChange={(e) => toggleHide(e.target.checked)}
-                  className="h-4 w-4 accent-brand"
-                />
-                Ẩn tên tôi ở bảng công ty
-              </label>
-            )}
-          </div>
-
-          <ol className="mt-3 space-y-2">
-            {ranked.map((row, i) => (
-              <li
-                key={row.id}
-                className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
-                  row.isYou
-                    ? "border-brand bg-brand-soft"
-                    : "border-line bg-card"
-                }`}
-              >
-                <span
-                  className={`grid h-8 w-8 flex-none place-items-center rounded-full text-sm font-bold ${
-                    i < 3 ? "bg-accent text-white" : "bg-secondary text-ink-2"
-                  }`}
-                >
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">
-                    {displayName(row)}
-                    {row.isYou && (
-                      <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-xs text-brand-foreground">
-                        Bạn
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-ink-3">
-                    {row.department} · ⏱ {row.hoursSaved} giờ tiết kiệm
-                  </p>
-                </div>
-                <span className="font-display text-lg font-bold text-brand">
-                  {board === "weekly" ? row.weeklyPoints : row.totalPoints}
-                  <span className="ml-0.5 text-xs font-normal text-ink-3">đ</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </>
+        <LeaderboardList rows={ranked} loading={loading} />
       )}
-
-      <div className="mt-8">
-        <DashboardFeed defaultScope="department" />
-      </div>
     </div>
   );
 }
 
-function PersonalCard({ me }: { me?: LeaderboardRow }) {
-  if (!me) return null;
+function PersonalCard({
+  data,
+  me,
+  loading,
+}: {
+  data: HocTapOverviewResponse | null;
+  me?: HocTapLeaderboardRow;
+  loading: boolean;
+}) {
+  if (loading) {
+    return <LoadingRows />;
+  }
+
   return (
     <div className="mt-4 grid gap-3 sm:grid-cols-3">
-      <Stat label="Điểm tuần này" value={`${me.weeklyPoints}đ`} />
-      <Stat label="Điểm tích lũy" value={`${me.totalPoints}đ`} />
-      <Stat label="Giờ tiết kiệm" value={`${me.hoursSaved}h`} />
+      <Stat label="Tổng XP" value={`${data?.xp.totalXp ?? 0} XP`} />
+      <Stat
+        label="Hạng hiện tại"
+        value={me ? `#${me.rank}` : "Chưa xếp hạng"}
+      />
+      <Stat
+        label="Bộ đề đã làm"
+        value={`${data?.stats.completedQuizzes ?? 0}`}
+      />
+    </div>
+  );
+}
+
+function LeaderboardList({
+  rows,
+  loading,
+}: {
+  rows: HocTapLeaderboardRow[];
+  loading: boolean;
+}) {
+  if (loading) return <LoadingRows />;
+
+  if (rows.length === 0) {
+    return (
+      <div className="mt-4 rounded-2xl border border-dashed border-line bg-card px-6 py-12 text-center shadow-sm">
+        <span className="mx-auto grid size-12 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+          <Trophy className="size-6" aria-hidden="true" />
+        </span>
+        <h2 className="mt-4 font-display text-lg font-bold text-ink">
+          Chưa có người xếp hạng
+        </h2>
+        <p className="mt-2 text-sm text-ink-3">
+          Làm một quiz trong Học tập để ghi XP đầu tiên.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <ol className="mt-4 space-y-2">
+      {rows.map((row) => (
+        <li
+          key={row.userId}
+          className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
+            row.isCurrentUser
+              ? "border-brand bg-brand-soft"
+              : "border-line bg-card"
+          }`}
+        >
+          <span
+            className={`grid size-8 flex-none place-items-center rounded-full text-sm font-bold ${
+              row.rank <= 3
+                ? "bg-accent text-white"
+                : "bg-secondary text-ink-2"
+            }`}
+          >
+            {row.rank}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-ink">
+              {row.name}
+              {row.isCurrentUser ? (
+                <span className="ml-2 rounded-full bg-brand px-2 py-0.5 text-xs text-brand-foreground">
+                  Bạn
+                </span>
+              ) : null}
+            </p>
+            <p className="text-xs text-ink-3">{row.departmentLabel}</p>
+          </div>
+          <span className="font-display text-lg font-bold text-brand">
+            {row.totalXp}
+            <span className="ml-1 text-xs font-normal text-ink-3">XP</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function LoadingRows() {
+  return (
+    <div className="mt-4 space-y-2" aria-label="Đang tải bảng xếp hạng">
+      {[0, 1, 2].map((item) => (
+        <div
+          key={item}
+          className="h-16 animate-pulse rounded-xl border border-line bg-secondary/60"
+        />
+      ))}
     </div>
   );
 }
@@ -192,7 +231,7 @@ function PersonalCard({ me }: { me?: LeaderboardRow }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-line bg-card p-5 text-center shadow-sm">
-      <p className="font-display text-3xl font-bold text-brand">{value}</p>
+      <p className="font-display text-2xl font-bold text-brand">{value}</p>
       <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-ink-3">
         {label}
       </p>

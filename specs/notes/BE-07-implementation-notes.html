@@ -97,5 +97,15 @@
     <li><strong>Debug:</strong> Các lỗi Supabase client được log ngắn gọn bằng prefix theo màn: <code>[onboarding]</code>, <code>[lo-trinh]</code>, <code>[kiem-tra]</code>, <code>[tien-bo]</code>, <code>[tro-ly]</code>.</li>
     <li><strong>Verification:</strong> Build Node 20 đã pass. <code>npm run lint</code> toàn repo đã pass sau khi exclude <code>.codex/**</code> khỏi ESLint project source, cho phép CommonJS trong <code>.cjs</code> scripts, và escape quote ở landing page.</li>
   </ul>
+
+  <h2>5. Update 2026-06-23 — Quiz Học tập và XP thật</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Mở rộng <code>quiz_results</code> thay vì tạo bảng attempt thứ hai, đồng thời dùng RPC service-role để ghi attempt và phần XP tăng vào <code>points_ledger</code> trong cùng transaction.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Policy insert trực tiếp của <code>quiz_results</code> chỉ còn cho nguồn <code>learning</code> cũ; attempt <code>hoc-tap</code>, <code>attempt_id</code> và <code>xp_earned</code> chỉ được tạo qua RPC sau khi server chấm answers.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Catalog câu hỏi và đáp án vẫn nằm trong code để tránh mở authoring scope; dữ liệu user, điểm cao nhất, XP và lịch sử attempt được persist Supabase để đồng bộ thiết bị.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Không migrate key localStorage XP cũ. Real mode không fallback memory/localStorage; demo mode dùng key mới và bắt đầu từ 0.</p>
 </body>
 </html>

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { trackEvent, isSupabaseBackend, submitQuizResult } from "@/lib/client-api";
 import { addDemoQuizResult } from "@/lib/demo-storage";
 import {
-  recordHocTapQuizAttempt,
+  recordDemoHocTapQuizAttempt,
+  resolveHocTapLevelProgress,
   resolveHocTapQuizForRoute,
   type HocTapQuizAttemptResult,
   type QuizReturnHref,
@@ -42,6 +43,7 @@ export function KiemTraQuiz({
   const [errorMessage, setErrorMessage] = useState("");
   const [hocTapAttemptResult, setHocTapAttemptResult] =
     useState<HocTapQuizAttemptResult | null>(null);
+  const hocTapAttemptId = useRef(createQuizAttemptId());
 
   if (!role && !hocTapQuiz) {
     return (
@@ -97,16 +99,29 @@ export function KiemTraQuiz({
       setErrorMessage("");
       try {
         if (hocTapQuiz) {
-          const attemptResult = recordHocTapQuizAttempt(
-            hocTapQuiz.id,
-            percentScore,
-          );
+          const submittedAnswers = [...answers];
+          if (selected !== null) submittedAnswers[idx] = selected;
+          const attemptResult = isSupabaseConfigured()
+            ? await saveRealHocTapAttempt({
+                roleId,
+                quizId: hocTapQuiz.id,
+                answers: submittedAnswers,
+                attemptId: hocTapAttemptId.current,
+              })
+            : recordDemoHocTapQuizAttempt(
+                hocTapQuiz.id,
+                percentScore,
+                hocTapAttemptId.current,
+              );
           setHocTapAttemptResult(attemptResult);
+          setFinalScore(
+            attemptResult.attempt.score,
+          );
           if (isSupabaseBackend()) {
-            void trackEvent("hoc_tap_mock_quiz_submitted", {
+            void trackEvent("hoc_tap_quiz_submitted", {
               quizId: hocTapQuiz.id,
               roleId: hocTapQuiz.roleId,
-              score: percentScore,
+              score: attemptResult.attempt.score,
               xpEarned: attemptResult.xpEarned,
             });
           }
@@ -209,7 +224,9 @@ export function KiemTraQuiz({
               </span>
               <div className="min-w-0">
                 <p className="text-sm font-extrabold text-emerald-800">
-                  +{hocTapAttemptResult.xpEarned} XP vào cấp độ Học tập
+                  {hocTapAttemptResult.xpEarned > 0
+                    ? `+${hocTapAttemptResult.xpEarned} XP vào cấp độ Học tập`
+                    : "Điểm tốt nhất chưa tăng nên chưa cộng thêm XP"}
                 </p>
                 <p className="mt-1 text-xs font-medium text-emerald-700">
                   Lv. {hocTapAttemptResult.levelProgress.level} ·{" "}
@@ -359,4 +376,63 @@ export function KiemTraQuiz({
       </div>
     </div>
   );
+}
+
+async function saveRealHocTapAttempt(input: {
+  roleId: string;
+  quizId: string;
+  answers: number[];
+  attemptId: string;
+}): Promise<HocTapQuizAttemptResult> {
+  const response = await submitQuizResult(input);
+  if (
+    typeof response.score !== "number" ||
+    typeof response.xpEarned !== "number" ||
+    typeof response.totalXp !== "number" ||
+    typeof response.level !== "number" ||
+    typeof response.currentLevelXp !== "number" ||
+    typeof response.targetLevelXp !== "number"
+  ) {
+    throw new Error("API quiz không trả về dữ liệu XP hợp lệ.");
+  }
+
+  const levelBefore = resolveHocTapLevelProgress(
+    Math.max(0, response.totalXp - response.xpEarned),
+  ).level;
+  const levelProgress = {
+    level: response.level,
+    currentXp: response.currentLevelXp,
+    targetXp: response.targetLevelXp,
+    totalXp: response.totalXp,
+    extraXp: response.totalXp,
+  };
+
+  return {
+    attempt: {
+      id: response.attemptId ?? input.attemptId,
+      quizId: input.quizId,
+      score: response.score,
+      xpEarned: response.xpEarned,
+      createdAt: new Date().toISOString(),
+    },
+    progress: {
+      totalXpEarned: response.totalXp,
+      attempts: [],
+    },
+    xpEarned: response.xpEarned,
+    levelBefore,
+    levelAfter: response.level,
+    leveledUp: response.level > levelBefore,
+    levelProgress,
+  };
+}
+
+function createQuizAttemptId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return "00000000-0000-4000-8000-" +
+    Math.floor(Math.random() * 1_000_000_000_000)
+      .toString()
+      .padStart(12, "0");
 }

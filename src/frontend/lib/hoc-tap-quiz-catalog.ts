@@ -61,11 +61,8 @@ export type QuizReturnHref = "/lo-trinh" | "/hoc-tap";
 
 const ROLE_ID_SET = new Set<string>(AVAILABLE_QUIZ_ROLE_IDS);
 
-const HOC_TAP_PROGRESS_KEY = "ai_troly_hoc_tap_quiz_progress";
-const BASE_PROFILE_LEVEL = 7;
-const BASE_PROFILE_LEVEL_XP = 1280;
-const BASE_PROFILE_TOTAL_XP = 2450;
-const PROFILE_LEVEL_TARGET_XP = 2000;
+const DEMO_HOC_TAP_PROGRESS_KEY = "ai_troly_demo_hoc_tap_progress_v2";
+const PROFILE_LEVEL_TARGET_XP = 100;
 
 type HocTapPlayableQuizSeed = Omit<
   HocTapPlayableQuiz,
@@ -629,35 +626,78 @@ export type HocTapQuizAttemptResult = {
 
 export function calculateHocTapQuizXp(quizXp: number, score: number): number {
   const normalizedScore = clampScore(score);
-  return Math.max(10, Math.round(quizXp * (normalizedScore / 100)));
+  return Math.max(0, Math.round(quizXp * (normalizedScore / 100)));
 }
 
-export function resolveHocTapLevelProgress(extraXp = 0): HocTapLevelProgress {
-  const safeExtraXp = Math.max(0, Math.round(extraXp));
-  let level = BASE_PROFILE_LEVEL;
-  let currentXp = BASE_PROFILE_LEVEL_XP + safeExtraXp;
+export function calculateHocTapXpIncrement(
+  quizXp: number,
+  previousBestScore: number,
+  currentScore: number,
+): number {
+  const previousXp = calculateHocTapQuizXp(quizXp, previousBestScore);
+  const bestXp = calculateHocTapQuizXp(
+    quizXp,
+    Math.max(previousBestScore, currentScore),
+  );
+  return Math.max(0, bestXp - previousXp);
+}
 
-  while (currentXp >= PROFILE_LEVEL_TARGET_XP) {
-    level += 1;
-    currentXp -= PROFILE_LEVEL_TARGET_XP;
-  }
+export function resolveHocTapLevelProgress(totalXp = 0): HocTapLevelProgress {
+  const safeTotalXp = Math.max(0, Math.round(totalXp));
+  const level = Math.floor(safeTotalXp / PROFILE_LEVEL_TARGET_XP) + 1;
+  const currentXp = safeTotalXp % PROFILE_LEVEL_TARGET_XP;
 
   return {
     level,
     currentXp,
     targetXp: PROFILE_LEVEL_TARGET_XP,
-    totalXp: BASE_PROFILE_TOTAL_XP + safeExtraXp,
-    extraXp: safeExtraXp,
+    totalXp: safeTotalXp,
+    extraXp: safeTotalXp,
   };
 }
 
-export function getHocTapQuizProgress(): HocTapQuizProgress {
+export function gradeHocTapQuizAnswers(input: {
+  quizId: string;
+  roleId: string;
+  answers: number[];
+}): {
+  score: number;
+  correctCount: number;
+  questionCount: number;
+} | null {
+  const quiz = getHocTapQuiz(input.quizId);
+  if (!quiz || quiz.roleId !== input.roleId) return null;
+  if (input.answers.length !== quiz.questions.length) return null;
+
+  let correctCount = 0;
+  for (let index = 0; index < quiz.questions.length; index += 1) {
+    const question = quiz.questions[index];
+    const answer = input.answers[index];
+    if (
+      !question ||
+      !Number.isInteger(answer) ||
+      answer < 0 ||
+      answer >= question.options.length
+    ) {
+      return null;
+    }
+    if (answer === question.correctIndex) correctCount += 1;
+  }
+
+  return {
+    score: Math.round((correctCount / quiz.questions.length) * 100),
+    correctCount,
+    questionCount: quiz.questions.length,
+  };
+}
+
+export function getDemoHocTapQuizProgress(): HocTapQuizProgress {
   if (typeof window === "undefined") {
     return emptyHocTapProgress();
   }
 
   try {
-    const raw = window.localStorage.getItem(HOC_TAP_PROGRESS_KEY);
+    const raw = window.localStorage.getItem(DEMO_HOC_TAP_PROGRESS_KEY);
     if (!raw) return emptyHocTapProgress();
     return normalizeHocTapProgress(JSON.parse(raw));
   } catch {
@@ -665,19 +705,27 @@ export function getHocTapQuizProgress(): HocTapQuizProgress {
   }
 }
 
-export function recordHocTapQuizAttempt(
+export function recordDemoHocTapQuizAttempt(
   quizId: string,
   score: number,
+  attemptId = createAttemptId(),
 ): HocTapQuizAttemptResult {
-  const progressBefore = getHocTapQuizProgress();
+  const progressBefore = getDemoHocTapQuizProgress();
   const levelBefore = resolveHocTapLevelProgress(
     progressBefore.totalXpEarned,
   ).level;
   const quiz = getHocTapQuiz(quizId);
   const normalizedScore = clampScore(score);
-  const xpEarned = calculateHocTapQuizXp(quiz?.xp ?? 50, normalizedScore);
+  const previousBest = progressBefore.attempts
+    .filter((attempt) => attempt.quizId === quizId)
+    .reduce((best, attempt) => Math.max(best, attempt.score), 0);
+  const xpEarned = calculateHocTapXpIncrement(
+    quiz?.xp ?? 0,
+    previousBest,
+    normalizedScore,
+  );
   const attempt: HocTapQuizAttempt = {
-    id: `hoc-tap-quiz-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    id: attemptId,
     quizId,
     score: normalizedScore,
     xpEarned,
@@ -688,7 +736,7 @@ export function recordHocTapQuizAttempt(
     attempts: [attempt, ...progressBefore.attempts].slice(0, 50),
   };
 
-  writeHocTapQuizProgress(progress);
+  writeDemoHocTapQuizProgress(progress);
 
   const levelProgress = resolveHocTapLevelProgress(progress.totalXpEarned);
 
@@ -775,17 +823,27 @@ function isHocTapQuizAttempt(value: unknown): value is HocTapQuizAttempt {
   );
 }
 
-function writeHocTapQuizProgress(progress: HocTapQuizProgress): void {
+function writeDemoHocTapQuizProgress(progress: HocTapQuizProgress): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(HOC_TAP_PROGRESS_KEY, JSON.stringify(progress));
-    window.dispatchEvent(new Event("hoc-tap-quiz-progress"));
+    window.localStorage.setItem(
+      DEMO_HOC_TAP_PROGRESS_KEY,
+      JSON.stringify(progress),
+    );
+    window.dispatchEvent(new Event("hoc-tap-overview-updated"));
   } catch {
-    // Best-effort mock XP only; ignore private-mode/quota errors.
+    // Demo persistence is best effort in private/quota-limited browsers.
   }
 }
 
 function clampScore(score: number): number {
   if (!Number.isFinite(score)) return 0;
   return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+function createAttemptId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `demo-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
 }

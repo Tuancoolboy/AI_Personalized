@@ -118,9 +118,11 @@ export async function createTimeLog(payload: {
 
 export async function submitQuizResult(payload: {
   roleId: string;
+  quizId?: string;
   score?: number;
   moduleId?: string;
   answers?: number[];
+  attemptId?: string;
 }): Promise<{
   ok: boolean;
   score?: number;
@@ -130,6 +132,13 @@ export async function submitQuizResult(payload: {
   gradingResultId?: string | null;
   gradingPersisted?: boolean;
   passed?: boolean;
+  xpEarned?: number;
+  totalXp?: number;
+  level?: number;
+  currentLevelXp?: number;
+  targetLevelXp?: number;
+  attemptId?: string;
+  idempotent?: boolean;
 }> {
   return parseJson(
     await fetch("/api/quiz-results", {

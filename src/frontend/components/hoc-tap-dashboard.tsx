@@ -4,7 +4,6 @@ import {
   useEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import Link from "next/link";
@@ -52,6 +51,7 @@ import {
 import {
   createHocTapRoom,
   fetchHocTapDepartments,
+  fetchHocTapOverview,
   fetchHocTapRooms,
   joinHocTapRoomByCode,
   previewHocTapRoomQuestions,
@@ -77,9 +77,7 @@ import {
   getHocTapQuizTopic,
   getHocTapDepartmentFilterValue,
   getHocTapQuizHref,
-  getHocTapQuizProgress,
   isAvailableQuizRoleId,
-  resolveHocTapLevelProgress,
   sortHocTapQuizCatalog,
   type AvailableQuizRoleId,
   type HocTapQuizDifficultyFilter,
@@ -89,6 +87,12 @@ import {
   type HocTapQuizTheme,
   type HocTapQuizTopic,
 } from "@/lib/hoc-tap-quiz-catalog";
+import type {
+  HocTapDepartmentLeaderboardRow,
+  HocTapLeaderboardRow,
+  HocTapOverviewDays,
+  HocTapOverviewResponse,
+} from "@/lib/hoc-tap-overview";
 
 type HocTapActiveTab = "overview" | "quiz" | "team";
 
@@ -170,21 +174,6 @@ const DIFFICULTY_OPTIONS: Array<{
   { value: "Khó", label: "Khó" },
 ];
 
-const PERSONAL_LEADERBOARD = [
-  { rank: 1, name: "Nguyễn Thu Hà", initials: "NH", xp: 739, tone: "blue" },
-  { rank: 2, name: "Phạm Thị Lan", initials: "PL", xp: 730, tone: "orange" },
-  { rank: 3, name: "Dương Văn Hùng", initials: "DH", xp: 720, tone: "purple" },
-  { rank: 4, name: "Hoàng Quốc Bảo", initials: "HB", xp: 710, tone: "emerald" },
-  { rank: 5, name: "Vũ Đức Anh", initials: "VA", xp: 641, tone: "rose" },
-] as const;
-
-const DEPARTMENT_LEADERBOARD = [
-  { rank: 1, name: "Marketing", xp: 1669, percent: 95, tone: "emerald" },
-  { rank: 2, name: "Vận hành", xp: 1608, percent: 88, tone: "orange" },
-  { rank: 3, name: "Kinh doanh", xp: 1580, percent: 82, tone: "violet" },
-  { rank: 4, name: "Kế toán", xp: 1471, percent: 70, tone: "sky" },
-] as const;
-
 type TeamRoomStatus = "waiting" | "playing" | "starting";
 type TeamRoomMode = "Classic" | "Team Battle";
 type TeamRoomFilter =
@@ -193,7 +182,7 @@ type TeamRoomFilter =
   | "classic"
   | "team-battle";
 
-type TeamRoomSeed = {
+type TeamRoom = {
   id: string;
   quizId: string;
   title: string;
@@ -206,9 +195,6 @@ type TeamRoomSeed = {
   capacity: number;
   cta: string;
   featured?: "star" | "hot" | "spark";
-};
-
-type TeamRoom = TeamRoomSeed & {
   quiz: HocTapQuizItem | null;
   href: string | null;
   code?: string;
@@ -224,85 +210,11 @@ type TeamRoom = TeamRoomSeed & {
   theme: HocTapQuizTheme;
 };
 
-const TEAM_ROOM_SEEDS: TeamRoomSeed[] = [
-  {
-    id: "room-ai-co-ban",
-    quizId: "ai-van-phong",
-    title: "AI cơ bản cho mọi người",
-    category: "AI CƠ BẢN",
-    host: "Minh Hai",
-    hostInitials: "MH",
-    status: "waiting",
-    mode: "Classic",
-    participants: 10,
-    capacity: 20,
-    cta: "Tham gia",
-    featured: "star",
-  },
-  {
-    id: "room-ai-marketing",
-    quizId: "ai-marketing",
-    title: "AI trong Marketing",
-    category: "AI TRONG MARKETING",
-    host: "TuanCoolBoy",
-    hostInitials: "TC",
-    status: "playing",
-    mode: "Team Battle",
-    participants: 8,
-    capacity: 12,
-    cta: "Vào phòng",
-    featured: "hot",
-  },
-  {
-    id: "room-ai-sales",
-    quizId: "ai-ban-hang",
-    title: "AI cho Sales & CSKH",
-    category: "AI CHO SALES & CSKH",
-    host: "lucasaivn",
-    hostInitials: "LA",
-    status: "starting",
-    mode: "Classic",
-    participants: 5,
-    capacity: 10,
-    cta: "Tham gia",
-    featured: "spark",
-  },
-  {
-    id: "room-ai-hr",
-    quizId: "ai-hanh-chinh-hr",
-    title: "AI nâng cao ứng dụng",
-    category: "AI NÂNG CAO",
-    host: "Anh Thu",
-    hostInitials: "AT",
-    status: "waiting",
-    mode: "Classic",
-    participants: 6,
-    capacity: 20,
-    cta: "Tham gia",
-  },
-  {
-    id: "room-ai-ke-toan",
-    quizId: "ai-ke-toan",
-    title: "AI an toàn cho kế toán",
-    category: "AI KẾ TOÁN",
-    host: "Ngọc Minh",
-    hostInitials: "NM",
-    status: "starting",
-    mode: "Team Battle",
-    participants: 7,
-    capacity: 14,
-    cta: "Tham gia",
-  },
-];
-
 const ROOM_FILTER_OPTIONS: Array<{ value: TeamRoomFilter; label: string }> = [
   { value: "all", label: "Tất cả phòng" },
   { value: "waiting", label: "Đang chờ" },
   { value: "playing", label: "Đang chơi" },
 ];
-
-const HOC_TAP_PROGRESS_EVENT = "hoc-tap-quiz-progress";
-const EMPTY_PROGRESS_SNAPSHOT = "0:0";
 
 type HocTapDashboardProps = {
   displayName: string;
@@ -354,19 +266,23 @@ export function HocTapDashboard({
   const [sort, setSort] = useState<HocTapQuizSort>("newest");
   const [expanded, setExpanded] = useState(false);
   const [liveRooms, setLiveRooms] = useState<HocTapPublicRoom[]>([]);
-  const progressSnapshot = useSyncExternalStore(
-    subscribeHocTapProgress,
-    getHocTapProgressSnapshot,
-    getServerHocTapProgressSnapshot,
-  );
-  const quizProgress = getHocTapQuizProgress();
-  const { levelProgress, completedMockQuizzes } = useMemo(
-    () => parseHocTapProgressSnapshot(progressSnapshot),
-    [progressSnapshot],
-  );
+  const [overviewDays, setOverviewDays] = useState<HocTapOverviewDays>(7);
+  const [overviewReloadKey, setOverviewReloadKey] = useState(0);
+  const [overview, setOverview] = useState<HocTapOverviewResponse | null>(null);
+  const [overviewLoading, setOverviewLoading] = useState(true);
+  const [overviewError, setOverviewError] = useState("");
+  const levelProgress = overview?.xp ?? {
+    level: 1,
+    currentXp: 0,
+    targetXp: 100,
+    totalXp: 0,
+    rank: null,
+    periodEarned: 0,
+    previousPeriodEarned: 0,
+  };
   const attemptedQuizIds = useMemo(
-    () => new Set(quizProgress.attempts.map((attempt) => attempt.quizId)),
-    [quizProgress],
+    () => new Set(overview?.attemptedQuizIds ?? []),
+    [overview?.attemptedQuizIds],
   );
   const catalog = useMemo(() => buildHocTapQuizCatalog(), []);
   const filteredQuizCatalog = useMemo(
@@ -395,7 +311,7 @@ export function HocTapDashboard({
     [filteredQuizCatalog, quizExpanded],
   );
   const teamRooms = useMemo(
-    () => [...buildLiveTeamRooms(liveRooms, catalog), ...buildTeamRooms(catalog)],
+    () => buildLiveTeamRooms(liveRooms, catalog),
     [catalog, liveRooms],
   );
   const filteredRooms = useMemo(
@@ -431,6 +347,43 @@ export function HocTapDashboard({
     quizQuery.trim().length > 0 ||
     quizDepartmentFilter !== "all" ||
     quizDifficulty !== "all";
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadOverview() {
+      setOverviewLoading(true);
+      setOverviewError("");
+      try {
+        const response = await fetchHocTapOverview(overviewDays);
+        if (active) setOverview(response);
+      } catch (error) {
+        console.warn("[hoc-tap-dashboard:overview]", error);
+        if (active) {
+          setOverviewError(
+            "Chưa tải được dữ liệu Học tập. Vui lòng thử lại.",
+          );
+        }
+      } finally {
+        if (active) setOverviewLoading(false);
+      }
+    }
+
+    void loadOverview();
+
+    function handleOverviewUpdate() {
+      setOverviewReloadKey((value) => value + 1);
+    }
+    window.addEventListener("hoc-tap-overview-updated", handleOverviewUpdate);
+
+    return () => {
+      active = false;
+      window.removeEventListener(
+        "hoc-tap-overview-updated",
+        handleOverviewUpdate,
+      );
+    };
+  }, [overviewDays, overviewReloadKey]);
 
   useEffect(() => {
     let active = true;
@@ -512,7 +465,8 @@ export function HocTapDashboard({
           currentXp={levelProgress.currentXp}
           targetXp={levelProgress.targetXp}
           totalXp={levelProgress.totalXp}
-          completedMockQuizzes={completedMockQuizzes}
+          completedQuizzes={overview?.stats.completedQuizzes ?? 0}
+          rank={levelProgress.rank}
           levelPercent={levelPercent}
         />
         <LearningMenu activeTab={activeTab} onTabChange={setActiveTab} />
@@ -521,12 +475,20 @@ export function HocTapDashboard({
       <main className="min-w-0 space-y-6">
         {activeTab === "overview" ? (
           <HocTapOverview
-            levelProgress={levelProgress}
-            progressVersion={progressSnapshot}
+            data={overview}
+            loading={overviewLoading}
+            error={overviewError}
+            days={overviewDays}
+            onDaysChange={setOverviewDays}
+            onRetry={() => setOverviewReloadKey((value) => value + 1)}
           />
         ) : (
           <>
-        <StudyHero activeTab={activeTab} />
+        <StudyHero
+          activeTab={activeTab}
+          audienceName={overview?.audience.name ?? "Đang tải không gian"}
+          audienceType={overview?.audience.type ?? "community"}
+        />
 
         {activeTab === "quiz" ? (
           <QuizLibraryPanel
@@ -711,19 +673,24 @@ export function HocTapDashboard({
               <Search className="size-6" aria-hidden="true" />
             </span>
             <h3 className="mt-4 font-display text-lg font-bold text-ink">
-              Chưa tìm thấy phòng phù hợp
+              {hasActiveFilters
+                ? "Chưa tìm thấy phòng phù hợp"
+                : "Chưa có phòng nào đang mở"}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-ink-2">
-              Thử một từ khóa ngắn hơn hoặc xóa bớt bộ lọc để xem toàn bộ phòng
-              đang mở.
+              {hasActiveFilters
+                ? "Thử một từ khóa ngắn hơn hoặc xóa bớt bộ lọc để xem toàn bộ phòng đang mở."
+                : "Bạn có thể tạo phòng đầu tiên từ bộ đề có sẵn hoặc AI project ở phía trên."}
             </p>
-            <button
-              type="button"
-              onClick={clearTeamFilters}
-              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-brand px-5 text-sm font-bold text-brand-foreground transition hover:bg-brand-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-            >
-              Xem tất cả phòng
-            </button>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={clearTeamFilters}
+                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl bg-brand px-5 text-sm font-bold text-brand-foreground transition hover:bg-brand-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              >
+                Xem tất cả phòng
+              </button>
+            ) : null}
           </div>
         )}
 
@@ -767,21 +734,26 @@ export function HocTapDashboard({
       <aside className="space-y-6 lg:col-span-2 xl:col-span-1 xl:sticky xl:top-5 xl:self-start">
         {activeTab === "overview" ? (
           <HocTapOverviewLeaderboard
-            displayName={displayName}
-            totalXp={levelProgress.totalXp}
+            rows={overview?.leaderboard.individuals ?? []}
           />
         ) : activeTab === "quiz" ? (
           <>
-            <LeaderboardPanel />
-            <DepartmentLeaderboardPanel />
+            <LeaderboardPanel
+              rows={overview?.leaderboard.individuals ?? []}
+            />
+            <DepartmentLeaderboardPanel
+              rows={overview?.leaderboard.departments ?? []}
+            />
           </>
         ) : (
           <>
             <RankSummaryPanel
               totalXp={levelProgress.totalXp}
-              rank={4}
+              rank={levelProgress.rank}
             />
-            <LeaderboardPanel />
+            <LeaderboardPanel
+              rows={overview?.leaderboard.individuals ?? []}
+            />
           </>
         )}
       </aside>
@@ -800,7 +772,8 @@ function ProfileCard({
   currentXp,
   targetXp,
   totalXp,
-  completedMockQuizzes,
+  completedQuizzes,
+  rank,
   levelPercent,
 }: {
   displayName: string;
@@ -813,7 +786,8 @@ function ProfileCard({
   currentXp: number;
   targetXp: number;
   totalXp: number;
-  completedMockQuizzes: number;
+  completedQuizzes: number;
+  rank: number | null;
   levelPercent: number;
 }) {
   return (
@@ -843,7 +817,7 @@ function ProfileCard({
 
       <div className="mt-6 text-left">
         <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-ink-3">
-          Cấp độ minh họa
+          Cấp độ Học tập
         </p>
         <div className="mt-1 flex items-center justify-between">
           <span className="font-display text-xl font-black text-ink">
@@ -867,9 +841,13 @@ function ProfileCard({
         <StatRow label="Điểm XP" value={`${totalXp.toLocaleString("vi-VN")} XP`} />
         <StatRow
           label="Bộ đề đã làm"
-          value={completedMockQuizzes.toString()}
+          value={completedQuizzes.toString()}
         />
-        <StatRow label="Hạng của bạn" value="#6" brand />
+        <StatRow
+          label="Hạng của bạn"
+          value={rank ? `#${rank}` : "Chưa xếp hạng"}
+          brand={Boolean(rank)}
+        />
       </div>
     </section>
   );
@@ -945,7 +923,15 @@ function LearningMenuButton({
   );
 }
 
-function StudyHero({ activeTab }: { activeTab: HocTapActiveTab }) {
+function StudyHero({
+  activeTab,
+  audienceName,
+  audienceType,
+}: {
+  activeTab: HocTapActiveTab;
+  audienceName: string;
+  audienceType: "community" | "company";
+}) {
   const isQuiz = activeTab === "quiz";
   const Icon = isQuiz ? ListChecks : Lightbulb;
 
@@ -955,7 +941,7 @@ function StudyHero({ activeTab }: { activeTab: HocTapActiveTab }) {
         <div className="min-w-0 space-y-2">
           <p className="inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.22em] text-accent">
             <Lightbulb className="size-4" aria-hidden="true" />
-            Học mà chơi
+            {audienceType === "company" ? "Không gian công ty" : "Không gian cộng đồng"}
           </p>
           <h1 className="font-display text-2xl font-black tracking-tight text-ink sm:text-3xl">
             {isQuiz ? "Quiz & Trắc nghiệm" : "Chơi với team"}
@@ -965,6 +951,7 @@ function StudyHero({ activeTab }: { activeTab: HocTapActiveTab }) {
               ? "Học mà chơi - chơi mà học với các bộ quiz được xây dựng sẵn theo phòng ban."
               : "Vừa học vừa chơi - cùng team chinh phục thử thách và tích lũy XP."}
           </p>
+          <p className="text-xs font-bold text-brand">{audienceName}</p>
         </div>
         <div className="grid size-14 flex-none place-items-center rounded-full bg-amber-50 text-amber-600">
           <Icon className="size-8" strokeWidth={1.9} aria-hidden="true" />
@@ -2231,7 +2218,7 @@ function RankSummaryPanel({
   rank,
 }: {
   totalXp: number;
-  rank: number;
+  rank: number | null;
 }) {
   return (
     <section className="grid gap-3 rounded-2xl border border-line bg-card p-4 shadow-sm">
@@ -2253,7 +2240,7 @@ function RankSummaryPanel({
         <div className="min-w-0">
           <p className="text-[10px] font-bold text-ink-3">Hạng của bạn</p>
           <p className="font-display text-lg font-extrabold text-accent">
-            #{rank}
+            {rank ? `#${rank}` : "Chưa xếp hạng"}
           </p>
         </div>
       </div>
@@ -2261,59 +2248,87 @@ function RankSummaryPanel({
   );
 }
 
-function LeaderboardPanel() {
+function LeaderboardPanel({ rows }: { rows: HocTapLeaderboardRow[] }) {
+  const visibleRows = rows.slice(0, 5);
+
   return (
     <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
       <PanelHeader title="Bảng xếp hạng cá nhân" action="Xem tất cả" />
-      <div className="mt-4 space-y-3 text-xs font-semibold">
-        {PERSONAL_LEADERBOARD.map((item) => (
-          <div key={item.rank} className="flex items-center justify-between gap-3">
+      {visibleRows.length > 0 ? (
+        <div className="mt-4 space-y-3 text-xs font-semibold">
+        {visibleRows.map((item) => (
+          <div key={item.userId} className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <span className="w-4 flex-none font-bold text-amber-500">
                 {item.rank}
               </span>
-              <span
-                className={`grid size-7 flex-none place-items-center rounded-full text-[10px] font-bold ${avatarTone(item.tone)}`}
-              >
-                {item.initials}
+              <span className="grid size-7 flex-none place-items-center rounded-full bg-brand-soft text-[10px] font-bold text-brand">
+                {getDisplayInitials(item.name)}
               </span>
-              <span className="truncate text-ink">{item.name}</span>
+              <span className="truncate text-ink">
+                {item.name}
+                {item.isCurrentUser ? " (Bạn)" : ""}
+              </span>
             </div>
             <span className="flex-none text-[11px] font-bold text-ink-2">
-              {item.xp.toLocaleString("vi-VN")} XP
+              {item.totalXp.toLocaleString("vi-VN")} XP
             </span>
           </div>
         ))}
-      </div>
+        </div>
+      ) : (
+        <EmptyLeaderboard message="Chưa có ai nhận XP trong không gian này." />
+      )}
     </section>
   );
 }
 
-function DepartmentLeaderboardPanel() {
+function DepartmentLeaderboardPanel({
+  rows,
+}: {
+  rows: HocTapDepartmentLeaderboardRow[];
+}) {
+  const maxXp = Math.max(1, ...rows.map((row) => row.totalXp));
+
   return (
     <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
       <PanelHeader title="Bảng xếp hạng phòng ban" action="Xem tất cả" />
-      <div className="mt-4 space-y-4 text-xs font-semibold">
-        {DEPARTMENT_LEADERBOARD.map((department) => (
-          <div key={department.name} className="space-y-1.5">
+      {rows.length > 0 ? (
+        <div className="mt-4 space-y-4 text-xs font-semibold">
+        {rows.slice(0, 5).map((department) => (
+          <div key={department.departmentId} className="space-y-1.5">
             <div className="flex justify-between gap-3 text-ink">
               <span>
-                {department.rank}. {department.name}
+                {department.rank}. {department.departmentLabel}
               </span>
-              <span>{department.xp.toLocaleString("vi-VN")} XP</span>
+              <span>{department.totalXp.toLocaleString("vi-VN")} XP</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
               <div
-                className={`h-1.5 rounded-full ${departmentLeaderboardTone(
-                  department.tone,
-                )}`}
-                style={{ width: `${department.percent}%` }}
+                className="h-1.5 rounded-full bg-brand"
+                style={{
+                  width: `${Math.max(
+                    4,
+                    Math.round((department.totalXp / maxXp) * 100),
+                  )}%`,
+                }}
               />
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      ) : (
+        <EmptyLeaderboard message="Chưa có phòng ban nào phát sinh XP." />
+      )}
     </section>
+  );
+}
+
+function EmptyLeaderboard({ message }: { message: string }) {
+  return (
+    <div className="mt-4 rounded-xl border border-dashed border-line bg-secondary/40 px-4 py-5 text-center">
+      <p className="text-[11px] font-semibold leading-5 text-ink-3">{message}</p>
+    </div>
   );
 }
 
@@ -2332,27 +2347,6 @@ function PanelHeader({
       <span className="text-[10px] font-bold text-brand">{action}</span>
     </div>
   );
-}
-
-function buildTeamRooms(catalog: HocTapQuizItem[]): TeamRoom[] {
-  return TEAM_ROOM_SEEDS.map((seed) => {
-    const quiz = catalog.find((item) => item.id === seed.quizId) ?? null;
-
-    return {
-      ...seed,
-      quiz,
-      href: quiz ? getHocTapQuizHref(quiz) : null,
-      isLocked: false,
-      hostAvatarUrl: null,
-      topic: quiz ? getHocTapQuizTopic(quiz) : "ai-co-ban",
-      roleId: quiz?.roleId ?? null,
-      questionCount: quiz?.questionCount ?? 10,
-      xp: quiz?.xp ?? 50,
-      durationMinutes: quiz?.durationMinutes ?? 15,
-      publishedOrder: quiz?.publishedOrder ?? 0,
-      theme: quiz?.theme ?? "office",
-    };
-  });
 }
 
 function buildLiveTeamRooms(
@@ -2495,17 +2489,6 @@ function StatRow({
   );
 }
 
-function avatarTone(tone: (typeof PERSONAL_LEADERBOARD)[number]["tone"]) {
-  const tones = {
-    blue: "bg-blue-50 text-blue-600",
-    orange: "bg-orange-50 text-orange-600",
-    purple: "bg-purple-50 text-purple-600",
-    emerald: "bg-emerald-50 text-emerald-600",
-    rose: "bg-rose-50 text-rose-600",
-  };
-  return tones[tone];
-}
-
 function difficultyTone(difficulty: HocTapQuizItem["difficulty"]) {
   const tones = {
     Dễ: "bg-emerald-50 text-emerald-700",
@@ -2514,18 +2497,6 @@ function difficultyTone(difficulty: HocTapQuizItem["difficulty"]) {
   } satisfies Record<HocTapQuizItem["difficulty"], string>;
 
   return tones[difficulty];
-}
-
-function departmentLeaderboardTone(
-  tone: (typeof DEPARTMENT_LEADERBOARD)[number]["tone"],
-) {
-  const tones = {
-    emerald: "bg-emerald-600",
-    orange: "bg-orange-500",
-    violet: "bg-violet-600",
-    sky: "bg-sky-500",
-  };
-  return tones[tone];
 }
 
 function normalizeHocTapSearchText(value: string): string {
@@ -2559,43 +2530,4 @@ function saveHocTapRoomIdentity(
     `ai_troly_hoc_tap_room_${code}`,
     JSON.stringify(identity),
   );
-}
-
-function subscribeHocTapProgress(onStoreChange: () => void): () => void {
-  if (typeof window === "undefined") return () => {};
-
-  const handleStorage = (event: StorageEvent) => {
-    if (!event.key || event.key === "ai_troly_hoc_tap_quiz_progress") {
-      onStoreChange();
-    }
-  };
-  window.addEventListener("storage", handleStorage);
-  window.addEventListener(HOC_TAP_PROGRESS_EVENT, onStoreChange);
-
-  return () => {
-    window.removeEventListener("storage", handleStorage);
-    window.removeEventListener(HOC_TAP_PROGRESS_EVENT, onStoreChange);
-  };
-}
-
-function getHocTapProgressSnapshot(): string {
-  const progress = getHocTapQuizProgress();
-  return `${progress.totalXpEarned}:${progress.attempts.length}`;
-}
-
-function getServerHocTapProgressSnapshot(): string {
-  return EMPTY_PROGRESS_SNAPSHOT;
-}
-
-function parseHocTapProgressSnapshot(snapshot: string) {
-  const [rawExtraXp, rawAttempts] = snapshot.split(":");
-  const extraXp = Number(rawExtraXp);
-  const attempts = Number(rawAttempts);
-
-  return {
-    levelProgress: resolveHocTapLevelProgress(
-      Number.isFinite(extraXp) ? extraXp : 0,
-    ),
-    completedMockQuizzes: Number.isFinite(attempts) ? attempts : 0,
-  };
 }

@@ -32,7 +32,11 @@ export async function GET() {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
   }
 
-  return apiOk(await listHocTapRoomsWithRuntime(session));
+  try {
+    return apiOk(await listHocTapRoomsWithRuntime(session));
+  } catch (error) {
+    return hocTapRoomRouteError(error);
+  }
 }
 
 export async function POST(request: Request) {

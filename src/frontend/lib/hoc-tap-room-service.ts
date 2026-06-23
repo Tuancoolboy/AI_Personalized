@@ -5,8 +5,8 @@ import {
   type HocTapQuizQuestion,
 } from "@/lib/hoc-tap-quiz-catalog";
 import { buildAvatarUrl } from "@/lib/app-avatar";
-import { slugifyOrganizationName } from "@/lib/organization-slug";
-import { createSupabaseServiceClient } from "@/lib/supabase/server";
+import { resolveHocTapAudience } from "@/lib/hoc-tap-audience";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   HocTapRoomError,
   type HocTapPublicRoom,
@@ -31,10 +31,6 @@ import {
 
 type ServiceSession = {
   userId: string;
-};
-
-type MembershipRow = {
-  organization_id: string;
 };
 
 type RoomRow = {
@@ -89,6 +85,40 @@ type AnswerRow = {
   updated_at: string;
 };
 
+type RoomPreviewRow = {
+  id: string;
+  code: string;
+  organization_id: string;
+  quiz_id: string;
+  title: string;
+  category: string;
+  status: HocTapRoomStatus;
+  phase: HocTapRoomPhase;
+  mode: "classic" | "team-battle";
+  room_type: HocTapRoomType;
+  host_mode: HocTapRoomHostMode;
+  locked: boolean;
+  max_players: number;
+  current_question_index: number;
+  phase_ends_at: string | null;
+  question_ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+  question_count: number;
+  participant_count: number;
+  host_participant_id: string | null;
+  host_name: string | null;
+  host_avatar_choice: string | null;
+  host_joined_at: string | null;
+};
+
+type JoinRoomRpcResult = {
+  error_code?: string;
+  room_id?: string;
+  organization_id?: string;
+  participant_id?: string;
+};
+
 type LoadedRoom = {
   room: RoomRow;
   participants: ParticipantRow[];
@@ -108,9 +138,6 @@ const REVEAL_DURATION_MS = 5_000;
 const LEADERBOARD_DURATION_MS = 4_000;
 const ACTIVE_ROOM_RETENTION_MS = 12 * 60 * 60 * 1000;
 const FINISHED_ROOM_RETENTION_MS = 24 * 60 * 60 * 1000;
-const COMMUNITY_ORGANIZATION_NAME = "AI Tro Ly Community";
-const COMMUNITY_ORGANIZATION_SLUG =
-  slugifyOrganizationName(COMMUNITY_ORGANIZATION_NAME);
 
 export async function listSupabaseHocTapRooms(
   session: ServiceSession,
@@ -118,7 +145,7 @@ export async function listSupabaseHocTapRooms(
   const organizationId = await resolveRoomOrganizationId(session.userId);
   await cleanupExpiredRooms(organizationId);
 
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("hoc_tap_rooms")
     .select("*")
@@ -160,7 +187,7 @@ export async function createSupabaseHocTapRoom(
   const hostParticipantId = randomUUID();
   let participantId = hostParticipantId;
 
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const { error: roomError } = await supabase.from("hoc_tap_rooms").insert({
     id: roomId,
     code,
@@ -255,68 +282,39 @@ export async function joinSupabaseHocTapRoom(
   session: ServiceSession,
   input: HocTapRoomJoinInput,
 ): Promise<HocTapRoomJoinResult> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
   const code = normalizeRoomCode(input.code);
   const name = normalizeDisplayName(input.playerName);
   const avatarChoice = normalizeAvatarChoice(input.avatarSeed);
-  const loaded = await requireLoadedRoom(code, organizationId);
-  const settled = await settleRoomState(loaded);
-
-  if (settled.room.status === "finished") {
-    throw new HocTapRoomError(
-      "ROOM_FINISHED",
-      "Phòng này đã kết thúc. Hãy tạo phòng mới để chơi lại.",
-    );
-  }
-
-  const existing =
-    settled.participants.find((participant) => participant.user_id === session.userId) ??
-    null;
-  if (existing) {
-    await updateParticipant(existing.id, {
-      display_name: name,
-      avatar_choice: avatarChoice,
-      last_seen_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    const refreshed = await requireLoadedRoom(code, organizationId);
-    return {
-      room: serializeRoom(refreshed, session.userId, existing.id),
-      participantId: existing.id,
-    };
-  }
-
-  if (getPlayers(settled).length >= settled.room.max_players) {
-    throw new HocTapRoomError("ROOM_FULL", "Phòng đã đủ người chơi.");
-  }
-
-  const participantId = randomUUID();
-  const now = new Date().toISOString();
-  const supabase = createSupabaseServiceClient();
-  const { error } = await supabase.from("hoc_tap_room_participants").insert({
-    id: participantId,
-    room_id: settled.room.id,
-    organization_id: settled.room.organization_id,
-    user_id: session.userId,
-    display_name: name,
-    avatar_choice: avatarChoice,
-    score: 0,
-    is_host: false,
-    joined_at: now,
-    last_seen_at: now,
-    created_at: now,
-    updated_at: now,
+  const supabase = await createSupabaseServerClient();
+  const requestedParticipantId = randomUUID();
+  const { data, error } = await supabase.rpc("join_hoc_tap_room_by_code", {
+    room_code: code,
+    requested_participant_id: requestedParticipantId,
+    player_name: name,
+    player_avatar_choice: avatarChoice,
   });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  await touchRoom(settled.room.id);
-  const refreshed = await requireLoadedRoom(code, organizationId);
+  const result = (data ?? {}) as JoinRoomRpcResult;
+  throwJoinRoomRpcError(result.error_code);
+  if (!result.room_id || !result.organization_id || !result.participant_id) {
+    throw new Error("Supabase không trả về participant của phòng vừa tham gia.");
+  }
+
+  const refreshed = await loadRoomById(result.room_id, result.organization_id);
+  if (!refreshed) {
+    throw new HocTapRoomError(
+      "ROOM_NOT_FOUND",
+      "Không tải lại được phòng vừa tham gia.",
+    );
+  }
+
   return {
-    room: serializeRoom(refreshed, session.userId, participantId),
-    participantId,
+    room: serializeRoom(refreshed, session.userId, result.participant_id),
+    participantId: result.participant_id,
   };
 }
 
@@ -325,8 +323,18 @@ export async function getSupabaseHocTapRoomSnapshot(
   code: string,
   participantId?: string | null,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
-  const loaded = await requireLoadedRoom(code, organizationId);
+  const normalizedCode = normalizeRoomCode(code);
+  const loaded = await loadAccessibleRoomByCode(normalizedCode);
+  if (!loaded) {
+    const preview = await loadRoomPreview(normalizedCode);
+    if (!preview) {
+      throw new HocTapRoomError(
+        "ROOM_NOT_FOUND",
+        "Không tìm thấy phòng. Kiểm tra lại mã phòng hoặc tạo phòng mới.",
+      );
+    }
+    return serializeRoomPreview(preview);
+  }
   const settled = await settleRoomState(loaded);
   return serializeRoom(settled, session.userId, participantId ?? null);
 }
@@ -336,8 +344,7 @@ export async function startSupabaseHocTapRoom(
   code: string,
   participantId?: string | null,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
-  const loaded = await requireLoadedRoom(code, organizationId);
+  const loaded = await requireAccessibleRoom(code);
   const settled = await settleRoomState(loaded);
   assertRoomController(settled, session.userId);
 
@@ -355,7 +362,10 @@ export async function startSupabaseHocTapRoom(
   }
 
   await updateRoom(settled.room.id, startQuestionPatch());
-  const refreshed = await requireLoadedRoom(code, organizationId);
+  const refreshed = await requireLoadedRoom(
+    settled.room.code,
+    settled.room.organization_id,
+  );
   return serializeRoom(refreshed, session.userId, participantId ?? null);
 }
 
@@ -363,8 +373,7 @@ export async function submitSupabaseHocTapRoomAnswer(
   session: ServiceSession,
   input: HocTapRoomAnswerInput,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
-  const loaded = await requireLoadedRoom(input.code, organizationId);
+  const loaded = await requireAccessibleRoom(input.code);
   const settled = await settleRoomState(loaded);
 
   if (settled.room.status !== "playing" || settled.room.phase !== "question") {
@@ -418,7 +427,7 @@ export async function submitSupabaseHocTapRoomAnswer(
     const isCorrect = answerIndex === question.correctIndex;
     const points = isCorrect ? ANSWER_POINTS : 0;
     const now = new Date().toISOString();
-    const supabase = createSupabaseServiceClient();
+    const supabase = await createSupabaseServerClient();
     const { error: answerError } = await supabase
       .from("hoc_tap_room_answers")
       .insert({
@@ -446,7 +455,10 @@ export async function submitSupabaseHocTapRoomAnswer(
     await touchRoom(settled.room.id, now);
   }
 
-  const refreshed = await requireLoadedRoom(input.code, organizationId);
+  const refreshed = await requireLoadedRoom(
+    settled.room.code,
+    settled.room.organization_id,
+  );
   const next = await settleRoomState(refreshed);
   return serializeRoom(next, session.userId, participant.id);
 }
@@ -455,15 +467,17 @@ export async function updateSupabaseHocTapRoomSettings(
   session: ServiceSession,
   input: HocTapRoomUpdateSettingsInput,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
-  const loaded = await requireLoadedRoom(input.code, organizationId);
+  const loaded = await requireAccessibleRoom(input.code);
   assertRoomController(loaded, session.userId);
   await updateRoom(loaded.room.id, {
     locked: input.locked,
     updated_at: new Date().toISOString(),
     last_activity_at: new Date().toISOString(),
   });
-  const refreshed = await requireLoadedRoom(input.code, organizationId);
+  const refreshed = await requireLoadedRoom(
+    loaded.room.code,
+    loaded.room.organization_id,
+  );
   return serializeRoom(refreshed, session.userId, input.participantId ?? null);
 }
 
@@ -471,11 +485,10 @@ export async function deleteSupabaseHocTapRoom(
   session: ServiceSession,
   input: HocTapRoomDeleteInput,
 ): Promise<{ code: string }> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
-  const loaded = await requireLoadedRoom(input.code, organizationId);
+  const loaded = await requireAccessibleRoom(input.code);
   assertRoomController(loaded, session.userId);
 
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from("hoc_tap_rooms")
     .delete()
@@ -493,8 +506,7 @@ export async function advanceSupabaseHocTapRoom(
   code: string,
   participantId?: string | null,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
-  const loaded = await requireLoadedRoom(code, organizationId);
+  const loaded = await requireAccessibleRoom(code);
   const settled = await settleRoomState(loaded);
   assertRoomController(settled, session.userId);
 
@@ -513,7 +525,10 @@ export async function advanceSupabaseHocTapRoom(
   }
 
   await updateRoom(settled.room.id, forceAdvancePatch(settled));
-  const refreshed = await requireLoadedRoom(code, organizationId);
+  const refreshed = await requireLoadedRoom(
+    settled.room.code,
+    settled.room.organization_id,
+  );
   const next = await settleRoomState(refreshed);
   return serializeRoom(next, session.userId, participantId ?? null);
 }
@@ -522,8 +537,7 @@ export async function updateSupabaseHocTapRoomQuestions(
   session: ServiceSession,
   input: HocTapRoomUpdateQuestionsInput,
 ): Promise<HocTapRoomSnapshot> {
-  const organizationId = await resolveRoomOrganizationId(session.userId);
-  const loaded = await requireLoadedRoom(input.code, organizationId);
+  const loaded = await requireAccessibleRoom(input.code);
   assertRoomController(loaded, session.userId);
 
   if (loaded.room.status !== "waiting") {
@@ -545,7 +559,10 @@ export async function updateSupabaseHocTapRoomQuestions(
     updated_at: new Date().toISOString(),
     last_activity_at: new Date().toISOString(),
   });
-  const refreshed = await requireLoadedRoom(input.code, organizationId);
+  const refreshed = await requireLoadedRoom(
+    loaded.room.code,
+    loaded.room.organization_id,
+  );
   return serializeRoom(refreshed, session.userId, null);
 }
 
@@ -616,14 +633,10 @@ function serializeRoom(
   userId: string,
   requestedParticipantId: string | null,
 ): HocTapRoomSnapshot {
+  void requestedParticipantId;
   const viewer =
-    loaded.participants.find((participant) => participant.user_id === userId) ??
-    loaded.participants.find(
-      (participant) =>
-        requestedParticipantId !== null && participant.id === requestedParticipantId,
-    ) ??
-    null;
-  const viewerParticipantId = viewer?.id ?? requestedParticipantId ?? null;
+    loaded.participants.find((participant) => participant.user_id === userId) ?? null;
+  const viewerParticipantId = viewer?.id ?? null;
   const isHost = viewer?.is_host ?? false;
   const canManageRoom = loaded.room.created_by_user_id === userId;
   const question =
@@ -714,6 +727,60 @@ function serializeRoom(
   };
 }
 
+function serializeRoomPreview(preview: RoomPreviewRow): HocTapRoomSnapshot {
+  const hostName = preview.host_name ?? SYSTEM_HOST_NAME;
+  const hostParticipantId = preview.host_participant_id ?? "";
+  const hostParticipant: HocTapRoomParticipant | null = hostParticipantId
+    ? {
+        id: hostParticipantId,
+        name: hostName,
+        initials: getInitials(hostName),
+        avatarUrl: buildParticipantAvatarUrl(
+          preview.host_avatar_choice,
+          hostName,
+        ),
+        score: 0,
+        isHost: true,
+        joinedAt: preview.host_joined_at ?? preview.created_at,
+      }
+    : null;
+
+  return {
+    code: preview.code,
+    quizId: preview.quiz_id,
+    title: preview.title,
+    category: preview.category,
+    isLocked: preview.locked,
+    status: preview.status,
+    mode: preview.mode,
+    roomType: preview.room_type,
+    hostMode: preview.host_mode,
+    phase: preview.phase,
+    hostName,
+    hostParticipantId,
+    participantCount: preview.participant_count,
+    maxPlayers: preview.max_players,
+    questionCount: preview.question_count,
+    currentQuestionIndex: preview.current_question_index,
+    questionEndsAt: preview.question_ends_at,
+    phaseEndsAt: preview.phase_ends_at,
+    answeredPlayerCount: 0,
+    createdAt: preview.created_at,
+    updatedAt: preview.updated_at,
+    participants: hostParticipant ? [hostParticipant] : [],
+    currentQuestion: null,
+    reviewQuestions: null,
+    viewerAnswer: null,
+    viewerParticipantId: null,
+    isHost: false,
+    canManageRoom: false,
+    canStart: false,
+    leaderboard: [],
+    roundTopFive: [],
+    finalTopThree: [],
+  };
+}
+
 function serializePublicRoom(loaded: LoadedRoom): HocTapPublicRoom {
   const host =
     loaded.participants.find((participant) => participant.is_host) ??
@@ -771,7 +838,7 @@ function serializeQuestion(
 }
 
 async function cleanupExpiredRooms(organizationId: string): Promise<void> {
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const now = Date.now();
   const activeCutoff = new Date(now - ACTIVE_ROOM_RETENTION_MS).toISOString();
   const finishedCutoff = new Date(now - FINISHED_ROOM_RETENTION_MS).toISOString();
@@ -792,77 +859,12 @@ async function cleanupExpiredRooms(organizationId: string): Promise<void> {
 }
 
 async function resolveRoomOrganizationId(userId: string): Promise<string> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .limit(1);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const row = ((data ?? []) as MembershipRow[])[0];
-  return row?.organization_id ?? ensureCommunityOrganizationId();
-}
-
-async function ensureCommunityOrganizationId(): Promise<string> {
-  const supabase = createSupabaseServiceClient();
-  const { data: existing, error: selectError } = await supabase
-    .from("organizations")
-    .select("id")
-    .eq("slug", COMMUNITY_ORGANIZATION_SLUG)
-    .maybeSingle();
-
-  if (selectError) {
-    throw new Error(selectError.message);
-  }
-  if (existing?.id) {
-    return existing.id;
-  }
-
-  const now = new Date().toISOString();
-  const { data: inserted, error: insertError } = await supabase
-    .from("organizations")
-    .insert({
-      name: COMMUNITY_ORGANIZATION_NAME,
-      slug: COMMUNITY_ORGANIZATION_SLUG,
-      status: "active",
-      settings_json: {
-        hocTapMode: "community",
-      },
-      created_by: null,
-      updated_at: now,
-    })
-    .select("id")
-    .maybeSingle();
-
-  if (!insertError && inserted?.id) {
-    return inserted.id;
-  }
-
-  const { data: retryExisting, error: retryError } = await supabase
-    .from("organizations")
-    .select("id")
-    .eq("slug", COMMUNITY_ORGANIZATION_SLUG)
-    .maybeSingle();
-
-  if (retryError) {
-    throw new Error(retryError.message);
-  }
-  if (!retryExisting?.id) {
-    throw new Error(
-      insertError?.message ||
-        "Không tạo được community organization cho phòng học tập.",
-    );
-  }
-
-  return retryExisting.id;
+  void userId;
+  return (await resolveHocTapAudience()).organizationId;
 }
 
 async function generateUniqueRoomCode(): Promise<string> {
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const code = Array.from({ length: ROOM_CODE_LENGTH }, () =>
       ROOM_CODE_ALPHABET.charAt(Math.floor(Math.random() * ROOM_CODE_ALPHABET.length)),
@@ -884,11 +886,51 @@ async function generateUniqueRoomCode(): Promise<string> {
   );
 }
 
+async function loadRoomPreview(code: string): Promise<RoomPreviewRow | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("get_hoc_tap_room_preview", {
+    room_code: normalizeRoomCode(code),
+  });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data ? (data as RoomPreviewRow) : null;
+}
+
+async function loadAccessibleRoomByCode(
+  code: string,
+): Promise<LoadedRoom | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("hoc_tap_rooms")
+    .select("*")
+    .eq("code", normalizeRoomCode(code))
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (!data) return null;
+  const room = data as RoomRow;
+  return loadRoomById(room.id, room.organization_id);
+}
+
+async function requireAccessibleRoom(code: string): Promise<LoadedRoom> {
+  const loaded = await loadAccessibleRoomByCode(code);
+  if (!loaded) {
+    throw new HocTapRoomError(
+      "ROOM_NOT_FOUND",
+      "Không tìm thấy phòng. Kiểm tra lại mã phòng hoặc tạo phòng mới.",
+    );
+  }
+  return loaded;
+}
+
 async function loadRoomByCode(
   code: string,
   organizationId: string,
 ): Promise<LoadedRoom | null> {
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("hoc_tap_rooms")
     .select("*")
@@ -907,7 +949,7 @@ async function loadRoomById(
   roomId: string,
   organizationId: string,
 ): Promise<LoadedRoom | null> {
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const [{ data: roomData, error: roomError }, { data: participantsData, error: participantsError }, { data: answersData, error: answersError }] =
     await Promise.all([
       supabase
@@ -965,7 +1007,7 @@ function normalizeRoomRow(room: RoomRow): RoomRow {
 }
 
 async function updateRoom(roomId: string, patch: Record<string, unknown>) {
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from("hoc_tap_rooms")
     .update(patch)
@@ -979,7 +1021,7 @@ async function updateParticipant(
   participantId: string,
   patch: Record<string, unknown>,
 ) {
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from("hoc_tap_room_participants")
     .update(patch)
@@ -1241,6 +1283,29 @@ function normalizeRoomCode(code: string): string {
     throw new HocTapRoomError("INVALID_INPUT", "Mã phòng phải gồm 6 ký tự.");
   }
   return normalized;
+}
+
+function throwJoinRoomRpcError(errorCode?: string) {
+  if (!errorCode) return;
+  if (errorCode === "ROOM_NOT_FOUND") {
+    throw new HocTapRoomError(
+      "ROOM_NOT_FOUND",
+      "Không tìm thấy phòng. Kiểm tra lại mã phòng hoặc tạo phòng mới.",
+    );
+  }
+  if (errorCode === "ROOM_FINISHED") {
+    throw new HocTapRoomError(
+      "ROOM_FINISHED",
+      "Phòng này đã kết thúc. Hãy tạo phòng mới để chơi lại.",
+    );
+  }
+  if (errorCode === "ROOM_FULL") {
+    throw new HocTapRoomError("ROOM_FULL", "Phòng đã đủ người chơi.");
+  }
+  if (errorCode === "FORBIDDEN") {
+    throw new HocTapRoomError("FORBIDDEN", "Bạn cần đăng nhập để vào phòng.");
+  }
+  throw new Error(`Supabase join room failed: ${errorCode}`);
 }
 
 function normalizeDisplayName(value: string): string {

@@ -41,6 +41,11 @@ type RoomIdentity = {
   hostToken?: string;
 };
 
+type StoredRoomIdentityState = {
+  key: string;
+  value: RoomIdentity | null;
+};
+
 type HocTapTeamRoomProps = {
   code: string;
   displayName: string;
@@ -50,6 +55,11 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
   const router = useRouter();
   const normalizedCode = code.toUpperCase();
   const { fullName, email, avatar: remoteAvatar } = useAppProfile();
+  const roomIdentityKey = buildAvatarIdentity(
+    fullName,
+    displayName,
+    email,
+  );
   const preferredAvatarIdentity = buildAvatarIdentity(
     fullName,
     displayName,
@@ -61,9 +71,16 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
     [fullName, displayName, email],
   );
   const [room, setRoom] = useState<HocTapRoomSnapshot | null>(null);
-  const [identity, setIdentity] = useState<RoomIdentity | null>(() =>
-    readRoomIdentity(normalizedCode),
+  const [identityState, setIdentityState] = useState<StoredRoomIdentityState>(
+    () => ({
+      key: roomIdentityKey,
+      value: readRoomIdentity(normalizedCode, roomIdentityKey),
+    }),
   );
+  const identity =
+    identityState.key === roomIdentityKey
+      ? identityState.value
+      : readRoomIdentity(normalizedCode, roomIdentityKey);
   const [joinName, setJoinName] = useState(displayName);
   const [selectedAnswer, setSelectedAnswer] = useState<{
     questionIndex: number;
@@ -88,8 +105,11 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
             participantId: response.room.viewerParticipantId,
             hostToken: identity?.hostToken,
           };
-          saveRoomIdentity(normalizedCode, nextIdentity);
-          setIdentity(nextIdentity);
+          saveRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
+          setIdentityState({ key: roomIdentityKey, value: nextIdentity });
+        } else {
+          clearRoomIdentity(normalizedCode, roomIdentityKey);
+          setIdentityState({ key: roomIdentityKey, value: null });
         }
         setDeletedByHost(false);
         setError("");
@@ -97,9 +117,10 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
       .catch((err: unknown) => {
         if (!active) return;
         if (isRoomNotFoundError(err)) {
-          clearRoomIdentity(normalizedCode);
+          clearRoomIdentity(normalizedCode, roomIdentityKey);
           setRoom(null);
           setDeletedByHost(false);
+          setIdentityState({ key: roomIdentityKey, value: null });
         }
         setError(err instanceof Error ? err.message : "Không tải được phòng.");
       })
@@ -110,7 +131,7 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
     return () => {
       active = false;
     };
-  }, [identity?.participantId, normalizedCode]);
+  }, [identity?.participantId, normalizedCode, roomIdentityKey]);
 
   useEffect(() => {
     if (!room || room.status === "finished") return;
@@ -123,17 +144,21 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
               participantId: response.room.viewerParticipantId,
               hostToken: identity?.hostToken,
             };
-            saveRoomIdentity(normalizedCode, nextIdentity);
-            setIdentity(nextIdentity);
+            saveRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
+            setIdentityState({ key: roomIdentityKey, value: nextIdentity });
+          } else {
+            clearRoomIdentity(normalizedCode, roomIdentityKey);
+            setIdentityState({ key: roomIdentityKey, value: null });
           }
           setDeletedByHost(false);
           setError("");
         })
         .catch((err: unknown) => {
           if (isRoomNotFoundError(err)) {
-            clearRoomIdentity(normalizedCode);
+            clearRoomIdentity(normalizedCode, roomIdentityKey);
             setRoom(null);
             setDeletedByHost(true);
+            setIdentityState({ key: roomIdentityKey, value: null });
             setError("");
             return;
           }
@@ -142,7 +167,7 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [identity?.participantId, normalizedCode, room]);
+  }, [identity?.participantId, normalizedCode, room, roomIdentityKey]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -174,8 +199,8 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
         avatarSeed,
       });
       const nextIdentity = { participantId: response.participantId };
-      saveRoomIdentity(normalizedCode, nextIdentity);
-      setIdentity(nextIdentity);
+      saveRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
+      setIdentityState({ key: roomIdentityKey, value: nextIdentity });
       setRoom(response.room);
       setError("");
     } catch (err) {
@@ -276,7 +301,7 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
         hostToken: identity.hostToken,
         participantId: identity.participantId,
       });
-      clearRoomIdentity(normalizedCode);
+      clearRoomIdentity(normalizedCode, roomIdentityKey);
       router.push(BACK_TO_TEAM_HREF);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Chưa xoá được phòng.");
@@ -972,8 +997,8 @@ function EmptyRoomState({ deletedByHost = false }: { deletedByHost?: boolean }) 
   );
 }
 
-function storageKey(code: string) {
-  return `ai_troly_hoc_tap_room_${code}`;
+function storageKey(code: string, identityKey: string) {
+  return `ai_troly_hoc_tap_room_${identityKey}_${code}`;
 }
 
 function isRoomNotFoundError(error: unknown): boolean {
@@ -983,10 +1008,10 @@ function isRoomNotFoundError(error: unknown): boolean {
   );
 }
 
-function readRoomIdentity(code: string): RoomIdentity | null {
+function readRoomIdentity(code: string, identityKey: string): RoomIdentity | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(storageKey(code));
+    const raw = window.localStorage.getItem(storageKey(code, identityKey));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<RoomIdentity>;
     return typeof parsed.participantId === "string"
@@ -1001,12 +1026,19 @@ function readRoomIdentity(code: string): RoomIdentity | null {
   }
 }
 
-function saveRoomIdentity(code: string, identity: RoomIdentity) {
+function saveRoomIdentity(
+  code: string,
+  identityKey: string,
+  identity: RoomIdentity,
+) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(storageKey(code), JSON.stringify(identity));
+  window.localStorage.setItem(
+    storageKey(code, identityKey),
+    JSON.stringify(identity),
+  );
 }
 
-function clearRoomIdentity(code: string) {
+function clearRoomIdentity(code: string, identityKey: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(storageKey(code));
+  window.localStorage.removeItem(storageKey(code, identityKey));
 }

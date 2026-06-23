@@ -126,5 +126,15 @@
 
   <h3>Bất kỳ điều gì khác cần lưu ý</h3>
   <p>Top navigation desktop có active underline để khớp mẫu. Nút Chat trong cột liên hệ mở <code>ManagerDirectChatModal</code> nhắn tin trực tiếp theo từng nhân viên trên cả <code>/quan-ly</code> và <code>/quan-ly/nhan-vien</code>, lưu lịch sử demo bằng <code>localStorage</code>; không gọi trợ lý AI và không dùng <code>/api/chat</code>. Các sửa đổi chat có sẵn trước task này được giữ trong <code>stash@{0}</code> do conflict với <code>develop</code> mới.</p>
+
+  <h2>6. Update 2026-06-23 — Audience Học tập theo membership</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Dùng đúng <code>organization_members</code> làm nguồn phân giải audience: có membership thì vào công ty, không có membership thì dùng organization hệ thống Cộng đồng mà không tạo member row. Migration dọn riêng row backfill legacy <code>Tổ chức mặc định</code> của 0008 để account thường không bị nhận nhầm là thành viên công ty.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Thu hồi hành vi preview/join phòng xuyên công ty của migration ngày 22/06; biết mã phòng không còn đủ quyền nếu account không ở cùng audience.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Giữ invariant một tài khoản một công ty hiện có. Cộng đồng là fallback audience, không phải membership, nên account thường vẫn nhận được invite công ty về sau.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Checklist smoke multi-manager vẫn chưa hoàn tất. Migration mới đã được apply lên remote; cần test Community, Công ty A và Công ty B trên Supabase/Vercel thật.</p>
 </body>
 </html>

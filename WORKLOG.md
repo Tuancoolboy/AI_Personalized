@@ -6,6 +6,72 @@
 
 ---
 
+## [2026-06-23] — Dữ liệu thật cho Học tập, XP và phân tách Công ty/Cộng đồng
+
+**Context:** `/hoc-tap` còn dùng XP, cấp độ, thứ hạng, biểu đồ, leaderboard và room seed mẫu. Quiz Học tập ghi localStorage nên không đồng bộ thiết bị; migration ngày 22/06 còn cho phép account ngoài công ty xem/join phòng bằng mã, trái với yêu cầu công ty riêng.
+
+**Options:**
+1. Giữ localStorage và chỉ đổi số hiển thị về 0.
+2. Lưu điểm trực tiếp từ client vào Supabase.
+3. Giữ nội dung quiz chuẩn trong code, chấm trên server, ghi attempt + phần XP tăng bằng RPC transaction, đồng thời dùng `organization_members` để phân giải audience Cộng đồng/Công ty.
+
+**Decision:** Chọn phương án 3. Tài khoản không có membership dùng organization hệ thống `Cộng đồng AI Trợ Lý` nhưng không được tạo membership; migration cũng xóa membership placeholder `Tổ chức mặc định` mà `0008` từng backfill cho mọi account legacy để chúng thực sự trở về Cộng đồng. Tài khoản nhận invite dùng organization công ty. XP tách theo audience, bắt đầu `Lv.1 · 0/100 XP`, mỗi quiz chỉ tính điểm cao nhất và `attempt_id` chống ghi trùng; retry idempotent trả 0 XP để UI không thông báo cộng lại. Direct insert `points_ledger` bị thu hồi; direct insert `quiz_results` chỉ còn cho quiz learning cũ, không thể giả mạo attempt Học tập. Room list/create/preview/join bị giới hạn đúng audience hiện tại, nên migration mới chủ động thu hồi cross-company join của `20260622054535`.
+
+**Owner:** Codex
+
+**Status:** Đã apply migration lên Supabase; smoke nhiều account còn chờ thực hiện.
+
+**Tests:** `npm run db:validate` pass (38 migrations); targeted Vitest 30/30 và full unit 336/336 pass; `npm run lint` pass (0 error, 7 warning cũ ngoài scope); build production bằng Node 20 pass. `npm run test` đã build + khởi động test server thành công, nhưng API integration dừng trước case đầu tiên vì credential Supabase được inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header; không phải assertion hoặc lỗi feature. `npm run db:push` đã apply thành công migration `20260623023753` lên remote.
+
+## [2026-06-22] — Chuyển room team sang session + RLS và cho join xuyên công ty bằng mã
+
+**Context:** User tiếp tục báo production preview vẫn `500` ở `GET /api/hoc-tap/rooms`, sau đó account thứ hai mở đúng URL phòng lại nhận `404` và UI hiểu nhầm thành “Phòng đã bị xoá”. Trace cho thấy có hai nguyên nhân nối tiếp: service layer phụ thuộc `createSupabaseServiceClient()` nên Vercel thiếu/lệch service-role sẽ nổ `500`; đồng thời lookup room dùng cả `code + organization_id`, nên mã phòng toàn cục vẫn vô dụng với account thuộc công ty khác.
+
+**Options:**
+1. Giữ service-role và chỉ nhắc team cấu hình env Vercel cho đúng.
+2. Chuyển room service sang `createSupabaseServerClient()` và bắt buộc hai account cùng công ty.
+3. Dùng session + RLS, nhưng thêm RPC security-definer chỉ trả metadata sảnh chờ và join participant bằng đúng mã phòng để account ngoài công ty có thể vào mà chưa đọc được bộ câu hỏi trước khi tham gia.
+
+**Decision:** Chọn phương án 3. Room service dùng server session client cho mọi thao tác và không còn phụ thuộc `SUPABASE_SERVICE_ROLE_KEY`. Migration `20260622054535_allow_cross_org_hoc_tap_room_join.sql` thêm preview/join RPC theo mã toàn cục và mở RLS đọc/cập nhật cho participant thật sau khi join; list phòng vẫn company-scoped. Account ngoài công ty chỉ nhận metadata sảnh chờ trước khi bấm “Vào phòng”, không nhận `questions_json`. Đồng thời bổ sung `minWidth={0}` + wrapper `min-w-0` cho các Recharts còn thiếu ở manager dashboard.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** Targeted Vitest room runtime/service/routes pass 13/13; full unit phase pass 325/325 rồi API integration dừng ở lỗi nền Node 20 thiếu native WebSocket; `npm run db:validate` pass 37 migrations; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. `tsc --noEmit` riêng vẫn báo các lỗi test type có sẵn ở `path-agent-input.test.ts` và `hoc-tap-room-store.test.ts`, trong khi Next production type-check pass. `npm run db:sync` đã apply thành công hai migration room `20260621183748` và `20260622054535` lên remote project `cuyyhasurnxxdvzysngt`.
+
+## [2026-06-22] — Tắt mock/fallback room khi test Supabase thật và cô lập identity theo account
+
+**Context:** Sau patch fallback trước đó, user xác nhận flow test 2 account vẫn lệch kỳ vọng: khi đổi sang account khác để vào cùng mã phòng thì có lúc không thấy phòng hoặc rơi vào trạng thái “phòng đã bị xoá”. Phân tích cho thấy có 3 nguồn nhiễu cùng lúc: dashboard Học tập vẫn trộn seed room mock với room thật, real mode Supabase vẫn có nhánh fallback về memory nếu room backend lỗi, và trang room lưu `participantId` localStorage chỉ theo `code`, nên đổi account trong cùng browser có thể tái dùng identity của account cũ.
+
+**Options:**
+1. Giữ fallback/memory để “an toàn demo”, chỉ vá localStorage stale identity.
+2. Chuyển hẳn room team sang strict Supabase mode khi env thật đã bật: tắt mock room seed, không fallback về memory, và namespace room identity theo account hiện tại.
+
+**Decision:** Chọn phương án 2 theo yêu cầu test đồng bộ thật bằng Supabase. `hoc-tap-room-runtime` nay chỉ dùng memory khi đang demo mode; nếu đã vào real Supabase mode mà room backend/service-role lỗi thì trả lỗi thật thay vì silently quay về memory. Dashboard tab team chỉ render `buildLiveTeamRooms()` khi `isSupabaseBackend()` bật, không cộng thêm `TEAM_ROOM_SEEDS`. Ngoài ra, `hoc-tap-team-room` lưu `participantId/hostToken` theo cặp `account + room code`, và service snapshot Supabase không còn trust `requestedParticipantId` của account khác, nên đổi user trong cùng browser không còn “mượn” participant cũ rồi nhìn nhầm sang trạng thái đã bị xoá.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** Targeted Vitest room runtime/service/routes pass 12/12; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. Full `npx -y -p node@20 node scripts/run-all-tests.mjs` vẫn dừng ở API integration vì môi trường hiện tại thiếu native WebSocket support cho Node 20 (`scripts/test-phase1-apis.mjs`), nhưng unit phase trong full suite pass 324/324.
+
+## [2026-06-22] — Harden fallback cho Học tập room API + chặn warning chart âm kích thước
+
+**Context:** User báo tab “Chơi với team” trên production lặp `GET /api/hoc-tap/rooms 500` và banner “Phòng quiz tạm thời chưa phản hồi.”, đồng thời console hiện warning Recharts `The width(-1) and height(-1) of chart should be greater than 0`. Trace code cho thấy `GET /api/hoc-tap/rooms` là route room hiếm hoi chưa bọc `try/catch`, còn runtime `hoc-tap-room-runtime.ts` gần như không bao giờ fallback về memory vì chỉ cho phép code `FORBIDDEN`.
+
+**Options:**
+1. Chỉ thêm `try/catch` cho GET route để user nhận JSON lỗi đẹp hơn, giữ nguyên Supabase-first runtime.
+2. Vừa bọc GET route, vừa nới fallback của room runtime để khi Supabase room backend/migration/service role lệch ở production thì flow room vẫn rơi về memory runtime thay vì chết cứng.
+
+**Decision:** Chọn phương án 2. Runtime giờ fallback về memory cho lỗi hạ tầng Supabase kiểu generic `Error` và `ROOM_NOT_FOUND`/`FORBIDDEN`, đồng thời log cảnh báo rõ action bị degrade. `GET /api/hoc-tap/rooms` nay dùng cùng `hocTapRoomRouteError()` như POST/PATCH/DELETE để response nhất quán. Ở mặt Overview, các `ResponsiveContainer` được thêm `minWidth={0}` và wrapper `min-w-0` để chặn warning kích thước âm khi chart mount trong layout hẹp/chuyển tab.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** Targeted Vitest cho `hoc-tap-room-runtime`, `GET /api/hoc-tap/rooms`, room routes/service pass 11/11; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. Full `npm run test` trên Node mặc định bị chặn ở bước build Turbopack trong sandbox (`binding to a port`), còn khi ép `run-all-tests.mjs` bằng Node 20 thì unit pass nhưng API integration script fail vì môi trường hiện tại thiếu native WebSocket support cho Node 20 (`scripts/test-phase1-apis.mjs`), ngoài phạm vi patch này.
+
 ## [2026-06-22] — Vá migration learning content để tương thích bảng learning_paths cũ
 
 **Context:** `npm run db:sync` bị dừng ở `20260612100000_learning_content_schema.sql` với lỗi `column "status" does not exist`. Nguyên nhân là migration `20260611120000_job_positions_learning_paths.sql` đã tạo `public.learning_paths` trước đó với schema cũ (`name`, chưa có `status/title/path_type/updated_at`), nên khi migration 20260612100000 chạy `create table if not exists` rồi tạo index `(organization_id, status)` thì index đụng cột chưa tồn tại.
