@@ -6,6 +6,7 @@ vi.mock("@/lib/api-auth", () => ({
 
 import {
   createHocTapRoom,
+  getHocTapRoomSnapshot,
   joinHocTapRoom,
   resetHocTapRoomStoreForTests,
 } from "@/lib/hoc-tap-room-store";
@@ -13,6 +14,8 @@ import {
   DELETE as DELETE_ROOM,
   PATCH,
 } from "./route";
+import { POST as LEAVE_ROOM } from "./leave/route";
+import { POST as START_ROOM } from "./start/route";
 
 describe("/api/hoc-tap/rooms/[code]", () => {
   beforeEach(() => {
@@ -123,5 +126,99 @@ describe("/api/hoc-tap/rooms/[code]", () => {
       code: created.room.code,
       deleted: true,
     });
+  });
+
+  it("starts and locks a room via POST /start", async () => {
+    const created = createHocTapRoom({
+      hostName: "Host One",
+      quizId: "ai-marketing",
+    });
+
+    const response = await START_ROOM(
+      new Request(
+        `http://localhost/api/hoc-tap/rooms/${created.room.code}/start`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hostToken: created.hostToken,
+            participantId: created.participantId,
+          }),
+        },
+      ),
+      { params: Promise.resolve({ code: created.room.code }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      room: {
+        code: created.room.code,
+        status: "playing",
+        isLocked: true,
+      },
+    });
+  });
+
+  it("lets a player leave via POST /leave without deleting the room", async () => {
+    const created = createHocTapRoom({
+      hostName: "Host One",
+      quizId: "ai-marketing",
+    });
+    const joined = joinHocTapRoom({
+      code: created.room.code,
+      playerName: "Lan Anh",
+    });
+
+    const response = await LEAVE_ROOM(
+      new Request(
+        `http://localhost/api/hoc-tap/rooms/${created.room.code}/leave`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            participantId: joined.participantId,
+          }),
+        },
+      ),
+      { params: Promise.resolve({ code: created.room.code }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      code: created.room.code,
+      roomDeleted: false,
+    });
+    expect(getHocTapRoomSnapshot(created.room.code).participantCount).toBe(1);
+  });
+
+  it("deletes the room when the host leaves via POST /leave", async () => {
+    const created = createHocTapRoom({
+      hostName: "Host One",
+      quizId: "ai-marketing",
+    });
+
+    const response = await LEAVE_ROOM(
+      new Request(
+        `http://localhost/api/hoc-tap/rooms/${created.room.code}/leave`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            participantId: created.participantId,
+            hostToken: created.hostToken,
+          }),
+        },
+      ),
+      { params: Promise.resolve({ code: created.room.code }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      code: created.room.code,
+      roomDeleted: true,
+    });
+    expect(() => getHocTapRoomSnapshot(created.room.code)).toThrow(
+      "Không tìm thấy phòng",
+    );
   });
 });

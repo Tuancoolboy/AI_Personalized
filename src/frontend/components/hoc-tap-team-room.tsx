@@ -8,26 +8,37 @@ import {
   CheckCircle2,
   Clipboard,
   Crown,
+  LogOut,
   LockKeyhole,
   Loader2,
   Play,
   Send,
   Trophy,
-  Trash2,
   Unlock,
   Users,
   XCircle,
 } from "lucide-react";
+import {
+  DuckRaceFinishPanel,
+  DuckRaceProgressPanel,
+} from "@/components/hoc-tap-duck-race-finish";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAppProfile } from "@/hooks/use-app-profile";
 import { usePreferredAvatar } from "@/hooks/use-preferred-avatar";
 import {
   buildAvatarIdentity,
 } from "@/lib/avatar-preferences";
+import { getHocTapRoomMapThemeLabel } from "@/lib/hoc-tap-duck-race";
 import {
-  deleteHocTapRoomGame,
+  clearHocTapRoomIdentity,
+  readHocTapRoomIdentity,
+  saveHocTapRoomIdentity,
+  type HocTapRoomIdentity,
+} from "@/lib/hoc-tap-room-identity";
+import {
   fetchHocTapRoom,
   joinHocTapRoomByCode,
+  leaveHocTapRoomGame,
   startHocTapRoomGame,
   submitHocTapRoomAnswer,
   updateHocTapRoomSettings,
@@ -36,14 +47,9 @@ import type { HocTapRoomSnapshot } from "@/lib/hoc-tap-room-store";
 
 const BACK_TO_TEAM_HREF = "/choi-voi-team";
 
-type RoomIdentity = {
-  participantId: string;
-  hostToken?: string;
-};
-
 type StoredRoomIdentityState = {
   key: string;
-  value: RoomIdentity | null;
+  value: HocTapRoomIdentity | null;
 };
 
 type HocTapTeamRoomProps = {
@@ -74,13 +80,15 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
   const [identityState, setIdentityState] = useState<StoredRoomIdentityState>(
     () => ({
       key: roomIdentityKey,
-      value: readRoomIdentity(normalizedCode, roomIdentityKey),
+      value: readHocTapRoomIdentity(normalizedCode, roomIdentityKey),
     }),
   );
   const identity =
     identityState.key === roomIdentityKey
       ? identityState.value
-      : readRoomIdentity(normalizedCode, roomIdentityKey);
+      : readHocTapRoomIdentity(normalizedCode, roomIdentityKey);
+  const participantId = identity?.participantId;
+  const hostToken = identity?.hostToken;
   const [joinName, setJoinName] = useState(displayName);
   const [selectedAnswer, setSelectedAnswer] = useState<{
     questionIndex: number;
@@ -96,19 +104,19 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
   useEffect(() => {
     let active = true;
 
-    fetchHocTapRoom(normalizedCode, identity?.participantId)
+    fetchHocTapRoom(normalizedCode, participantId)
       .then((response) => {
         if (!active) return;
         setRoom(response.room);
         if (response.room.viewerParticipantId) {
           const nextIdentity = {
             participantId: response.room.viewerParticipantId,
-            hostToken: identity?.hostToken,
+            hostToken,
           };
-          saveRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
+          saveHocTapRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
           setIdentityState({ key: roomIdentityKey, value: nextIdentity });
         } else {
-          clearRoomIdentity(normalizedCode, roomIdentityKey);
+          clearHocTapRoomIdentity(normalizedCode, roomIdentityKey);
           setIdentityState({ key: roomIdentityKey, value: null });
         }
         setDeletedByHost(false);
@@ -117,7 +125,7 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
       .catch((err: unknown) => {
         if (!active) return;
         if (isRoomNotFoundError(err)) {
-          clearRoomIdentity(normalizedCode, roomIdentityKey);
+          clearHocTapRoomIdentity(normalizedCode, roomIdentityKey);
           setRoom(null);
           setDeletedByHost(false);
           setIdentityState({ key: roomIdentityKey, value: null });
@@ -131,23 +139,23 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
     return () => {
       active = false;
     };
-  }, [identity?.participantId, normalizedCode, roomIdentityKey]);
+  }, [hostToken, normalizedCode, participantId, roomIdentityKey]);
 
   useEffect(() => {
     if (!room || room.status === "finished") return;
     const timer = window.setInterval(() => {
-      fetchHocTapRoom(normalizedCode, identity?.participantId)
+      fetchHocTapRoom(normalizedCode, participantId)
         .then((response) => {
           setRoom(response.room);
           if (response.room.viewerParticipantId) {
             const nextIdentity = {
               participantId: response.room.viewerParticipantId,
-              hostToken: identity?.hostToken,
+              hostToken,
             };
-            saveRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
+            saveHocTapRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
             setIdentityState({ key: roomIdentityKey, value: nextIdentity });
           } else {
-            clearRoomIdentity(normalizedCode, roomIdentityKey);
+            clearHocTapRoomIdentity(normalizedCode, roomIdentityKey);
             setIdentityState({ key: roomIdentityKey, value: null });
           }
           setDeletedByHost(false);
@@ -155,7 +163,7 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
         })
         .catch((err: unknown) => {
           if (isRoomNotFoundError(err)) {
-            clearRoomIdentity(normalizedCode, roomIdentityKey);
+            clearHocTapRoomIdentity(normalizedCode, roomIdentityKey);
             setRoom(null);
             setDeletedByHost(true);
             setIdentityState({ key: roomIdentityKey, value: null });
@@ -167,7 +175,7 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [identity?.participantId, normalizedCode, room, roomIdentityKey]);
+  }, [hostToken, normalizedCode, participantId, room, roomIdentityKey]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -199,7 +207,7 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
         avatarSeed,
       });
       const nextIdentity = { participantId: response.participantId };
-      saveRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
+      saveHocTapRoomIdentity(normalizedCode, roomIdentityKey, nextIdentity);
       setIdentityState({ key: roomIdentityKey, value: nextIdentity });
       setRoom(response.room);
       setError("");
@@ -289,22 +297,23 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
     }
   }
 
-  async function handleDeleteRoom() {
-    if (!identity || !room?.canManageRoom) {
-      setError("Chỉ người điều khiển phòng mới xoá được phòng.");
+  async function handleLeaveRoom() {
+    if (!identity) {
+      router.push(BACK_TO_TEAM_HREF);
       return;
     }
+
     setActionLoading(true);
     try {
-      await deleteHocTapRoomGame({
+      await leaveHocTapRoomGame({
         code: normalizedCode,
-        hostToken: identity.hostToken,
         participantId: identity.participantId,
+        hostToken: identity.hostToken,
       });
-      clearRoomIdentity(normalizedCode, roomIdentityKey);
+      clearHocTapRoomIdentity(normalizedCode, roomIdentityKey);
       router.push(BACK_TO_TEAM_HREF);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Chưa xoá được phòng.");
+      setError(err instanceof Error ? err.message : "Chưa rời được phòng.");
       setActionLoading(false);
     }
   }
@@ -357,31 +366,31 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
             </span>
           ) : null}
           {room ? <RoomStatusPill status={room.status} /> : null}
-          {room?.canManageRoom ? (
-            <>
-              <button
-                type="button"
-                onClick={handleLockToggle}
-                disabled={actionLoading}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 text-xs font-black text-ink transition hover:border-brand/35 hover:text-brand disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-              >
-                {room.isLocked ? (
-                  <Unlock className="size-4" aria-hidden="true" />
-                ) : (
-                  <LockKeyhole className="size-4" aria-hidden="true" />
-                )}
-                {room.isLocked ? "Mở phòng" : "Khoá phòng"}
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteRoom}
-                disabled={actionLoading}
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-xs font-black text-red-700 transition hover:bg-red-100 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-              >
-                <Trash2 className="size-4" aria-hidden="true" />
-                Xoá phòng
-              </button>
-            </>
+          {room?.canManageRoom && room.status === "waiting" ? (
+            <button
+              type="button"
+              onClick={handleLockToggle}
+              disabled={actionLoading}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 text-xs font-black text-ink transition hover:border-brand/35 hover:text-brand disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            >
+              {room.isLocked ? (
+                <Unlock className="size-4" aria-hidden="true" />
+              ) : (
+                <LockKeyhole className="size-4" aria-hidden="true" />
+              )}
+              {room.isLocked ? "Mở phòng" : "Khoá phòng"}
+            </button>
+          ) : null}
+          {identity ? (
+            <button
+              type="button"
+              onClick={handleLeaveRoom}
+              disabled={actionLoading}
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-xs font-black text-red-700 transition hover:bg-red-100 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            >
+              <LogOut className="size-4" aria-hidden="true" />
+              {room?.canManageRoom ? "Rời & xoá phòng" : "Rời phòng"}
+            </button>
           ) : null}
         </div>
       </div>
@@ -399,7 +408,15 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
           <section className="min-w-0 rounded-2xl border border-line bg-card p-5 shadow-sm">
             {room.isLocked ? (
               <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
-                Phòng đang khoá. Người mới chỉ vào được khi nhập đúng mã phòng.
+                {room.status === "playing"
+                  ? "Phòng đã khoá khi bắt đầu chơi. Người mới không thể tham gia, kể cả khi có mã phòng."
+                  : "Phòng đang khoá. Người mới chỉ vào được khi nhập đúng mã phòng."}
+              </div>
+            ) : null}
+
+            {room.status === "playing" && room.mapTheme === "duck-race" ? (
+              <div className="mb-5">
+                <DuckRaceProgressPanel room={room} />
               </div>
             ) : null}
 
@@ -416,7 +433,6 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
                 canStart={room.canStart}
                 canManageRoom={room.canManageRoom}
                 onToggleLock={handleLockToggle}
-                onDeleteRoom={handleDeleteRoom}
               />
             ) : null}
 
@@ -430,8 +446,11 @@ export function HocTapTeamRoom({ code, displayName }: HocTapTeamRoomProps) {
                     ? selectedAnswer.answerIndex
                     : null
                 }
-                canAnswer={Boolean(identity)}
-                isHost={room.isHost}
+                canAnswer={
+                  Boolean(identity) &&
+                  !(room.isHost && room.hostMode === "system")
+                }
+                isSystemHost={room.isHost && room.hostMode === "system"}
                 actionLoading={actionLoading}
                 onAnswer={handleAnswer}
               />
@@ -462,7 +481,6 @@ function LobbyPanel({
   onJoin,
   onStart,
   onToggleLock,
-  onDeleteRoom,
   actionLoading,
   isKnownParticipant,
   canStart,
@@ -475,7 +493,6 @@ function LobbyPanel({
   onJoin: () => void;
   onStart: () => void;
   onToggleLock: () => void;
-  onDeleteRoom: () => void;
   actionLoading: boolean;
   isKnownParticipant: boolean;
   canStart: boolean;
@@ -490,7 +507,7 @@ function LobbyPanel({
         <p className="mt-2 text-sm font-medium leading-6 text-ink-2">
           {room.hostMode === "system"
             ? "Người tạo phòng sẽ bấm bắt đầu khi team đã vào đủ. Phòng chỉ ở sảnh chờ cho tới lúc đó, rồi hệ thống mới chạy câu hỏi 60 giây, hiện đáp án 5 giây và chuyển bảng xếp hạng."
-            : "Chia sẻ mã phòng cho team. Khi mọi người đã vào đủ, host bấm bắt đầu để chạy quiz theo thời gian thực bằng polling."}
+            : "Chia sẻ mã phòng cho team. Khi mọi người đã vào đủ, host bấm bắt đầu rồi cùng tham gia trả lời và vẫn giữ quyền điều khiển phòng."}
         </p>
       </div>
 
@@ -549,7 +566,7 @@ function LobbyPanel({
       </div>
 
       {canManageRoom ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div>
           <button
             type="button"
             onClick={onToggleLock}
@@ -562,16 +579,6 @@ function LobbyPanel({
               <LockKeyhole className="size-4" aria-hidden="true" />
             )}
             {room.isLocked ? "Mở phòng" : "Khoá phòng"}
-          </button>
-
-          <button
-            type="button"
-            onClick={onDeleteRoom}
-            disabled={actionLoading}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-black text-red-700 transition hover:bg-red-100 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-            Xoá phòng
           </button>
         </div>
       ) : null}
@@ -600,7 +607,7 @@ function QuestionPanel({
   nowMs,
   selectedAnswer,
   canAnswer,
-  isHost,
+  isSystemHost,
   actionLoading,
   onAnswer,
 }: {
@@ -608,7 +615,7 @@ function QuestionPanel({
   nowMs: number;
   selectedAnswer: number | null;
   canAnswer: boolean;
-  isHost: boolean;
+  isSystemHost: boolean;
   actionLoading: boolean;
   onAnswer: (answerIndex: number) => void;
 }) {
@@ -677,7 +684,6 @@ function QuestionPanel({
               onClick={() => onAnswer(index)}
               disabled={
                 !canAnswer ||
-                isHost ||
                 answered ||
                 actionLoading ||
                 isRevealPhase
@@ -733,13 +739,13 @@ function QuestionPanel({
             <CheckCircle2 className="size-4" aria-hidden="true" />
             Đáp án đúng đang được hiển thị
           </div>
-          {isHost
-            ? "Host quan sát đáp án đúng trước khi chuyển sang leaderboard."
+          {isSystemHost
+            ? "AI Host quan sát đáp án đúng trước khi chuyển sang leaderboard."
             : "Bạn chưa chốt đáp án kịp, nên hệ thống đang hiện đáp án đúng trước khi sang bảng xếp hạng."}
         </div>
-      ) : isHost ? (
+      ) : isSystemHost ? (
         <div className="rounded-2xl bg-amber-50 p-4 text-sm font-bold text-amber-700">
-          Host chỉ điều khiển phòng và không tham gia trả lời.
+          AI Host chỉ điều khiển phòng và không tham gia trả lời.
         </div>
       ) : !canAnswer ? (
         <div className="rounded-2xl bg-secondary p-4 text-sm font-bold text-ink-2">
@@ -801,6 +807,10 @@ function RoundLeaderboardPanel({
 }
 
 function FinishedPanel({ room }: { room: HocTapRoomSnapshot }) {
+  if (room.mapTheme === "duck-race") {
+    return <DuckRaceFinishPanel room={room} backHref={BACK_TO_TEAM_HREF} />;
+  }
+
   return (
     <div className="space-y-5">
       <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-amber-50 text-amber-500">
@@ -850,6 +860,7 @@ function FinishedPanel({ room }: { room: HocTapRoomSnapshot }) {
 
 function RoomSummary({ room }: { room: HocTapRoomSnapshot }) {
   const modeLabel = room.mode === "team-battle" ? "Team Battle" : "Classic";
+  const mapLabel = getHocTapRoomMapThemeLabel(room.mapTheme);
   const phaseLabel =
     room.phase === "waiting"
       ? "Đang chờ"
@@ -873,6 +884,7 @@ function RoomSummary({ room }: { room: HocTapRoomSnapshot }) {
           value={room.hostMode === "system" ? "Hệ thống" : "Người thật"}
         />
         <SummaryRow label="Chế độ" value={modeLabel} />
+        <SummaryRow label="Bản đồ" value={mapLabel} />
         <SummaryRow label="Pha hiện tại" value={phaseLabel} />
         <SummaryRow label="Bộ quiz" value={room.category} />
         <SummaryRow
@@ -997,48 +1009,9 @@ function EmptyRoomState({ deletedByHost = false }: { deletedByHost?: boolean }) 
   );
 }
 
-function storageKey(code: string, identityKey: string) {
-  return `ai_troly_hoc_tap_room_${identityKey}_${code}`;
-}
-
 function isRoomNotFoundError(error: unknown): boolean {
   return (
     error instanceof Error &&
     error.message.includes("Không tìm thấy phòng")
   );
-}
-
-function readRoomIdentity(code: string, identityKey: string): RoomIdentity | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(storageKey(code, identityKey));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<RoomIdentity>;
-    return typeof parsed.participantId === "string"
-      ? {
-          participantId: parsed.participantId,
-          hostToken:
-            typeof parsed.hostToken === "string" ? parsed.hostToken : undefined,
-        }
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveRoomIdentity(
-  code: string,
-  identityKey: string,
-  identity: RoomIdentity,
-) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    storageKey(code, identityKey),
-    JSON.stringify(identity),
-  );
-}
-
-function clearRoomIdentity(code: string, identityKey: string) {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(storageKey(code, identityKey));
 }

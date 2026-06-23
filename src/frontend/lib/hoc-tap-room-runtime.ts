@@ -6,6 +6,7 @@ import {
   deleteSupabaseHocTapRoom,
   getSupabaseHocTapRoomSnapshot,
   joinSupabaseHocTapRoom,
+  leaveSupabaseHocTapRoom,
   listSupabaseHocTapRooms,
   startSupabaseHocTapRoom,
   submitSupabaseHocTapRoomAnswer,
@@ -18,6 +19,7 @@ import {
   deleteHocTapRoom,
   getHocTapRoomSnapshot,
   joinHocTapRoom,
+  leaveHocTapRoom,
   listHocTapPublicRooms,
   startHocTapRoom,
   submitHocTapRoomAnswer,
@@ -27,6 +29,7 @@ import {
   type HocTapRoomCreateInput,
   type HocTapRoomDeleteInput,
   type HocTapRoomJoinInput,
+  type HocTapRoomLeaveInput,
   type HocTapRoomUpdateQuestionsInput,
   type HocTapRoomUpdateSettingsInput,
 } from "@/lib/hoc-tap-room-store";
@@ -203,6 +206,25 @@ export async function deleteHocTapRoomWithRuntime(
 
   return {
     ...deleteHocTapRoom(input),
+    persisted: false,
+    source: "memory",
+  } as const;
+}
+
+export async function leaveHocTapRoomWithRuntime(
+  session: ApiSession,
+  input: HocTapRoomLeaveInput,
+) {
+  if (shouldUseSupabaseRoomRuntime(session)) {
+    return {
+      ...(await leaveSupabaseHocTapRoom({ userId: session.userId }, input)),
+      persisted: true,
+      source: "supabase",
+    } as const;
+  }
+
+  return {
+    ...leaveHocTapRoom(input),
     persisted: false,
     source: "memory",
   } as const;

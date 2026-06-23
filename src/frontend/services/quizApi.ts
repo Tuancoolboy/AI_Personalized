@@ -117,6 +117,7 @@ function emptyCreateResult(): HocTapRoomCreateResult & { roomCode: string } {
       isLocked: false,
       status: "waiting",
       mode: "classic",
+      mapTheme: "classic",
       roomType: "host-review",
       hostMode: "human",
       phase: "waiting",

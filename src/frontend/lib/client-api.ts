@@ -11,6 +11,7 @@ import type {
   HocTapRoomAiProjectInput,
   HocTapRoomCreateResult,
   HocTapRoomEntryRole,
+  HocTapRoomMapTheme,
   HocTapRoomMode,
   HocTapRoomQuestionInput,
   HocTapRoomSnapshot,
@@ -261,6 +262,7 @@ export async function createHocTapRoom(payload: {
   aiProject?: HocTapRoomAiProjectInput;
   questions?: HocTapRoomQuestionInput[];
   mode: HocTapRoomMode;
+  mapTheme?: HocTapRoomMapTheme;
   roomType?: HocTapRoomType;
   maxPlayers: number;
   entryRole?: HocTapRoomEntryRole;
@@ -385,6 +387,32 @@ export async function deleteHocTapRoomGame(payload: {
         participantId: payload.participantId,
       }),
     }),
+  );
+}
+
+export async function leaveHocTapRoomGame(payload: {
+  code: string;
+  participantId?: string;
+  hostToken?: string;
+}): Promise<{
+  ok: boolean;
+  code: string;
+  roomDeleted: boolean;
+  persisted: boolean;
+  source: "memory" | "supabase";
+}> {
+  return parseJson(
+    await fetch(
+      `/api/hoc-tap/rooms/${encodeURIComponent(payload.code)}/leave`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId: payload.participantId,
+          hostToken: payload.hostToken,
+        }),
+      },
+    ),
   );
 }
 

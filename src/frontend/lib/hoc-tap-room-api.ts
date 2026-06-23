@@ -2,6 +2,7 @@ import { apiError } from "@/lib/api-error";
 import {
   HocTapRoomError,
   type HocTapRoomEntryRole,
+  type HocTapRoomMapTheme,
   type HocTapRoomMode,
   type HocTapRoomQuestionInput,
   type HocTapRoomType,
@@ -17,12 +18,14 @@ export function hocTapRoomRouteError(error: unknown) {
     }
     if (
       error.code === "ROOM_FULL" ||
+      error.code === "ROOM_LOCKED" ||
       error.code === "ROOM_FINISHED" ||
       error.code === "ROOM_NOT_WAITING" ||
       error.code === "ROOM_NOT_PLAYING" ||
       error.code === "ROOM_EMPTY" ||
       error.code === "HOST_CANNOT_ANSWER" ||
       error.code === "QUESTION_MISMATCH"
+      || error.code === "PLAYER_NOT_FOUND"
     ) {
       return apiError("CONFLICT", error.message);
     }
@@ -74,6 +77,13 @@ export function getBooleanField(
 
 export function parseHocTapRoomMode(value: unknown): HocTapRoomMode | undefined {
   if (value === "classic" || value === "team-battle") return value;
+  return undefined;
+}
+
+export function parseHocTapRoomMapTheme(
+  value: unknown,
+): HocTapRoomMapTheme | undefined {
+  if (value === "classic" || value === "duck-race") return value;
   return undefined;
 }
 

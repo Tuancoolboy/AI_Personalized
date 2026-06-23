@@ -105,3 +105,7 @@ supabase/.temp
 
 # Playwright CLI snapshots (local debugging)
 .playwright-cli/
+
+# Local agent tooling and external visual reference apps
+.codex/skills/
+duck-race-master/
