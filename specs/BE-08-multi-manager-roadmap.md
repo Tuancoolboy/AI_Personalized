@@ -111,6 +111,12 @@ When Supabase env vars exist:
 - [ ] Phase 2.6 — Add Excel import or bulk invite.
 - [ ] Phase 2.7 — Add audit log and seat-limit enforcement.
 
+Update 2026-06-23: Học tập now resolves Community/Company audience from
+`organization_members`; room list/create/preview/join and quiz XP are isolated
+to that audience. Cross-company room codes are blocked again. Phase 2.5 remains
+open until the migration is applied and the multi-account Supabase/Vercel smoke
+matrix passes.
+
 ## Acceptance Criteria
 
 - Without Supabase env vars, manager demo flow still works.

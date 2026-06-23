@@ -4,12 +4,14 @@ import {
   AVAILABLE_QUIZ_ROLE_IDS,
   buildHocTapQuizCatalog,
   calculateHocTapQuizXp,
+  calculateHocTapXpIncrement,
   filterHocTapQuizCatalog,
   filterHocTapQuizLibrary,
   getHocTapDepartmentFilterValue,
   getHocTapQuiz,
   getHocTapQuizHref,
   getVisibleHocTapQuizzes,
+  gradeHocTapQuizAnswers,
   parseHocTapDepartmentFilter,
   resolveHocTapQuizForRoute,
   resolveHocTapLevelProgress,
@@ -38,7 +40,7 @@ describe("hoc-tap quiz catalog", () => {
     }
   });
 
-  it("keeps hoc-tap mock quiz questions separate from role lesson quizzes", () => {
+  it("keeps hoc-tap practice questions separate from role lesson quizzes", () => {
     const salesQuiz = getHocTapQuiz("ai-ban-hang");
     const roleQuiz = getRole("kinh-doanh")?.quiz[0];
 
@@ -132,20 +134,59 @@ describe("hoc-tap quiz catalog", () => {
     expect(resolveQuizReturnHref(undefined)).toBe("/lo-trinh");
   });
 
-  it("calculates mock quiz XP and level progress for hoc-tap only", () => {
+  it("calculates real quiz XP from zero and only awards best-score improvements", () => {
     expect(calculateHocTapQuizXp(100, 80)).toBe(80);
-    expect(calculateHocTapQuizXp(100, 0)).toBe(10);
+    expect(calculateHocTapQuizXp(100, 0)).toBe(0);
     expect(calculateHocTapQuizXp(100, 120)).toBe(100);
+    expect(calculateHocTapXpIncrement(100, 0, 80)).toBe(80);
+    expect(calculateHocTapXpIncrement(100, 80, 70)).toBe(0);
+    expect(calculateHocTapXpIncrement(100, 80, 95)).toBe(15);
 
     expect(resolveHocTapLevelProgress(0)).toMatchObject({
-      level: 7,
-      currentXp: 1280,
-      totalXp: 2450,
+      level: 1,
+      currentXp: 0,
+      totalXp: 0,
+    });
+    expect(resolveHocTapLevelProgress(100)).toMatchObject({
+      level: 2,
+      currentXp: 0,
+      totalXp: 100,
     });
     expect(resolveHocTapLevelProgress(720)).toMatchObject({
       level: 8,
-      currentXp: 0,
-      totalXp: 3170,
+      currentXp: 20,
+      totalXp: 720,
     });
+  });
+
+  it("grades hoc-tap answers only for the matching quiz and role", () => {
+    const quiz = getHocTapQuiz("ai-marketing")!;
+    const correctAnswers = quiz.questions.map((question) => question.correctIndex);
+
+    expect(
+      gradeHocTapQuizAnswers({
+        quizId: quiz.id,
+        roleId: quiz.roleId,
+        answers: correctAnswers,
+      }),
+    ).toEqual({
+      score: 100,
+      correctCount: quiz.questions.length,
+      questionCount: quiz.questions.length,
+    });
+    expect(
+      gradeHocTapQuizAnswers({
+        quizId: quiz.id,
+        roleId: "kinh-doanh",
+        answers: correctAnswers,
+      }),
+    ).toBeNull();
+    expect(
+      gradeHocTapQuizAnswers({
+        quizId: quiz.id,
+        roleId: quiz.roleId,
+        answers: correctAnswers.slice(1),
+      }),
+    ).toBeNull();
   });
 });

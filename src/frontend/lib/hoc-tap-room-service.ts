@@ -5,6 +5,7 @@ import {
   type HocTapQuizQuestion,
 } from "@/lib/hoc-tap-quiz-catalog";
 import { buildAvatarUrl } from "@/lib/app-avatar";
+import { resolveHocTapAudience } from "@/lib/hoc-tap-audience";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   HocTapRoomError,
@@ -30,10 +31,6 @@ import {
 
 type ServiceSession = {
   userId: string;
-};
-
-type MembershipRow = {
-  organization_id: string;
 };
 
 type RoomRow = {
@@ -862,25 +859,8 @@ async function cleanupExpiredRooms(organizationId: string): Promise<void> {
 }
 
 async function resolveRoomOrganizationId(userId: string): Promise<string> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("organization_members")
-    .select("organization_id")
-    .eq("user_id", userId)
-    .limit(1);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  const row = ((data ?? []) as MembershipRow[])[0];
-  if (!row?.organization_id) {
-    throw new HocTapRoomError(
-      "FORBIDDEN",
-      "Tài khoản chưa thuộc công ty nào nên chưa xem được phòng team. Nhờ quản lý thêm bạn vào công ty trước khi test.",
-    );
-  }
-  return row.organization_id;
+  void userId;
+  return (await resolveHocTapAudience()).organizationId;
 }
 
 async function generateUniqueRoomCode(): Promise<string> {

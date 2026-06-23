@@ -115,5 +115,15 @@
     <li>Verification bổ sung ngày 22/06/2026 cho server-session room service: targeted Vitest room runtime/service/routes vẫn giữ pass 12/12 sau khi chuyển room service sang <code>createSupabaseServerClient()</code>; <code>npm run lint</code> pass với 7 warning cũ ngoài phạm vi; Node 20 <code>next build src/frontend</code> pass.</li>
     <li>Verification bổ sung cho cross-company join: targeted Vitest room runtime/service/routes pass 13/13, gồm regression account không có membership trong công ty host vẫn join được bằng mã; full unit pass 325/325 trước khi API integration dừng ở lỗi nền Node 20 thiếu native WebSocket; <code>npm run db:validate</code> pass 37 migrations; lint pass với 7 warning cũ; Node 20 production build và Next TypeScript check pass. Standalone <code>tsc --noEmit</code> vẫn báo lỗi type trong các test cũ ngoài phạm vi. Hai migration room <code>20260621183748</code> và <code>20260622054535</code> đã được apply thành công lên Supabase remote <code>cuyyhasurnxxdvzysngt</code>.</li>
   </ul>
+
+  <h2>5. Update 2026-06-23 — Bỏ mock XP và tách Cộng đồng/Công ty</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Giữ các bộ quiz role-based hiện có trong catalog nhưng thay toàn bộ dữ liệu user bằng Supabase: server chấm answers, RPC transaction ghi attempt và XP delta theo điểm cao nhất. Retry cùng <code>attempt_id</code> trả 0 XP để giao diện không thông báo phần điểm đã ghi trước đó.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Thu hồi cross-company join vừa triển khai ngày 22/06 để khớp yêu cầu mới: Community, Công ty A và Công ty B không xem/join phòng của nhau dù biết mã. Đồng thời xóa membership placeholder <code>Tổ chức mặc định</code> mà 0008 đã backfill cho account legacy để chúng dùng Community thật. UI overview/leaderboard không còn seed XP, rank, chart hay room mẫu.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Demo mode vẫn dùng memory để app chạy không cần Supabase nhưng bắt đầu từ 0 và không seed giả; real mode tuyệt đối không đọc key XP localStorage cũ hoặc fallback sang memory.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Migration mới là <code>20260623023753_hoc_tap_real_xp_audience.sql</code>; <code>db:status</code> xác nhận file còn pending remote. Cần apply trước khi smoke nhiều account. <code>db:validate</code>, targeted Vitest 30/30, full unit 336/336, lint 0 error và build Node 20 đã pass; full API integration đang bị chặn trước case đầu tiên bởi credential Supabase inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header.</p>
 </body>
 </html>

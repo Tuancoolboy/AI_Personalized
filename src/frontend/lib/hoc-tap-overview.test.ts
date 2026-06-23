@@ -26,9 +26,9 @@ describe("hoc-tap overview", () => {
       days: 7,
       now: NOW,
       quizzes: [
-        { createdAt: "2026-06-20T01:00:00.000Z" },
-        { createdAt: "2026-06-18T01:00:00.000Z" },
-        { createdAt: "2026-06-10T01:00:00.000Z" },
+        { createdAt: "2026-06-20T01:00:00.000Z", quizId: "quiz-a" },
+        { createdAt: "2026-06-18T01:00:00.000Z", quizId: "quiz-b" },
+        { createdAt: "2026-06-10T01:00:00.000Z", quizId: "quiz-a" },
       ],
       progress: [
         { status: "hoan-thanh", completedAt: "2026-06-19T01:00:00.000Z" },
@@ -39,15 +39,29 @@ describe("hoc-tap overview", () => {
         { startedAt: "2026-06-20T01:00:00.000Z", durationSeconds: 1800 },
         { startedAt: "2026-06-11T01:00:00.000Z", durationSeconds: 600 },
       ],
+      points: [
+        { createdAt: "2026-06-20T01:00:00.000Z", points: 50 },
+        { createdAt: "2026-06-10T01:00:00.000Z", points: 20 },
+      ],
     });
 
     expect(summary.stats.quizAttempts).toEqual({ value: 2, delta: 1 });
     expect(summary.stats.studyMinutes).toEqual({ value: 30, delta: 20 });
     expect(summary.stats.moduleProgress).toEqual({ completed: 2, inProgress: 1 });
+    expect(summary.stats.completedQuizzes).toBe(2);
+    expect(summary.xp).toMatchObject({
+      totalXp: 70,
+      level: 1,
+      currentXp: 70,
+      periodEarned: 50,
+      previousPeriodEarned: 20,
+    });
     expect(summary.daily).toHaveLength(7);
     expect(summary.daily.find((row) => row.date === "2026-06-20")).toMatchObject({
       quizAttempts: 1,
       studyMinutes: 30,
+      xpEarned: 50,
+      xpCumulative: 70,
     });
   });
 
@@ -73,10 +87,12 @@ describe("hoc-tap overview", () => {
     ).toBe(0);
   });
 
-  it("provides a complete demo fixture for the dashboard", () => {
+  it("starts demo mode at zero without generated fixtures", () => {
     const summary = buildDemoHocTapOverview(7, NOW);
     expect(summary.daily).toHaveLength(7);
-    expect(summary.stats.quizAttempts.value).toBe(5);
-    expect(summary.stats.studyMinutes.value).toBeGreaterThan(0);
+    expect(summary.stats.quizAttempts.value).toBe(0);
+    expect(summary.stats.studyMinutes.value).toBe(0);
+    expect(summary.xp.totalXp).toBe(0);
+    expect(summary.leaderboard.individuals).toEqual([]);
   });
 });

@@ -6,6 +6,23 @@
 
 ---
 
+## [2026-06-23] — Dữ liệu thật cho Học tập, XP và phân tách Công ty/Cộng đồng
+
+**Context:** `/hoc-tap` còn dùng XP, cấp độ, thứ hạng, biểu đồ, leaderboard và room seed mẫu. Quiz Học tập ghi localStorage nên không đồng bộ thiết bị; migration ngày 22/06 còn cho phép account ngoài công ty xem/join phòng bằng mã, trái với yêu cầu công ty riêng.
+
+**Options:**
+1. Giữ localStorage và chỉ đổi số hiển thị về 0.
+2. Lưu điểm trực tiếp từ client vào Supabase.
+3. Giữ nội dung quiz chuẩn trong code, chấm trên server, ghi attempt + phần XP tăng bằng RPC transaction, đồng thời dùng `organization_members` để phân giải audience Cộng đồng/Công ty.
+
+**Decision:** Chọn phương án 3. Tài khoản không có membership dùng organization hệ thống `Cộng đồng AI Trợ Lý` nhưng không được tạo membership; migration cũng xóa membership placeholder `Tổ chức mặc định` mà `0008` từng backfill cho mọi account legacy để chúng thực sự trở về Cộng đồng. Tài khoản nhận invite dùng organization công ty. XP tách theo audience, bắt đầu `Lv.1 · 0/100 XP`, mỗi quiz chỉ tính điểm cao nhất và `attempt_id` chống ghi trùng; retry idempotent trả 0 XP để UI không thông báo cộng lại. Direct insert `points_ledger` bị thu hồi; direct insert `quiz_results` chỉ còn cho quiz learning cũ, không thể giả mạo attempt Học tập. Room list/create/preview/join bị giới hạn đúng audience hiện tại, nên migration mới chủ động thu hồi cross-company join của `20260622054535`.
+
+**Owner:** Codex
+
+**Status:** Ready to push; migration remote và smoke nhiều account còn chờ triển khai có chủ đích.
+
+**Tests:** `npm run db:validate` pass (38 migrations); targeted Vitest 30/30 và full unit 336/336 pass; `npm run lint` pass (0 error, 7 warning cũ ngoài scope); build production bằng Node 20 pass. `npm run test` đã build + khởi động test server thành công, nhưng API integration dừng trước case đầu tiên vì credential Supabase được inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header; không phải assertion hoặc lỗi feature. `npm run db:status` xác nhận migration `20260623023753` đang pending trên remote.
+
 ## [2026-06-22] — Chuyển room team sang session + RLS và cho join xuyên công ty bằng mã
 
 **Context:** User tiếp tục báo production preview vẫn `500` ở `GET /api/hoc-tap/rooms`, sau đó account thứ hai mở đúng URL phòng lại nhận `404` và UI hiểu nhầm thành “Phòng đã bị xoá”. Trace cho thấy có hai nguyên nhân nối tiếp: service layer phụ thuộc `createSupabaseServiceClient()` nên Vercel thiếu/lệch service-role sẽ nổ `500`; đồng thời lookup room dùng cả `code + organization_id`, nên mã phòng toàn cục vẫn vô dụng với account thuộc công ty khác.

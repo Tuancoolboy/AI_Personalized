@@ -99,5 +99,15 @@
     <li><strong>Verification đã chạy:</strong> <code>git diff --check</code>, scoped ESLint, unit test <code>lib/company-invite-links.test.ts</code>, và Next build Node 20 đều pass.</li>
     <li><strong>Follow-up:</strong> smoke test Manager A/Manager B với hai organization thật, invalid token, token rotated, existing-user accept và new-user register qua invite.</li>
   </ul>
+
+  <h2>5. Update 2026-06-23 — Invite chuyển audience Học tập</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Không thêm logic đặc biệt vào route accept; audience resolver đọc membership hiện tại nên membership được tạo bởi invite tự động chuyển UI từ Cộng đồng sang công ty.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Organization Cộng đồng chỉ là scope hệ thống, không tạo membership. Điều này bảo toàn khả năng nhận invite của tài khoản thường.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>XP Cộng đồng không chuyển sang công ty để tránh trộn leaderboard giữa các không gian; ledger cũ vẫn được giữ nếu user rời công ty hoặc có cơ chế chuyển audience trong tương lai.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Sau accept invite, XP công ty hiển thị 0 cho đến khi user hoàn thành quiz trong công ty. Phase 3.6 vẫn cần smoke test production-like sau khi migration Học tập pending trên remote được apply.</p>
 </body>
 </html>

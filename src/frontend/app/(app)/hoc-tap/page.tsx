@@ -5,7 +5,7 @@ import { resolveAppUserDisplayName } from "@/lib/app-user";
 export const metadata: Metadata = {
   title: "Học tập · AI Trợ Lý",
   description:
-    "Luyện quiz, tham gia phòng cùng team, tích lũy XP và theo dõi bảng xếp hạng minh họa.",
+    "Luyện quiz, tham gia phòng cùng team, tích lũy XP thật và theo dõi bảng xếp hạng.",
 };
 
 export default async function HocTapPage() {

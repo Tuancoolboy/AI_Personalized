@@ -93,5 +93,15 @@
     <li><strong>Update 2026-06-12:</strong> thêm <code>specs/PHASE2-ROADMAP.html</code> làm trang tổng quan trực quan, đối chiếu Phase 1, Phase 2, các plan, worklog, migration và code hiện tại. Trang phân biệt rõ baseline đã có với checklist Phase 2 chính thức, đồng thời đánh dấu invite acceptance vẫn dùng <code>GET</code> là blocker Phase 2.0.</li>
     <li><strong>Verification:</strong> Task này chỉ tạo tài liệu; cần review Markdown/HTML và <code>git diff --check</code>, không yêu cầu app build nếu không đổi code.</li>
   </ul>
+
+  <h2>5. Update 2026-06-23 — Trusted quiz XP và leaderboard thật</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Triển khai một slice production của P2-BE-09/P2-FE-12 cho quiz Học tập: server tự chấm, RPC ghi best-score XP delta, overview và leaderboard đọc dữ liệu thật theo audience.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Chưa mở <code>activity_events</code>, feed, badge, weekly cap hoặc privacy preference. <code>/bang-xep-hang</code> hiện tập trung vào quiz XP và dùng RPC Học tập thay vì API community tổng quát trong spec.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Dùng <code>points_ledger</code> hiện có để tránh nhân đôi nguồn điểm. XP được tách theo organization audience và chỉ source <code>quiz</code> tham gia bảng hiện tại.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Phase 2.6 được đánh dấu Partial, không Done. Weekly/all-time, opt-out ẩn danh, feed, badge và notification vẫn là phần việc riêng.</p>
 </body>
 </html>

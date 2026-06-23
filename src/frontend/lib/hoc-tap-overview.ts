@@ -1,3 +1,8 @@
+import {
+  getDemoHocTapQuizProgress,
+  resolveHocTapLevelProgress,
+} from "@/lib/hoc-tap-quiz-catalog";
+
 export const HOC_TAP_OVERVIEW_DAYS = [7, 30] as const;
 export type HocTapOverviewDays = (typeof HOC_TAP_OVERVIEW_DAYS)[number];
 
@@ -6,6 +11,26 @@ export type HocTapOverviewDaily = {
   quizAttempts: number;
   completedModules: number;
   studyMinutes: number;
+  xpEarned: number;
+  xpCumulative: number;
+};
+
+export type HocTapLeaderboardRow = {
+  userId: string;
+  name: string;
+  departmentId: string;
+  departmentLabel: string;
+  totalXp: number;
+  rank: number;
+  isCurrentUser: boolean;
+};
+
+export type HocTapDepartmentLeaderboardRow = {
+  departmentId: string;
+  departmentLabel: string;
+  totalXp: number;
+  memberCount: number;
+  rank: number;
 };
 
 export type HocTapOverviewResponse = {
@@ -20,13 +45,36 @@ export type HocTapOverviewResponse = {
   };
   stats: {
     quizAttempts: { value: number; delta: number };
+    completedQuizzes: number;
     studyMinutes: { value: number; delta: number };
     moduleProgress: { completed: number; inProgress: number };
+  };
+  audience: {
+    type: "community" | "company";
+    organizationId: string;
+    name: string;
+  };
+  xp: {
+    totalXp: number;
+    level: number;
+    currentXp: number;
+    targetXp: number;
+    rank: number | null;
+    periodEarned: number;
+    previousPeriodEarned: number;
+  };
+  attemptedQuizIds: string[];
+  leaderboard: {
+    individuals: HocTapLeaderboardRow[];
+    departments: HocTapDepartmentLeaderboardRow[];
   };
   daily: HocTapOverviewDaily[];
 };
 
-export type HocTapOverviewQuizRow = { createdAt: string };
+export type HocTapOverviewQuizRow = {
+  createdAt: string;
+  quizId?: string | null;
+};
 export type HocTapOverviewProgressRow = {
   status: string;
   completedAt?: string | null;
@@ -34,6 +82,10 @@ export type HocTapOverviewProgressRow = {
 export type HocTapOverviewStudyRow = {
   startedAt: string;
   durationSeconds: number;
+};
+export type HocTapOverviewPointRow = {
+  createdAt: string;
+  points: number;
 };
 
 const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -83,16 +135,28 @@ export function buildHocTapOverviewSummary(input: {
   quizzes?: HocTapOverviewQuizRow[];
   progress?: HocTapOverviewProgressRow[];
   studySessions?: HocTapOverviewStudyRow[];
+  points?: HocTapOverviewPointRow[];
+  audience?: HocTapOverviewResponse["audience"];
+  rank?: number | null;
+  leaderboard?: HocTapOverviewResponse["leaderboard"];
 }): HocTapOverviewResponse {
   const range = buildHocTapOverviewRange(input.days, input.now);
   const quizzes = input.quizzes ?? [];
   const progress = input.progress ?? [];
   const studySessions = input.studySessions ?? [];
+  const points = input.points ?? [];
   const daily = new Map<string, HocTapOverviewDaily>();
 
   for (let offset = 0; offset < range.days; offset += 1) {
     const date = toVietnamDateKey(range.fromMs + offset * DAY_MS);
-    daily.set(date, { date, quizAttempts: 0, completedModules: 0, studyMinutes: 0 });
+    daily.set(date, {
+      date,
+      quizAttempts: 0,
+      completedModules: 0,
+      studyMinutes: 0,
+      xpEarned: 0,
+      xpCumulative: 0,
+    });
   }
 
   let currentQuizAttempts = 0;
@@ -133,12 +197,45 @@ export function buildHocTapOverviewSummary(input: {
     }
   }
 
+  const currentStudyMinutes = Math.round(currentStudySeconds / 60);
+  const previousStudyMinutes = Math.round(previousStudySeconds / 60);
+  let currentXp = 0;
+  let previousXp = 0;
+  let totalXp = 0;
+
+  for (const row of points) {
+    const timestamp = Date.parse(row.createdAt);
+    const pointValue = Math.max(0, Math.round(row.points));
+    if (!Number.isFinite(timestamp) || pointValue <= 0) continue;
+    totalXp += pointValue;
+
+    if (timestamp >= range.fromMs && timestamp < range.toExclusiveMs) {
+      currentXp += pointValue;
+      const item = daily.get(toVietnamDateKey(timestamp));
+      if (item) item.xpEarned += pointValue;
+    } else if (timestamp >= range.previousFromMs && timestamp < range.fromMs) {
+      previousXp += pointValue;
+    }
+  }
+
   const dailyRows = [...daily.values()].map((row) => ({
     ...row,
     studyMinutes: Math.round(row.studyMinutes),
   }));
-  const currentStudyMinutes = Math.round(currentStudySeconds / 60);
-  const previousStudyMinutes = Math.round(previousStudySeconds / 60);
+  let cumulativeXp = Math.max(0, totalXp - currentXp);
+  for (const row of dailyRows) {
+    cumulativeXp += row.xpEarned;
+    row.xpCumulative = cumulativeXp;
+  }
+
+  const levelProgress = resolveHocTapLevelProgress(totalXp);
+  const attemptedQuizIds = [
+    ...new Set(
+      quizzes
+        .map((row) => row.quizId)
+        .filter((quizId): quizId is string => Boolean(quizId)),
+    ),
+  ];
 
   return {
     ok: true,
@@ -155,6 +252,7 @@ export function buildHocTapOverviewSummary(input: {
         value: currentQuizAttempts,
         delta: currentQuizAttempts - previousQuizAttempts,
       },
+      completedQuizzes: attemptedQuizIds.length,
       studyMinutes: {
         value: currentStudyMinutes,
         delta: currentStudyMinutes - previousStudyMinutes,
@@ -163,6 +261,25 @@ export function buildHocTapOverviewSummary(input: {
         completed: progress.filter((row) => row.status === "hoan-thanh").length,
         inProgress: progress.filter((row) => row.status === "dang-hoc").length,
       },
+    },
+    audience: input.audience ?? {
+      type: "community",
+      organizationId: "demo-community",
+      name: "Cộng đồng AI Trợ Lý",
+    },
+    xp: {
+      totalXp: levelProgress.totalXp,
+      level: levelProgress.level,
+      currentXp: levelProgress.currentXp,
+      targetXp: levelProgress.targetXp,
+      rank: input.rank ?? null,
+      periodEarned: currentXp,
+      previousPeriodEarned: previousXp,
+    },
+    attemptedQuizIds,
+    leaderboard: input.leaderboard ?? {
+      individuals: [],
+      departments: [],
     },
     daily: dailyRows,
   };
@@ -213,28 +330,20 @@ export function buildDemoHocTapOverview(
   days: HocTapOverviewDays,
   now = new Date(),
 ): HocTapOverviewResponse {
-  const range = buildHocTapOverviewRange(days, now);
-  const stored = getDemoStudySessions();
-  const studySessions = stored.length > 0 ? stored : buildDemoStudyFixture(range, now);
-  const quizzes = [1, 2, 3, 5, 6].map((daysAgo) => ({
-    createdAt: new Date(now.getTime() - daysAgo * DAY_MS).toISOString(),
-  }));
-  const progress: HocTapOverviewProgressRow[] = [
-    { status: "hoan-thanh", completedAt: new Date(now.getTime() - DAY_MS).toISOString() },
-    { status: "hoan-thanh", completedAt: new Date(now.getTime() - 4 * DAY_MS).toISOString() },
-    { status: "dang-hoc" },
-  ];
-  return buildHocTapOverviewSummary({ days, now, quizzes, progress, studySessions });
-}
-
-function buildDemoStudyFixture(range: OverviewRange, now: Date): HocTapOverviewStudyRow[] {
-  const minutes = [36, 51, 45, 80, 36, 52, 47];
-  return minutes.map((durationMinutes, index) => ({
-    startedAt: new Date(
-      Math.max(range.fromMs, now.getTime() - (minutes.length - index - 1) * DAY_MS),
-    ).toISOString(),
-    durationSeconds: durationMinutes * 60,
-  }));
+  const demoProgress = getDemoHocTapQuizProgress();
+  return buildHocTapOverviewSummary({
+    days,
+    now,
+    quizzes: demoProgress.attempts.map((attempt) => ({
+      createdAt: attempt.createdAt,
+      quizId: attempt.quizId,
+    })),
+    points: demoProgress.attempts.map((attempt) => ({
+      createdAt: attempt.createdAt,
+      points: attempt.xpEarned,
+    })),
+    studySessions: getDemoStudySessions(),
+  });
 }
 
 function clampStudySeconds(value: number): number {

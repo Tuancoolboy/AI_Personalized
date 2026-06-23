@@ -2,8 +2,16 @@ import { randomUUID } from "crypto";
 import { resolveApiSession } from "@/lib/api-auth";
 import { apiError, apiOk } from "@/lib/api-error";
 import { persistMcqGrading } from "@/lib/grading-persistence";
+import {
+  getHocTapQuiz,
+  gradeHocTapQuizAnswers,
+} from "@/lib/hoc-tap-quiz-catalog";
+import { resolveHocTapAudience } from "@/lib/hoc-tap-audience";
 import { gradeMcqQuiz } from "@/lib/mcq-grader";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceClient,
+} from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 
 const VALID_ROLES = new Set([
@@ -68,9 +76,11 @@ export async function GET() {
 
 type QuizPayload = {
   roleId?: unknown;
+  quizId?: unknown;
   score?: unknown;
   moduleId?: unknown;
   answers?: unknown;
+  attemptId?: unknown;
 };
 
 function parseAnswers(value: unknown): number[] | null {
@@ -103,12 +113,88 @@ export async function POST(request: Request) {
   }
 
   const roleId = typeof body.roleId === "string" ? body.roleId.trim() : "";
+  const quizId = typeof body.quizId === "string" ? body.quizId.trim() : "";
+  const attemptId =
+    typeof body.attemptId === "string" ? body.attemptId.trim() : "";
   const moduleId =
     typeof body.moduleId === "string" ? body.moduleId.trim() : null;
   const answers = parseAnswers(body.answers);
 
   if (!roleId || !VALID_ROLES.has(roleId)) {
     return apiError("VALIDATION_ERROR", "Vai trò không hợp lệ.");
+  }
+
+  if (quizId) {
+    if (!answers) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Quiz Học tập cần đầy đủ đáp án để server tự chấm.",
+      );
+    }
+    if (!isUuid(attemptId)) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Mã lượt làm quiz không hợp lệ.",
+      );
+    }
+
+    const quiz = getHocTapQuiz(quizId);
+    const graded = gradeHocTapQuizAnswers({ quizId, roleId, answers });
+    if (!quiz || !graded) {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Bộ đề hoặc số câu trả lời không hợp lệ.",
+      );
+    }
+
+    let rpcResult;
+    try {
+      const supabase = createSupabaseServiceClient();
+      rpcResult = await supabase.rpc("record_hoc_tap_quiz_attempt", {
+        p_user_id: session.userId,
+        p_quiz_id: quiz.id,
+        p_role_id: roleId,
+        p_score: graded.score,
+        p_max_xp: quiz.xp,
+        p_attempt_id: attemptId,
+      });
+    } catch (rpcError) {
+      console.error("[quiz-post:hoc-tap]", rpcError);
+      return apiError(
+        "INTERNAL_ERROR",
+        "Không lưu được XP của bài kiểm tra.",
+      );
+    }
+
+    if (rpcResult.error) {
+      console.error("[quiz-post:hoc-tap]", rpcResult.error.message);
+      return apiError(
+        "INTERNAL_ERROR",
+        "Không lưu được XP của bài kiểm tra.",
+      );
+    }
+
+    const award = parseHocTapAward(rpcResult.data);
+    if (!award) {
+      return apiError(
+        "INTERNAL_ERROR",
+        "Kết quả XP từ Supabase không hợp lệ.",
+      );
+    }
+
+    return apiOk({
+      score: graded.score,
+      correctCount: graded.correctCount,
+      questionCount: graded.questionCount,
+      passed: graded.score >= 70,
+      xpEarned: award.xpEarned,
+      totalXp: award.totalXp,
+      level: award.level,
+      currentLevelXp: award.currentLevelXp,
+      targetLevelXp: award.targetLevelXp,
+      attemptId,
+      idempotent: award.idempotent,
+    });
   }
 
   let score: number;
@@ -162,12 +248,24 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createSupabaseServerClient();
+  let audience;
+  try {
+    audience = await resolveHocTapAudience();
+  } catch (audienceError) {
+    console.error("[quiz-post:audience]", audienceError);
+    return apiError(
+      "INTERNAL_ERROR",
+      "Không xác định được không gian Học tập.",
+    );
+  }
   const { error } = await supabase.from("quiz_results").insert({
     id: randomUUID(),
     user_id: session.userId,
     role_id: roleId,
     module_id: moduleId,
     score,
+    quiz_source: "learning",
+    organization_id: audience.organizationId,
   });
 
   if (error) {
@@ -184,4 +282,46 @@ export async function POST(request: Request) {
     gradingPersisted,
     passed: score >= 70,
   });
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
+function parseHocTapAward(value: unknown): {
+  xpEarned: number;
+  totalXp: number;
+  level: number;
+  currentLevelXp: number;
+  targetLevelXp: number;
+  idempotent: boolean;
+} | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  const xpEarned = Number(row.xp_earned);
+  const totalXp = Number(row.total_xp);
+  const level = Number(row.level);
+  const currentLevelXp = Number(row.current_level_xp);
+  const targetLevelXp = Number(row.target_level_xp);
+
+  if (
+    !Number.isFinite(xpEarned) ||
+    !Number.isFinite(totalXp) ||
+    !Number.isFinite(level) ||
+    !Number.isFinite(currentLevelXp) ||
+    !Number.isFinite(targetLevelXp)
+  ) {
+    return null;
+  }
+
+  return {
+    xpEarned: Math.max(0, Math.round(xpEarned)),
+    totalXp: Math.max(0, Math.round(totalXp)),
+    level: Math.max(1, Math.round(level)),
+    currentLevelXp: Math.max(0, Math.round(currentLevelXp)),
+    targetLevelXp: Math.max(1, Math.round(targetLevelXp)),
+    idempotent: row.idempotent === true,
+  };
 }

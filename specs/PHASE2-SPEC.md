@@ -106,7 +106,7 @@ Legend:
 | Requirement | Status | Notes |
 |---|---|---|
 | Manager leaderboard view | **Partial** | Dashboard ranks team members by completion |
-| Employee-visible leaderboard | **Not started** | No personal/team/company leaderboard page |
+| Employee-visible leaderboard | **Partial** | Real quiz XP leaderboard exists at `/bang-xep-hang` and `/hoc-tap`; weekly/all-time and privacy preference remain |
 | Activity feed | **Not started** | No company learning feed |
 | Aha Moment reflection | **Not started** | No structured post-lesson reflection |
 | Share practical application | **Not started** | No visibility setting or internal post |
@@ -782,7 +782,7 @@ read-then-write pattern.
 > - `[ ]` Not started — no production implementation.
 > - `[!]` Blocker — must be resolved before the phase can exit.
 >
-> **Last audited:** 2026-06-13. Auditor cross-checked PHASE2-SPEC.md against current
+> **Last audited:** 2026-06-23. Auditor cross-checked PHASE2-SPEC.md against current
 > source (`app/`, `lib/`, `supabase/migrations/`) and the PROJECT-CONTINUATION.md
 > change log. Phase 2.0 tasks P2-BE-00/01 implemented 2026-06-13.
 
@@ -798,7 +798,7 @@ read-then-write pattern.
 | 2.3 Learning authoring + assignment | 🔴 Not started | P2-DB-04 migration 0019 ready in repo |
 | 2.4 Agent 3 recommendation engine | 🟡 In progress (4/5 done) | P2-AI-03 LLM explanation (optional) |
 | 2.5 Agent 2 assessment + grading | 🟡 In progress (6/7 done) | P2-EVAL-01 — scaffold 5 case, chưa live CI |
-| 2.6 Aha, feed, badges, leaderboard | 🔴 Not started | depends on 2.3, 2.5; delegated teammate |
+| 2.6 Aha, feed, badges, leaderboard | 🟡 Partial | trusted quiz XP + audience-scoped leaderboard done; feed, badges, privacy and weekly views remain |
 | 2.7 Agent 1 + 4 expansion | 🟡 Partial (2/6) | P2-AI-08 org signals in manager chat; tutor context cần 2.3/2.6 |
 | 2.8 AI cost, ops, rollout | 🔴 Not started | depends on all above |
 
@@ -1130,17 +1130,23 @@ read-then-write pattern.
   leaderboard opt-out. Polling first (2 min interval); Supabase Realtime later.
   **Effort: M (5–6 h).** Dependencies: P2-BE-08.
 
-- [ ] **P2-BE-09** Trusted point calculation and anti-spam caps.
+- [~] **P2-BE-09** Trusted point calculation and anti-spam caps.
   **Plan:** Server-side trigger / Route Handler creates `activity_events` rows
   with points per Section 7.3 table. Weekly sharing cap (max 20 pts from shares
   per week) enforced by SQL count before insert.
+  **Current slice:** Học tập quiz answers are graded server-side and an
+  idempotent RPC writes only the best-score XP delta to `points_ledger`.
+  Share/challenge caps and the broader `activity_events` model remain.
   **Effort: M (4–5 h).** Dependencies: P2-DB-06.
 
-- [ ] **P2-FE-12** Individual/department/company leaderboards at `/bang-xep-hang`.
+- [~] **P2-FE-12** Individual/department/company leaderboards at `/bang-xep-hang`.
   **Plan:** Three tabs. Individual-within-department, department, company-wide.
   Weekly + all-time toggle. Calls `GET /api/community/leaderboard?scope=...`.
   Employees who opt out appear as "Ẩn danh". Product decision #1 required
   (opt-in preference field design).
+  **Current slice:** `/bang-xep-hang` and `/hoc-tap` render real quiz XP scoped
+  to the current Community/Company audience. Weekly/all-time, privacy opt-out
+  and the general community API remain.
   **Effort: M (5–6 h).** Dependencies: P2-BE-09.
 
 - [ ] **P2-BE-10** Badge award rules and in-app notifications.

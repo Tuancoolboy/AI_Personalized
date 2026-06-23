@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -21,88 +21,46 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { fetchHocTapOverview, isSupabaseBackend } from "@/lib/client-api";
-import {
-  type HocTapOverviewDays,
-  type HocTapOverviewResponse,
+import type {
+  HocTapLeaderboardRow,
+  HocTapOverviewDays,
+  HocTapOverviewResponse,
 } from "@/lib/hoc-tap-overview";
-import { getHocTapQuizProgress } from "@/lib/hoc-tap-quiz-catalog";
-
-type LevelProgress = {
-  level: number;
-  currentXp: number;
-  targetXp: number;
-  totalXp: number;
-  extraXp: number;
-};
-
-type XpChartRow = {
-  date: string;
-  label: string;
-  xpEarned: number;
-  xpCumulative: number;
-};
-
-const DEMO_LEADERBOARD = [
-  { rank: 1, name: "Nguyễn Thu Hà", initials: "NH", xp: 739, tone: "bg-blue-100 text-blue-700" },
-  { rank: 2, name: "Phạm Thị Lan", initials: "PL", xp: 730, tone: "bg-orange-100 text-orange-700" },
-  { rank: 3, name: "Dương Văn Hùng", initials: "DH", xp: 720, tone: "bg-purple-100 text-purple-700" },
-  { rank: 4, name: "Hoàng Quốc Bảo", initials: "HB", xp: 710, tone: "bg-emerald-100 text-emerald-700" },
-  { rank: 5, name: "Vũ Đức Anh", initials: "VA", xp: 641, tone: "bg-rose-100 text-rose-700" },
-] as const;
 
 export function HocTapOverview({
-  levelProgress,
-  progressVersion,
+  data,
+  loading,
+  error,
+  days,
+  onDaysChange,
+  onRetry,
 }: {
-  levelProgress: LevelProgress;
-  progressVersion: string;
+  data: HocTapOverviewResponse | null;
+  loading: boolean;
+  error: string;
+  days: HocTapOverviewDays;
+  onDaysChange: (days: HocTapOverviewDays) => void;
+  onRetry: () => void;
 }) {
-  const [days, setDays] = useState<HocTapOverviewDays>(7);
-  const [data, setData] = useState<HocTapOverviewResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const response = await fetchHocTapOverview(days);
-        if (active) setData(response);
-      } catch (loadError) {
-        console.warn("[hoc-tap-overview]", loadError);
-        if (active) setError("Chưa tải được dữ liệu Tổng quan. Vui lòng thử lại.");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-    void load();
-    return () => {
-      active = false;
-    };
-  }, [days, reloadKey]);
-
-  useEffect(() => {
-    function handleUpdate() {
-      setReloadKey((value) => value + 1);
-    }
-    window.addEventListener("hoc-tap-overview-updated", handleUpdate);
-    return () => window.removeEventListener("hoc-tap-overview-updated", handleUpdate);
-  }, []);
-
-  const xpRows = useMemo(
-    () => buildXpChartRows(data, levelProgress.totalXp, progressVersion),
-    [data, levelProgress.totalXp, progressVersion],
-  );
-  const xpDelta = xpRows.reduce((sum, row) => sum + row.xpEarned, 0);
+  const xp = data?.xp ?? {
+    totalXp: 0,
+    level: 1,
+    currentXp: 0,
+    targetXp: 100,
+    rank: null,
+    periodEarned: 0,
+    previousPeriodEarned: 0,
+  };
   const levelPercent = Math.min(
     100,
-    Math.round((levelProgress.currentXp / levelProgress.targetXp) * 100),
+    Math.round((xp.currentXp / xp.targetXp) * 100),
   );
-  const remainingXp = Math.max(0, levelProgress.targetXp - levelProgress.currentXp);
+  const remainingXp = Math.max(0, xp.targetXp - xp.currentXp);
+  const xpDelta = xp.periodEarned - xp.previousPeriodEarned;
+  const xpRows = (data?.daily ?? []).map((row) => ({
+    ...row,
+    label: formatDateLabel(row.date),
+  }));
   const studyRows = (data?.daily ?? []).map((row) => ({
     ...row,
     label: formatDateLabel(row.date),
@@ -117,11 +75,11 @@ export function HocTapOverview({
               Tổng quan
             </h1>
             <span className="rounded-full bg-brand-soft px-2.5 py-1 text-[10px] font-bold text-brand">
-              XP minh họa
+              {data?.audience.name ?? "Đang tải không gian"}
             </span>
           </div>
           <p className="mt-1 text-sm text-ink-2">
-            Theo dõi tiến độ học tập và hiệu suất của bạn.
+            Theo dõi XP, quiz và thời gian học từ dữ liệu tài khoản của bạn.
           </p>
         </div>
         <label className="flex min-h-11 items-center gap-2 rounded-xl border border-line bg-card px-3 text-xs font-bold text-ink-2 shadow-sm focus-within:ring-2 focus-within:ring-brand">
@@ -129,7 +87,9 @@ export function HocTapOverview({
           <span className="sr-only">Khoảng thời gian</span>
           <select
             value={days}
-            onChange={(event) => setDays(Number(event.target.value) as HocTapOverviewDays)}
+            onChange={(event) =>
+              onDaysChange(Number(event.target.value) as HocTapOverviewDays)
+            }
             className="appearance-none bg-transparent pr-4 outline-none"
           >
             <option value={7}>7 ngày qua</option>
@@ -146,7 +106,7 @@ export function HocTapOverview({
           <span>{error}</span>
           <button
             type="button"
-            onClick={() => setReloadKey((value) => value + 1)}
+            onClick={onRetry}
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-rose-700 px-4 font-bold text-white focus-visible:ring-2 focus-visible:ring-rose-700 focus-visible:ring-offset-2"
           >
             <RefreshCw className="size-4" aria-hidden="true" />
@@ -158,16 +118,17 @@ export function HocTapOverview({
       <section aria-label="Chỉ số học tập" className="grid gap-4 md:grid-cols-3">
         <MetricCard
           icon={Sparkles}
-          label="Tổng XP · Minh họa"
-          value={levelProgress.totalXp.toLocaleString("vi-VN") + " XP"}
+          label="Tổng XP"
+          value={`${xp.totalXp.toLocaleString("vi-VN")} XP`}
           delta={xpDelta}
           deltaSuffix=" XP"
           tone="green"
+          loading={loading}
         />
         <MetricCard
           icon={ListChecks}
           label="Quiz đã làm"
-          value={(data?.stats.quizAttempts.value ?? 0).toLocaleString("vi-VN")}
+          value={(data?.stats.completedQuizzes ?? 0).toLocaleString("vi-VN")}
           delta={data?.stats.quizAttempts.delta ?? 0}
           tone="purple"
           loading={loading}
@@ -185,44 +146,42 @@ export function HocTapOverview({
 
       <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-sm font-extrabold text-ink">
-            Tiến độ cấp độ · Minh họa
-          </h2>
+          <h2 className="text-sm font-extrabold text-ink">Tiến độ cấp độ</h2>
           <span className="text-xs font-bold text-ink-3">{levelPercent}%</span>
         </div>
         <div className="mt-4 flex items-center gap-4 sm:gap-5">
           <span className="grid size-14 flex-none place-items-center rounded-2xl bg-brand font-display text-sm font-black text-brand-foreground shadow-sm">
-            Lv.{levelProgress.level}
+            Lv.{xp.level}
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-black text-ink">
-              {levelProgress.currentXp.toLocaleString("vi-VN")}{" "}
+              {xp.currentXp.toLocaleString("vi-VN")}{" "}
               <span className="font-semibold text-ink-3">
-                / {levelProgress.targetXp.toLocaleString("vi-VN")} XP
+                / {xp.targetXp.toLocaleString("vi-VN")} XP
               </span>
             </p>
             <div
               className="mt-2 h-2 overflow-hidden rounded-full bg-secondary"
               role="progressbar"
-              aria-label="Tiến độ cấp độ minh họa"
+              aria-label="Tiến độ cấp độ"
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={levelPercent}
             >
               <div
                 className="h-full rounded-full bg-brand"
-                style={{ width: levelPercent + "%" }}
+                style={{ width: `${levelPercent}%` }}
               />
             </div>
             <div className="mt-3 flex flex-col gap-1 text-xs font-semibold text-ink-3 sm:flex-row sm:justify-between">
               <span>
                 Còn {remainingXp.toLocaleString("vi-VN")} XP để lên cấp{" "}
-                {levelProgress.level + 1}
+                {xp.level + 1}
               </span>
               <span>
-                Dữ liệu thật: {data?.stats.moduleProgress.completed ?? 0} bài hoàn thành
+                {data?.stats.moduleProgress.completed ?? 0} bài hoàn thành
                 {data?.stats.moduleProgress.inProgress
-                  ? " · " + data.stats.moduleProgress.inProgress + " bài đang học"
+                  ? ` · ${data.stats.moduleProgress.inProgress} bài đang học`
                   : ""}
               </span>
             </div>
@@ -232,13 +191,13 @@ export function HocTapOverview({
 
       <section className="grid gap-4 2xl:grid-cols-2">
         <ChartCard
-          title="Biểu đồ XP · Minh họa"
-          description="XP kiếm được và XP tích lũy theo ngày."
+          title="Biểu đồ XP"
+          description="XP quiz được cộng theo điểm tốt nhất trong không gian hiện tại."
         >
           <div
             className="h-64 min-w-0 w-full"
             role="img"
-            aria-label="Biểu đồ đường XP minh họa theo ngày"
+            aria-label="Biểu đồ đường XP theo ngày"
           >
             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <AreaChart
@@ -246,9 +205,23 @@ export function HocTapOverview({
                 margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
               >
                 <defs>
-                  <linearGradient id="hoc-tap-xp-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--brand)" stopOpacity={0.24} />
-                    <stop offset="100%" stopColor="var(--brand)" stopOpacity={0} />
+                  <linearGradient
+                    id="hoc-tap-xp-fill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor="var(--brand)"
+                      stopOpacity={0.24}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--brand)"
+                      stopOpacity={0}
+                    />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke="var(--line-2)" />
@@ -259,7 +232,12 @@ export function HocTapOverview({
                   minTickGap={24}
                   fontSize={11}
                 />
-                <YAxis tickLine={false} axisLine={false} width={48} fontSize={11} />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={48}
+                  fontSize={11}
+                />
                 <Tooltip contentStyle={TOOLTIP_STYLE} />
                 <Area
                   type="monotone"
@@ -274,7 +252,7 @@ export function HocTapOverview({
           </div>
           <AccessibleChartSummary
             rows={xpRows.map(
-              (row) => row.label + ": " + row.xpCumulative + " XP tích lũy",
+              (row) => `${row.label}: ${row.xpCumulative} XP tích lũy`,
             )}
           />
         </ChartCard>
@@ -310,7 +288,10 @@ export function HocTapOverview({
                 />
                 <Tooltip
                   contentStyle={TOOLTIP_STYLE}
-                  formatter={(value) => [String(value) + " phút", "Thời gian học"]}
+                  formatter={(value) => [
+                    `${String(value)} phút`,
+                    "Thời gian học",
+                  ]}
                 />
                 <Bar
                   dataKey="studyMinutes"
@@ -324,12 +305,13 @@ export function HocTapOverview({
           </div>
           {!loading && data && data.stats.studyMinutes.value === 0 ? (
             <p className="mt-2 rounded-lg bg-secondary/60 px-3 py-2 text-center text-xs text-ink-3">
-              Chưa có phiên học trong khoảng này. Mở một bài trong Lộ trình để bắt đầu ghi nhận.
+              Chưa có phiên học trong khoảng này. Mở một bài trong Lộ trình để
+              bắt đầu ghi nhận.
             </p>
           ) : null}
           <AccessibleChartSummary
             rows={studyRows.map(
-              (row) => row.label + ": " + row.studyMinutes + " phút học",
+              (row) => `${row.label}: ${row.studyMinutes} phút học`,
             )}
           />
         </ChartCard>
@@ -339,12 +321,12 @@ export function HocTapOverview({
 }
 
 export function HocTapOverviewLeaderboard({
-  displayName,
-  totalXp,
+  rows,
 }: {
-  displayName: string;
-  totalXp: number;
+  rows: HocTapLeaderboardRow[];
 }) {
+  const visibleRows = rows.slice(0, 6);
+
   return (
     <section className="rounded-2xl border border-line bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -352,8 +334,8 @@ export function HocTapOverviewLeaderboard({
           <h2 className="text-sm font-extrabold text-ink">
             Bảng xếp hạng cá nhân
           </h2>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-600">
-            Dữ liệu minh họa
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-brand">
+            XP từ quiz đã xác thực
           </p>
         </div>
         <Link
@@ -363,45 +345,47 @@ export function HocTapOverviewLeaderboard({
           Xem tất cả
         </Link>
       </div>
-      <div className="mt-5 grid grid-cols-[2rem_minmax(0,1fr)_auto] gap-2 text-[10px] font-bold uppercase tracking-wide text-ink-3">
-        <span>Hạng</span>
-        <span>Người dùng</span>
-        <span>XP</span>
-      </div>
-      <ol className="mt-3 space-y-3">
-        {DEMO_LEADERBOARD.map((item) => (
-          <li
-            key={item.rank}
-            className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 text-xs"
-          >
-            <span className="font-black text-amber-500">{item.rank}</span>
-            <span className="flex min-w-0 items-center gap-2.5 font-bold text-ink">
-              <span
-                className={
-                  "grid size-8 flex-none place-items-center rounded-full text-[10px] " +
-                  item.tone
-                }
+
+      {visibleRows.length > 0 ? (
+        <>
+          <div className="mt-5 grid grid-cols-[2rem_minmax(0,1fr)_auto] gap-2 text-[10px] font-bold uppercase tracking-wide text-ink-3">
+            <span>Hạng</span>
+            <span>Người dùng</span>
+            <span>XP</span>
+          </div>
+          <ol className="mt-3 space-y-2">
+            {visibleRows.map((item) => (
+              <li
+                key={item.userId}
+                className={`grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl px-2 py-1.5 text-xs ${
+                  item.isCurrentUser ? "bg-orange-50" : ""
+                }`}
               >
-                {item.initials}
-              </span>
-              <span className="truncate">{item.name}</span>
-            </span>
-            <span className="font-bold text-ink-2">{item.xp} XP</span>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-5 grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 p-3 text-xs">
-        <span className="font-black text-orange-600">6</span>
-        <span className="flex min-w-0 items-center gap-2.5 font-black text-ink">
-          <span className="grid size-8 flex-none place-items-center rounded-full bg-orange-500 text-[10px] text-white">
-            {getInitials(displayName)}
-          </span>
-          <span className="truncate">{displayName} (Bạn)</span>
-        </span>
-        <span className="font-black text-ink">
-          {totalXp.toLocaleString("vi-VN")} XP
-        </span>
-      </div>
+                <span className="font-black text-amber-500">{item.rank}</span>
+                <span className="flex min-w-0 items-center gap-2.5 font-bold text-ink">
+                  <span className="grid size-8 flex-none place-items-center rounded-full bg-brand-soft text-[10px] text-brand">
+                    {getInitials(item.name)}
+                  </span>
+                  <span className="truncate">
+                    {item.name}
+                    {item.isCurrentUser ? " (Bạn)" : ""}
+                  </span>
+                </span>
+                <span className="font-bold text-ink-2">
+                  {item.totalXp.toLocaleString("vi-VN")} XP
+                </span>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : (
+        <div className="mt-4 rounded-xl border border-dashed border-line bg-secondary/40 px-4 py-6 text-center">
+          <p className="text-xs font-bold text-ink">Chưa có bảng xếp hạng</p>
+          <p className="mt-1 text-[11px] leading-5 text-ink-3">
+            Hoàn thành một quiz để trở thành người đầu tiên có XP.
+          </p>
+        </div>
+      )}
     </section>
   );
 }
@@ -428,10 +412,11 @@ function MetricCard({
     purple: "bg-purple-50 text-purple-600",
     blue: "bg-blue-50 text-blue-600",
   } as const;
+
   return (
     <article className="rounded-2xl border border-line bg-card p-5 shadow-sm">
       <div className="flex items-center gap-2 text-xs font-bold text-ink-2">
-        <span className={"grid size-8 place-items-center rounded-lg " + tones[tone]}>
+        <span className={`grid size-8 place-items-center rounded-lg ${tones[tone]}`}>
           <Icon className="size-4" aria-hidden="true" />
         </span>
         {label}
@@ -447,10 +432,9 @@ function MetricCard({
             {value}
           </strong>
           <span
-            className={
-              "text-xs font-black " +
-              (delta >= 0 ? "text-emerald-600" : "text-rose-600")
-            }
+            className={`text-xs font-black ${
+              delta >= 0 ? "text-emerald-600" : "text-rose-600"
+            }`}
           >
             {delta > 0 ? "+" : ""}
             {delta.toLocaleString("vi-VN")}
@@ -493,66 +477,24 @@ function AccessibleChartSummary({ rows }: { rows: string[] }) {
   );
 }
 
-function buildXpChartRows(
-  data: HocTapOverviewResponse | null,
-  totalXp: number,
-  progressVersion: string,
-): XpChartRow[] {
-  void progressVersion;
-  if (!data) return [];
-  const progress = getHocTapQuizProgress();
-  const earnedByDate = new Map<string, number>();
-  for (const attempt of progress.attempts) {
-    const date = toVietnamDate(attempt.createdAt);
-    earnedByDate.set(date, (earnedByDate.get(date) ?? 0) + attempt.xpEarned);
-  }
-  if (!isSupabaseBackend() && progress.attempts.length === 0) {
-    const demoPattern = [30, 45, 35, 60, 50, 70, 55];
-    data.daily.slice(-7).forEach((row, index) => {
-      earnedByDate.set(row.date, demoPattern[index] ?? 30);
-    });
-  }
-  const currentEarned = data.daily.reduce(
-    (sum, row) => sum + (earnedByDate.get(row.date) ?? 0),
-    0,
-  );
-  let cumulative = Math.max(0, totalXp - currentEarned);
-  return data.daily.map((row) => {
-    const earned = earnedByDate.get(row.date) ?? 0;
-    cumulative += earned;
-    return {
-      date: row.date,
-      label: formatDateLabel(row.date),
-      xpEarned: earned,
-      xpCumulative: cumulative,
-    };
-  });
-}
-
-function toVietnamDate(value: string): string {
-  const timestamp = Date.parse(value);
-  if (!Number.isFinite(timestamp)) return "";
-  return new Date(timestamp + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
 function formatDateLabel(value: string): string {
   const [, month, day] = value.split("-");
-  return day + "/" + month;
+  return `${day}/${month}`;
 }
 
 function formatStudyMinutes(minutes: number): string {
   const safe = Math.max(0, Math.round(minutes));
   const hours = Math.floor(safe / 60);
   const remaining = safe % 60;
-  if (hours === 0) return remaining + "m";
-  return hours + "h " + remaining.toString().padStart(2, "0") + "m";
+  if (hours === 0) return `${remaining}m`;
+  return `${hours}h ${remaining.toString().padStart(2, "0")}m`;
 }
 
 function getInitials(value: string): string {
   const parts = value.trim().split(/\s+/).filter(Boolean);
   const initials =
     parts.length > 1
-      ? (parts[0][0] ?? "") + (parts.at(-1)?.[0] ?? "")
+      ? `${parts[0]?.[0] ?? ""}${parts.at(-1)?.[0] ?? ""}`
       : value.slice(0, 2);
   return initials.toLocaleUpperCase("vi-VN");
 }
