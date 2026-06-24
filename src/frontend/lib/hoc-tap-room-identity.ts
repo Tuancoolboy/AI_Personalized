@@ -7,24 +7,36 @@ type RoomIdentityStorage = Pick<
   Storage,
   "getItem" | "setItem" | "removeItem"
 >;
+type IdentityAliasesOrStorage =
+  | Array<string | null | undefined>
+  | RoomIdentityStorage;
 
 export function readHocTapRoomIdentity(
   code: string,
   identityKey: string,
+  identityAliasesOrStorage: IdentityAliasesOrStorage = [],
   storage = getBrowserStorage(),
 ): HocTapRoomIdentity | null {
-  if (!storage) return null;
+  const { identityAliases, storage: resolvedStorage } =
+    resolveIdentityArgs(identityAliasesOrStorage, storage);
+  if (!resolvedStorage) return null;
 
-  const currentKey = getHocTapRoomIdentityStorageKey(code, identityKey);
-  const current = parseRoomIdentity(storage.getItem(currentKey));
-  if (current) return current;
+  const identityKeys = getIdentityKeys(identityKey, identityAliases);
+  for (const candidateKey of identityKeys) {
+    const currentKey = getHocTapRoomIdentityStorageKey(code, candidateKey);
+    const current = parseRoomIdentity(resolvedStorage.getItem(currentKey));
+    if (current) {
+      saveIdentityForKeys(code, identityKeys, current, resolvedStorage);
+      return current;
+    }
+  }
 
   const legacyKey = getLegacyHocTapRoomIdentityStorageKey(code);
-  const legacy = parseRoomIdentity(storage.getItem(legacyKey));
+  const legacy = parseRoomIdentity(resolvedStorage.getItem(legacyKey));
   if (!legacy) return null;
 
-  storage.setItem(currentKey, JSON.stringify(legacy));
-  storage.removeItem(legacyKey);
+  saveIdentityForKeys(code, identityKeys, legacy, resolvedStorage);
+  resolvedStorage.removeItem(legacyKey);
   return legacy;
 }
 
@@ -32,24 +44,36 @@ export function saveHocTapRoomIdentity(
   code: string,
   identityKey: string,
   identity: HocTapRoomIdentity,
+  identityAliasesOrStorage: IdentityAliasesOrStorage = [],
   storage = getBrowserStorage(),
 ): void {
-  if (!storage) return;
-  storage.setItem(
-    getHocTapRoomIdentityStorageKey(code, identityKey),
-    JSON.stringify(identity),
+  const { identityAliases, storage: resolvedStorage } =
+    resolveIdentityArgs(identityAliasesOrStorage, storage);
+  if (!resolvedStorage) return;
+  saveIdentityForKeys(
+    code,
+    getIdentityKeys(identityKey, identityAliases),
+    identity,
+    resolvedStorage,
   );
-  storage.removeItem(getLegacyHocTapRoomIdentityStorageKey(code));
+  resolvedStorage.removeItem(getLegacyHocTapRoomIdentityStorageKey(code));
 }
 
 export function clearHocTapRoomIdentity(
   code: string,
   identityKey: string,
+  identityAliasesOrStorage: IdentityAliasesOrStorage = [],
   storage = getBrowserStorage(),
 ): void {
-  if (!storage) return;
-  storage.removeItem(getHocTapRoomIdentityStorageKey(code, identityKey));
-  storage.removeItem(getLegacyHocTapRoomIdentityStorageKey(code));
+  const { identityAliases, storage: resolvedStorage } =
+    resolveIdentityArgs(identityAliasesOrStorage, storage);
+  if (!resolvedStorage) return;
+  for (const candidateKey of getIdentityKeys(identityKey, identityAliases)) {
+    resolvedStorage.removeItem(
+      getHocTapRoomIdentityStorageKey(code, candidateKey),
+    );
+  }
+  resolvedStorage.removeItem(getLegacyHocTapRoomIdentityStorageKey(code));
 }
 
 export function getHocTapRoomIdentityStorageKey(
@@ -75,6 +99,47 @@ function parseRoomIdentity(raw: string | null): HocTapRoomIdentity | null {
     };
   } catch {
     return null;
+  }
+}
+
+function getIdentityKeys(
+  identityKey: string,
+  identityAliases: Array<string | null | undefined>,
+): string[] {
+  return Array.from(
+    new Set(
+      [identityKey, ...identityAliases]
+        .map((key) => key?.trim() ?? "")
+        .filter(Boolean),
+    ),
+  );
+}
+
+function resolveIdentityArgs(
+  identityAliasesOrStorage: IdentityAliasesOrStorage,
+  storage: RoomIdentityStorage | null,
+): {
+  identityAliases: Array<string | null | undefined>;
+  storage: RoomIdentityStorage | null;
+} {
+  if (Array.isArray(identityAliasesOrStorage)) {
+    return { identityAliases: identityAliasesOrStorage, storage };
+  }
+  return { identityAliases: [], storage: identityAliasesOrStorage };
+}
+
+function saveIdentityForKeys(
+  code: string,
+  identityKeys: string[],
+  identity: HocTapRoomIdentity,
+  storage: RoomIdentityStorage,
+): void {
+  const serialized = JSON.stringify(identity);
+  for (const identityKey of identityKeys) {
+    storage.setItem(
+      getHocTapRoomIdentityStorageKey(code, identityKey),
+      serialized,
+    );
   }
 }
 

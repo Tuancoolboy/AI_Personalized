@@ -92,8 +92,9 @@ export default async function AppLayout({
     isDemo = true;
     const typeCookie = cookieStore.get(DEMO_USER_TYPE_COOKIE)?.value;
     if (typeCookie === "manager") userType = "manager";
-    userEmail = userType === "manager" ? "Chị Quản lý" : "Demo User";
-    userDisplayName = userEmail;
+    userEmail =
+      userType === "manager" ? "quanly@congty.vn" : "nhanvien@congty.vn";
+    userDisplayName = userType === "manager" ? "Chị Quản lý" : "Demo User";
     avatarUrl = buildAvatarUrl(null, userDisplayName);
   }
 

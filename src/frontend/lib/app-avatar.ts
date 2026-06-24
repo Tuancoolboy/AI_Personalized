@@ -14,15 +14,15 @@ export type AppAvatarOption = AppAvatarChoice & {
   url: string;
 };
 
-const ALOHE_AVATAR_IDS = [
-  "vibrent_1",
-  "vibrent_7",
-  "vibrent_14",
-  "3d_2",
-  "3d_5",
-  "bluey_3",
-  "bluey_9",
-  "memo_4",
+const ALOHE_AVATAR_GROUPS = [
+  { prefix: "vibrent", count: 27, label: "Vibrent" },
+  { prefix: "3d", count: 5, label: "3D" },
+  { prefix: "bluey", count: 10, label: "Bluey" },
+  { prefix: "memo", count: 35, label: "Memo" },
+  { prefix: "notion", count: 15, label: "Notion" },
+  { prefix: "teams", count: 9, label: "Teams" },
+  { prefix: "toon", count: 10, label: "Toon" },
+  { prefix: "upstream", count: 22, label: "Upstream" },
 ] as const;
 
 const ALOHE_BASE_URL =
@@ -145,16 +145,22 @@ export function buildAvatarOptions(identity: string): AppAvatarOption[] {
     };
   });
 
-  const aloheOptions = ALOHE_AVATAR_IDS.map((id, index) => {
-    const choice: AppAvatarChoice = { provider: "alohe", id };
-    return {
-      ...choice,
-      key: serializeAvatarChoice(choice),
-      label: `Alohe ${index + 1}`,
-      group: "Alohe" as const,
-      url: buildAvatarUrl(choice),
-    };
-  });
+  const aloheOptions = ALOHE_AVATAR_GROUPS.flatMap((group) =>
+    Array.from({ length: group.count }, (_, index) => {
+      const itemNumber = index + 1;
+      const choice: AppAvatarChoice = {
+        provider: "alohe",
+        id: `${group.prefix}_${itemNumber}`,
+      };
+      return {
+        ...choice,
+        key: serializeAvatarChoice(choice),
+        label: `${group.label} ${itemNumber}`,
+        group: "Alohe" as const,
+        url: buildAvatarUrl(choice),
+      };
+    }),
+  );
 
   return [...dicebearOptions, ...aloheOptions];
 }

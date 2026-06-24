@@ -6,6 +6,30 @@
 
 ---
 
+## [2026-06-24] — Chặn creator tạo nhiều phòng active
+
+**Context:** User báo khi người tạo đang ở trong phòng rồi thoát về trang ngoài có thể tạo tiếp phòng khác, gây lạm dụng và làm luồng rời phòng khó hiểu. Đồng thời cần đảm bảo nếu người tạo chọn vai `Người chơi` trong phòng AI Host thì khi người đó chủ động rời, phòng cũng bị xoá.
+
+**Decision:** Không gắn xoá phòng vào browser back/đóng tab. Room chỉ bị xoá khi người tạo bấm nút rời phòng chủ động. Thêm khóa creator ở memory runtime bằng `session.userId`, Supabase dùng `created_by_user_id`; trước khi tạo phòng mới, nếu user còn phòng `waiting/playing` trong cùng audience thì API trả conflict với copy “Bạn đã có một phòng đang mở. Hãy rời & xoá phòng cũ trước khi tạo phòng mới.” Creator-player trong phòng AI Host vẫn là controller nên rời phòng sẽ xoá cả phòng.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** `npm run db:validate` pass 42 migrations; targeted Vitest `src/frontend/lib/hoc-tap-room-store.test.ts`, `src/frontend/lib/hoc-tap-room-service.test.ts`, `src/frontend/lib/hoc-tap-room-runtime.test.ts` pass 40/40; route test `src/frontend/app/api/hoc-tap/rooms/route-get.test.ts` pass 2/2; `npm run lint` pass với 5 warning cũ; `npm run test` pass unit 367/367 rồi API integration dừng trước case đầu tiên do Supabase credential local chứa ký tự Unicode không hợp lệ trong HTTP header (`ByteString`, value 7852); `npm run build` pass ngoài sandbox; `git diff --check` pass.
+
+## [2026-06-23] — Chủ phòng quan sát, sức chứa phòng và Đua vịt theo câu đúng
+
+**Context:** User đổi yêu cầu cho room Học tập: khi tạo phòng ở vai `Chủ phòng`, host chỉ bấm bắt đầu rồi quan sát; cần chỉnh số lượng người chơi tối đa, phòng đầy thì chặn join nhưng rời phòng sẽ mở slot; Đua vịt phải tiến theo từng câu đúng của từng người và label vịt dùng tên user trong sảnh.
+
+**Decision:** Supersede quyết định trước đó cho human host. Từ giờ `getPlayers()` ở memory và Supabase luôn là participant không phải host; human host không tính capacity, không answer, không leaderboard, chỉ điều khiển/xem. Luồng `entryRole=player` vẫn giữ system host và người tạo là player thật. Duck Race dùng `score / (questionCount * 100)` để tính distance riêng từng người; sprite vẫn quay vòng theo thứ tự vào phòng nhưng `duckName` là tên user.
+
+**Owner:** Codex
+
+**Status:** Active
+
+**Tests:** `npm run db:validate` pass 42 migrations; targeted Vitest room/duck/migration/route pass 55/55; `npm run lint` pass với 5 warning cũ; `npm run test:unit` pass 361/361; `npm run test` unit phase pass rồi API integration dừng trước case đầu tiên do Supabase credential local chứa ký tự Unicode không hợp lệ trong HTTP header (`ByteString`, value 7852); `npm run build` pass ngoài sandbox; `git diff --check` pass. Browser smoke chưa chạy vì repo không có Playwright/UI smoke script.
+
 ## [2026-06-23] — Đặt tên vịt và vòng sprite khi đông người
 
 **Context:** User muốn khi số người chơi nhiều hơn số sprite vịt thì danh sách vịt quay vòng lại, đồng thời UI không hiển thị số vịt nữa mà hiển thị tên con vịt.
@@ -1829,3 +1853,33 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 **Shipped:** helper `hoc-tap-room-identity`, cập nhật dashboard/team room handoff, gameplay memory + Supabase tính human host vào participant count/leaderboard/answer completion, migration `20260623133848_hoc_tap_human_host_player.sql`, và regression tests.
 
 **Tests:** targeted Vitest 45/45; full unit 348/348; scoped ESLint và `db:validate` pass. Full lint/build pending.
+
+## 2026-06-24 — Fix avatar sync across settings and team rooms
+
+**Goal:** Sửa bug avatar không đồng bộ: vào phòng có thể mất identity cũ rồi join lại thành avatar khác; avatar ở cài đặt cá nhân cũng phải đồng bộ với menu tài khoản, Học tập và phòng team.
+
+**Decision:** Giữ avatar choice là một nguồn dữ liệu duy nhất trên client bằng cách ghi preference vào cả identity chính và alias (email, tên hiển thị, fullName). Room identity cũng đọc/lưu/xoá theo alias để khi client hydrate từ display name sang email không mất `participantId`/`hostToken`.
+
+**Shipped:** cập nhật `avatar-preferences`, `use-preferred-avatar`, `hoc-tap-room-identity`, `account-menu`, `account-settings-content`, `hoc-tap-dashboard`, `hoc-tap-team-room`; thêm regression tests cho avatar alias và room identity alias.
+
+**Tests:** targeted Node 20 Vitest avatar/room identity pass 5/5; scoped ESLint pass; `npm run lint` pass với 5 warning cũ; `npm run test` Node 20 unit pass 370/370 rồi API dừng vì Node 20 thiếu native WebSocket; retry Node 22 unit pass 370/370 rồi API dừng ở lỗi credential Supabase local chứa ký tự Unicode không hợp lệ trong HTTP header (`ByteString` value 7852); Node 20 `npm run build` pass; `git diff --check` pass.
+
+## 2026-06-24 — Add full Alohe avatar catalog to picker
+
+**Goal:** Tải thêm avatar từ `alohe/avatars` để user có nhiều lựa chọn avatar hơn trong cài đặt/Học tập.
+
+**Decision:** Không commit 133 file PNG vào repo; giữ cách app đang dùng là CDN `cdn.jsdelivr.net/gh/alohe/avatars/png`. Danh sách Alohe được mô tả bằng nhóm/range theo README chính thức (`vibrent`, `3d`, `bluey`, `memo`, `notion`, `teams`, `toon`, `upstream`) để picker sinh đủ 133 option và dễ bảo trì. Picker thêm scroll nội bộ để popup không dài quá màn hình.
+
+**Shipped:** mở rộng `src/frontend/lib/app-avatar.ts`, thêm test catalog/URL trong `src/frontend/lib/app-avatar.test.ts`, và giới hạn chiều cao lưới option ở `src/frontend/components/dicebear-avatar-picker.tsx`.
+
+**Tests:** targeted Node 20 Vitest `app-avatar.test.ts` + `avatar-preferences.test.ts` pass 3/3; `npm run lint` pass với 5 warning cũ; `npm run test` Node 20 unit pass 372/372 rồi API dừng vì Node 20 thiếu native WebSocket; retry Node 22 unit pass 372/372 rồi API dừng ở lỗi credential Supabase local Unicode `ByteString` value 7852; Node 20 `npm run build` pass.
+
+## 2026-06-24 — Harden demo avatar sync and regression tests
+
+**Goal:** Sửa tiếp case demo trong ảnh: đổi avatar ở cài đặt nhưng header/menu còn giữ avatar cũ chữ `DO`; thêm test kỹ để đổi một nơi thì mọi surface demo đều nhận avatar mới.
+
+**Decision:** Nhóm các identity demo employee (`Demo User`, `nhanvien@congty.vn`, `demo@aitroly.local`) và demo manager (`Chị Quản lý`, `Quản lý`, `quanly@congty.vn`) vào cùng cụm sync trong `avatar-preferences`. Header demo nay truyền email demo thật giống trang tài khoản thay vì dùng tên hiển thị làm email.
+
+**Shipped:** cập nhật `src/frontend/lib/avatar-preferences.ts`, `src/frontend/lib/avatar-preferences.test.ts`, và `src/frontend/app/(app)/layout.tsx`. Test mới phủ: settings email đọc được ở header identity, avatar header stale bị ghi đè khi settings chọn avatar mới, manager demo không leak sang employee demo.
+
+**Tests:** targeted Node 20 Vitest `avatar-preferences.test.ts`, `app-avatar.test.ts`, `hoc-tap-room-identity.test.ts` pass 10/10; `npm run lint` pass với 5 warning cũ; Node 20 `npm run test` unit pass 375/375 rồi API dừng vì Node 20 thiếu native WebSocket; Node 20 `npm run build` pass.

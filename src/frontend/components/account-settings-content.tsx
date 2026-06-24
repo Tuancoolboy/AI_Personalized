@@ -7,7 +7,7 @@ import { DicebearAvatarPicker } from "@/components/dicebear-avatar-picker";
 import { usePreferredAvatar } from "@/hooks/use-preferred-avatar";
 import type { AppAvatarChoice } from "@/lib/app-avatar";
 import { getAccountInitials } from "@/lib/account-menu";
-import { buildAvatarIdentity } from "@/lib/avatar-preferences";
+import { buildAvatarIdentityCandidates } from "@/lib/avatar-preferences";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { buildOAuthCallbackUrl } from "@/lib/google-oauth";
 import { getAuthErrorMessage } from "@/lib/auth-messages";
@@ -116,21 +116,52 @@ export function AccountSettingsContent({
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
-  const avatarIdentity = buildAvatarIdentity(
+  const avatarIdentities = buildAvatarIdentityCandidates(
     fullName,
     email,
     initialProfile.fullName,
+    initialProfile.email,
   );
+  const avatarIdentity = avatarIdentities.primary;
   const {
     avatarOptions,
     avatarChoice,
     avatarUrl,
     selectAvatar,
-  } = usePreferredAvatar(avatarIdentity, initialProfile.avatar ?? null, [
-    fullName,
-    email,
-    initialProfile.fullName,
-  ]);
+  } = usePreferredAvatar(
+    avatarIdentity,
+    initialProfile.avatar ?? null,
+    avatarIdentities.aliases,
+  );
+
+  function handleSelectAvatar(choice: AppAvatarChoice) {
+    selectAvatar(choice);
+    setProfileStatus(EMPTY_STATUS);
+
+    if (isDemo) {
+      setProfileStatus({
+        kind: "success",
+        message: "Demo mode: avatar đã đổi trên trình duyệt hiện tại.",
+      });
+      return;
+    }
+
+    void updateProfile({ avatar: choice })
+      .then(() => {
+        setProfileStatus({
+          kind: "success",
+          message: "Đã đồng bộ avatar cá nhân.",
+        });
+        router.refresh();
+      })
+      .catch((err: unknown) => {
+        setProfileStatus({
+          kind: "error",
+          message:
+            err instanceof Error ? err.message : "Không đồng bộ được avatar.",
+        });
+      });
+  }
 
   async function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -348,7 +379,7 @@ export function AccountSettingsContent({
                 avatarUrl={avatarUrl}
                 displayName={fullName}
                 fallbackText={getAccountInitials(fullName, email)}
-                onSelect={selectAvatar}
+                onSelect={handleSelectAvatar}
                 options={avatarOptions}
                 selectedChoice={avatarChoice}
                 size="lg"

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  DUCK_RACE_DUCK_NAMES,
-  applyDuckRaceQuestionProgress,
+  DUCK_RACE_SKIN_COUNT,
+  applyDuckRaceScoreProgress,
   buildDuckRaceStandings,
-  getDuckRaceDuckName,
+  getDuckRaceCorrectAnswerCount,
   getDuckRaceDistancePercent,
   getDuckRaceMaxPossibleScore,
   getDuckRaceOutcomeLabel,
-  getDuckRaceQuestionProgressPercent,
+  getDuckRaceParticipantProgressPercent,
   getDuckRaceSkinIndex,
   getHocTapRoomMapThemeLabel,
 } from "@/lib/hoc-tap-duck-race";
@@ -24,7 +24,7 @@ describe("hoc-tap duck race helpers", () => {
     expect(getDuckRaceDistancePercent(800, 500)).toBe(100);
   });
 
-  it("moves every duck one equal segment for each completed question", () => {
+  it("moves each duck by its own correct-answer progress", () => {
     const base = buildDuckRaceStandings(
       [
         {
@@ -48,35 +48,35 @@ describe("hoc-tap duck race helpers", () => {
       ],
       3,
     );
-    const progress = (phase: "waiting" | "question" | "reveal" | "finished", index: number) =>
-      getDuckRaceQuestionProgressPercent({
-        questionCount: 3,
-        currentQuestionIndex: index,
-        phase,
-        status: phase === "waiting" ? "waiting" : phase === "finished" ? "finished" : "playing",
-      });
 
-    expect(progress("waiting", 0)).toBe(0);
-    expect(progress("question", 0)).toBe(0);
-    expect(progress("reveal", 0)).toBeCloseTo(100 / 3);
-    expect(progress("question", 1)).toBeCloseTo(100 / 3);
-    expect(progress("reveal", 1)).toBeCloseTo(200 / 3);
-    expect(progress("finished", 2)).toBe(100);
+    expect(getDuckRaceCorrectAnswerCount(250)).toBe(2);
     expect(
-      applyDuckRaceQuestionProgress(base, progress("finished", 2)).map(
-        (participant) => participant.distancePercent,
-      ),
-    ).toEqual([100, 100]);
+      getDuckRaceParticipantProgressPercent({
+        score: 100,
+        questionCount: 3,
+      }),
+    ).toBeCloseTo(100 / 3);
+    expect(
+      getDuckRaceParticipantProgressPercent({
+        score: 300,
+        questionCount: 3,
+      }),
+    ).toBe(100);
+    const scoreProgress = applyDuckRaceScoreProgress(base, 3).map(
+      (participant) => participant.distancePercent,
+    );
+    expect(scoreProgress[0]).toBeCloseTo(100 / 3);
+    expect(scoreProgress[1]).toBe(0);
     expect(base.map((participant) => participant.rank)).toEqual([1, 2]);
-    expect(base.map((participant) => participant.distancePercent)).toEqual([0, 0]);
+    expect(base[0]?.distancePercent).toBeCloseTo(100 / 3);
+    expect(base[1]?.distancePercent).toBe(0);
   });
 
-  it("cycles duck skins and names when players exceed available duck sprites", () => {
+  it("cycles duck skins and labels ducks with user names", () => {
     expect(getDuckRaceSkinIndex(0)).toBe(1);
-    expect(getDuckRaceSkinIndex(DUCK_RACE_DUCK_NAMES.length)).toBe(1);
-    expect(getDuckRaceDuckName(1)).toBe("Vịt Vàng");
+    expect(getDuckRaceSkinIndex(DUCK_RACE_SKIN_COUNT)).toBe(1);
 
-    const participants = Array.from({ length: DUCK_RACE_DUCK_NAMES.length + 2 }, (_, index) => ({
+    const participants = Array.from({ length: DUCK_RACE_SKIN_COUNT + 2 }, (_, index) => ({
       id: `p${index + 1}`,
       name: `Player ${index + 1}`,
       initials: `P${index + 1}`,
@@ -90,19 +90,19 @@ describe("hoc-tap duck race helpers", () => {
 
     expect(byId.get("p1")).toMatchObject({
       duckSkinIndex: 1,
-      duckName: "Vịt Vàng",
+      duckName: "Player 1",
     });
-    expect(byId.get(`p${DUCK_RACE_DUCK_NAMES.length + 1}`)).toMatchObject({
+    expect(byId.get(`p${DUCK_RACE_SKIN_COUNT + 1}`)).toMatchObject({
       duckSkinIndex: 1,
-      duckName: "Vịt Vàng",
+      duckName: "Player 11",
     });
-    expect(byId.get(`p${DUCK_RACE_DUCK_NAMES.length + 2}`)).toMatchObject({
+    expect(byId.get(`p${DUCK_RACE_SKIN_COUNT + 2}`)).toMatchObject({
       duckSkinIndex: 2,
-      duckName: "Vịt Lá",
+      duckName: "Player 12",
     });
   });
 
-  it("keeps a playable human host, sorts players, and assigns shared ranks", () => {
+  it("sorts players, assigns shared ranks, and keeps per-score distance", () => {
     const standings = buildDuckRaceStandings(
       [
         {
@@ -113,15 +113,6 @@ describe("hoc-tap duck race helpers", () => {
           score: 200,
           isHost: false,
           joinedAt: "2026-06-23T10:00:00.000Z",
-        },
-        {
-          id: "host",
-          name: "Host",
-          initials: "HT",
-          avatarUrl: "",
-          score: 900,
-          isHost: true,
-          joinedAt: "2026-06-23T09:59:00.000Z",
         },
         {
           id: "p2",
@@ -145,24 +136,13 @@ describe("hoc-tap duck race helpers", () => {
       4,
     );
 
-    expect(standings.map((item) => item.id)).toEqual([
-      "host",
-      "p2",
-      "p1",
-      "p3",
-    ]);
-    expect(standings.map((item) => item.rank)).toEqual([1, 2, 3, 3]);
+    expect(standings.map((item) => item.id)).toEqual(["p2", "p1", "p3"]);
+    expect(standings.map((item) => item.rank)).toEqual([1, 2, 2]);
     expect(standings.map((item) => item.distancePercent)).toEqual([
-      0,
-      0,
-      0,
-      0,
+      75,
+      50,
+      50,
     ]);
-    expect(
-      applyDuckRaceQuestionProgress(standings, 75).map(
-        (item) => item.distancePercent,
-      ),
-    ).toEqual([75, 75, 75, 75]);
   });
 
   it("describes solo winners, ties, and scoreless sessions accurately", () => {
@@ -218,8 +198,7 @@ describe("hoc-tap duck race helpers", () => {
       3,
     );
 
-    expect(getDuckRaceOutcomeLabel(applyDuckRaceQuestionProgress(solo, 100)))
-      .toContain("chạm vạch đích");
+    expect(getDuckRaceOutcomeLabel(solo)).toContain("chạm vạch đích");
     expect(getDuckRaceOutcomeLabel(tie)).toBe(
       "Lan, Minh đồng hạng nhất với 200 điểm.",
     );

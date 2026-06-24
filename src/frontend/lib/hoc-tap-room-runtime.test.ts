@@ -25,6 +25,7 @@ const storeMocks = vi.hoisted(() => {
     submitHocTapRoomAnswer: vi.fn(),
     updateHocTapRoomSettings: vi.fn(),
     deleteHocTapRoom: vi.fn(),
+    leaveHocTapRoom: vi.fn(),
     advanceHocTapRoom: vi.fn(),
     updateHocTapRoomQuestions: vi.fn(),
   };
@@ -43,6 +44,7 @@ vi.mock("@/lib/hoc-tap-room-service", () => ({
   submitSupabaseHocTapRoomAnswer: vi.fn(),
   updateSupabaseHocTapRoomSettings: vi.fn(),
   deleteSupabaseHocTapRoom: vi.fn(),
+  leaveSupabaseHocTapRoom: vi.fn(),
   advanceSupabaseHocTapRoom: vi.fn(),
   updateSupabaseHocTapRoomQuestions: vi.fn(),
 }));
@@ -57,11 +59,13 @@ vi.mock("@/lib/hoc-tap-room-store", () => ({
   submitHocTapRoomAnswer: storeMocks.submitHocTapRoomAnswer,
   updateHocTapRoomSettings: storeMocks.updateHocTapRoomSettings,
   deleteHocTapRoom: storeMocks.deleteHocTapRoom,
+  leaveHocTapRoom: storeMocks.leaveHocTapRoom,
   advanceHocTapRoom: storeMocks.advanceHocTapRoom,
   updateHocTapRoomQuestions: storeMocks.updateHocTapRoomQuestions,
 }));
 
 import {
+  createHocTapRoomWithRuntime,
   getHocTapRoomWithRuntime,
   listHocTapRoomsWithRuntime,
 } from "@/lib/hoc-tap-room-runtime";
@@ -102,5 +106,28 @@ describe("hoc-tap room runtime", () => {
       ),
     ).rejects.toThrow("Không tìm thấy phòng trong Supabase runtime.");
     expect(storeMocks.getHocTapRoomSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("passes the session user id as the memory room creator key", async () => {
+    storeMocks.createHocTapRoom.mockReturnValueOnce({
+      room: { code: "ROOM42" },
+      participantId: "player-1",
+    });
+
+    await createHocTapRoomWithRuntime(
+      { mode: "memory", userId: "user-1" },
+      {
+        hostName: "Demo User",
+        quizId: "ai-marketing",
+      },
+    );
+
+    expect(storeMocks.createHocTapRoom).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hostName: "Demo User",
+        quizId: "ai-marketing",
+        creatorKey: "user-1",
+      }),
+    );
   });
 });

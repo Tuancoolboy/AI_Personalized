@@ -27,6 +27,10 @@ describe("/api/hoc-tap/rooms/[code]", () => {
       hostName: "Host One",
       quizId: "ai-marketing",
     });
+    joinHocTapRoom({
+      code: created.room.code,
+      playerName: "Lan Anh",
+    });
 
     const response = await PATCH(
       new Request(`http://localhost/api/hoc-tap/rooms/${created.room.code}`, {
@@ -133,6 +137,10 @@ describe("/api/hoc-tap/rooms/[code]", () => {
       hostName: "Host One",
       quizId: "ai-marketing",
     });
+    joinHocTapRoom({
+      code: created.room.code,
+      playerName: "Lan Anh",
+    });
 
     const response = await START_ROOM(
       new Request(
@@ -188,7 +196,7 @@ describe("/api/hoc-tap/rooms/[code]", () => {
       code: created.room.code,
       roomDeleted: false,
     });
-    expect(getHocTapRoomSnapshot(created.room.code).participantCount).toBe(1);
+    expect(getHocTapRoomSnapshot(created.room.code).participantCount).toBe(0);
   });
 
   it("deletes the room when the host leaves via POST /leave", async () => {

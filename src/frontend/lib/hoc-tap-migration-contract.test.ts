@@ -30,6 +30,13 @@ const roomLifecycleMigration = readFileSync(
   ),
   "utf8",
 );
+const hostSpectatorCapacityMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260623163938_hoc_tap_room_host_spectator_capacity.sql",
+  ),
+  "utf8",
+);
 
 describe("hoc-tap real XP migration contract", () => {
   it("keeps quiz XP server-only and idempotent", () => {
@@ -84,12 +91,16 @@ describe("hoc-tap real XP migration contract", () => {
     expect(mapThemeMigration).toContain("'map_theme', rooms.map_theme");
   });
 
-  it("counts a human host as a player in preview and room capacity", () => {
-    expect(humanHostMigration).toContain(
-      "not players.is_host or rooms.host_mode = 'human'",
+  it("overrides room preview and capacity to exclude spectator hosts", () => {
+    expect(humanHostMigration).toContain("rooms.host_mode = 'human'");
+    expect(hostSpectatorCapacityMigration).toContain(
+      "and not players.is_host",
     );
-    expect(humanHostMigration).toContain(
-      "not participants.is_host or target_room.host_mode = 'human'",
+    expect(hostSpectatorCapacityMigration).toContain(
+      "and not participants.is_host",
+    );
+    expect(hostSpectatorCapacityMigration).not.toContain(
+      "target_room.host_mode = 'human'",
     );
   });
 

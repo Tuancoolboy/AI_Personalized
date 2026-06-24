@@ -5,10 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Flag, Trophy, Waves } from "lucide-react";
 import { UserAvatar } from "@/components/user-avatar";
 import {
-  applyDuckRaceQuestionProgress,
   buildDuckRaceStandings,
   getDuckRaceOutcomeLabel,
-  getDuckRaceQuestionProgressPercent,
+  type DuckRaceStanding,
 } from "@/lib/hoc-tap-duck-race";
 import type { HocTapRoomSnapshot } from "@/lib/hoc-tap-room-store";
 
@@ -25,11 +24,8 @@ export function DuckRaceFinishPanel({
     () => buildDuckRaceStandings(room.leaderboard, room.questionCount),
     [room.leaderboard, room.questionCount],
   );
-  const finishedStandings = useMemo(
-    () => applyDuckRaceQuestionProgress(standings, 100),
-    [standings],
-  );
-  const winnerLabel = getDuckRaceOutcomeLabel(finishedStandings);
+  const raceLanes = useMemo(() => sortRaceLanesByJoinOrder(standings), [standings]);
+  const winnerLabel = getDuckRaceOutcomeLabel(standings);
 
   return (
     <div className="space-y-5">
@@ -49,13 +45,13 @@ export function DuckRaceFinishPanel({
         </p>
       </div>
 
-      <DuckRaceCanvas standings={finishedStandings} animate={false} />
+      <DuckRaceCanvas standings={raceLanes} animate={false} />
 
       <div className="grid gap-3 sm:grid-cols-3">
         <RaceStatCard
           icon={Flag}
           label="Đích"
-          value="100% đường đua"
+          value="Tối đa 100%"
         />
         <RaceStatCard
           icon={Waves}
@@ -107,7 +103,7 @@ export function DuckRaceFinishPanel({
                       {participant.name}
                     </p>
                     <p className="text-[11px] font-semibold text-ink-3">
-                      Đã hoàn thành đường đua
+                      Đường đua {Math.round(participant.distancePercent)}%
                     </p>
                   </div>
                 </div>
@@ -116,7 +112,7 @@ export function DuckRaceFinishPanel({
                     {participant.score} điểm
                   </p>
                   <p className="text-[11px] font-semibold text-ink-3">
-                    {participant.duckName}
+                    Vịt: {participant.duckName}
                   </p>
                 </div>
               </div>
@@ -140,22 +136,15 @@ export function DuckRaceFinishPanel({
 }
 
 export function DuckRaceProgressPanel({ room }: { room: HocTapRoomSnapshot }) {
-  const progressPercent = getDuckRaceQuestionProgressPercent({
-    questionCount: room.questionCount,
-    currentQuestionIndex: room.currentQuestionIndex,
-    phase: room.phase,
-    status: room.status,
-  });
-  const completedQuestionCount = Math.round(
-    (progressPercent / 100) * room.questionCount,
-  );
   const standings = useMemo(
-    () =>
-      applyDuckRaceQuestionProgress(
-        buildDuckRaceStandings(room.leaderboard, room.questionCount),
-        progressPercent,
-      ),
-    [progressPercent, room.leaderboard, room.questionCount],
+    () => buildDuckRaceStandings(room.leaderboard, room.questionCount),
+    [room.leaderboard, room.questionCount],
+  );
+  const raceLanes = useMemo(() => sortRaceLanesByJoinOrder(standings), [standings]);
+  const topProgress = standings.reduce(
+    (maxProgress, participant) =>
+      Math.max(maxProgress, participant.distancePercent),
+    0,
   );
 
   return (
@@ -169,18 +158,18 @@ export function DuckRaceProgressPanel({ room }: { room: HocTapRoomSnapshot }) {
             Bản đồ đua vịt
           </p>
           <h2 className="mt-1 font-display text-lg font-black text-ink">
-            Cả team đã đi {completedQuestionCount}/{room.questionCount} chặng
+            Câu {room.currentQuestionIndex + 1}/{room.questionCount} đang chạy
           </h2>
         </div>
         <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-sky-700 shadow-sm">
-          {Math.round(progressPercent)}% đường đua
+          Dẫn đầu {Math.round(topProgress)}%
         </span>
       </div>
       <p className="text-xs font-semibold leading-5 text-ink-2">
-        Mỗi câu hoàn tất sẽ đưa toàn bộ vịt tiến thêm một chặng. Điểm vẫn dùng
-        để xếp hạng chung cuộc.
+        Trả lời đúng thì vịt của người đó tiến thêm một chặng. Trả lời sai thì
+        vịt đứng yên, điểm vẫn quyết định thứ hạng.
       </p>
-      <DuckRaceCanvas standings={standings} animate />
+      <DuckRaceCanvas standings={raceLanes} animate />
     </section>
   );
 }
@@ -189,21 +178,28 @@ function DuckRaceCanvas({
   standings,
   animate,
 }: {
-  standings: ReturnType<typeof buildDuckRaceStandings>;
+  standings: DuckRaceStanding[];
   animate: boolean;
 }) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageCacheRef = useRef<Map<number, HTMLImageElement>>(new Map());
   const [canvasWidth, setCanvasWidth] = useState(960);
-  const targetProgress = standings[0]?.distancePercent ?? 0;
-  const previousProgressRef = useRef(targetProgress);
-  const [displayProgress, setDisplayProgress] = useState(targetProgress);
+  const initialDistances = useMemo(
+    () => createDistanceMap(standings),
+    [standings],
+  );
+  const displayDistancesRef = useRef<Record<string, number>>(initialDistances);
+  const [displayDistances, setDisplayDistances] =
+    useState<Record<string, number>>(initialDistances);
   const [imageVersion, setImageVersion] = useState(0);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const compact = canvasWidth < 560;
   const laneHeight = compact ? 72 : 84;
   const canvasHeight = Math.max(220, standings.length * laneHeight + 64);
+  const distanceKey = standings
+    .map((participant) => `${participant.id}:${participant.distancePercent}`)
+    .join("|");
 
   useEffect(() => {
     const node = wrapperRef.current;
@@ -230,15 +226,26 @@ function DuckRaceCanvas({
   }, []);
 
   useEffect(() => {
-    const fromProgress = previousProgressRef.current;
-    previousProgressRef.current = targetProgress;
+    const fromDistances = displayDistancesRef.current;
+    const targetDistances = createDistanceMap(standings);
+    const hasForwardMovement = standings.some(
+      (participant) => {
+        const targetDistance =
+          targetDistances[participant.id] ?? participant.distancePercent;
+        return (
+          targetDistance >
+          (fromDistances[participant.id] ?? targetDistance) + 0.01
+        );
+      },
+    );
 
     if (
       !animate ||
       prefersReducedMotion ||
-      Math.abs(fromProgress - targetProgress) < 0.01
+      !hasForwardMovement
     ) {
-      setDisplayProgress(targetProgress);
+      displayDistancesRef.current = targetDistances;
+      setDisplayDistances(targetDistances);
       return;
     }
 
@@ -249,9 +256,20 @@ function DuckRaceCanvas({
       const elapsed = time - startedAt;
       const linearProgress = Math.min(1, elapsed / RACE_ANIMATION_MS);
       const easedProgress = 1 - Math.pow(1 - linearProgress, 3);
-      setDisplayProgress(
-        fromProgress + (targetProgress - fromProgress) * easedProgress,
+      const nextDistances = standings.reduce<Record<string, number>>(
+        (distances, participant) => {
+          const targetDistance =
+            targetDistances[participant.id] ?? participant.distancePercent;
+          const fromDistance =
+            fromDistances[participant.id] ?? targetDistance;
+          distances[participant.id] =
+            fromDistance + (targetDistance - fromDistance) * easedProgress;
+          return distances;
+        },
+        {},
       );
+      displayDistancesRef.current = nextDistances;
+      setDisplayDistances(nextDistances);
       if (linearProgress < 1) {
         frameId = window.requestAnimationFrame(animateStep);
       }
@@ -259,7 +277,7 @@ function DuckRaceCanvas({
 
     frameId = window.requestAnimationFrame(animateStep);
     return () => window.cancelAnimationFrame(frameId);
-  }, [animate, prefersReducedMotion, targetProgress]);
+  }, [animate, distanceKey, prefersReducedMotion, standings]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -274,7 +292,10 @@ function DuckRaceCanvas({
 
     const duckWidth = compact ? 52 : 72;
     const duckHeight = compact ? 40 : 54;
-    const startX = compact ? 80 : 132;
+    const labelAreaWidth = compact
+      ? Math.min(150, Math.max(112, canvasWidth * 0.36))
+      : 170;
+    const startX = Math.round(labelAreaWidth + (compact ? 12 : 20));
     const finishLineX = canvasWidth - (compact ? 30 : 54);
     const trackLength = Math.max(
       0,
@@ -310,11 +331,13 @@ function DuckRaceCanvas({
 
     standings.forEach((participant, index) => {
       const laneTop = 36 + index * laneHeight;
-      const duckProgress = (trackLength * displayProgress) / 100;
+      const duckDisplayPercent =
+        displayDistances[participant.id] ?? participant.distancePercent;
+      const duckProgress = (trackLength * duckDisplayPercent) / 100;
       const duckX = startX + duckProgress;
       const bobbingOffset = prefersReducedMotion
         ? 0
-        : Math.sin(displayProgress * Math.PI * 0.08 + index) * 1.5;
+        : Math.sin(duckDisplayPercent * Math.PI * 0.08 + index) * 1.5;
       const duckY = laneTop + bobbingOffset;
       const duckImage = getDuckImage(
         participant.duckSkinIndex,
@@ -338,14 +361,15 @@ function DuckRaceCanvas({
       if (duckImage.complete && duckImage.naturalWidth > 0) {
         context.drawImage(duckImage, duckX, duckY, duckWidth, duckHeight);
         context.fillStyle = "#0f3f2d";
-        context.font = `800 ${compact ? 10 : 12}px ui-sans-serif, system-ui, sans-serif`;
+        context.font = `900 ${compact ? 9 : 11}px ui-sans-serif, system-ui, sans-serif`;
         context.textAlign = "center";
-        drawFittedCanvasText(
+        drawScaledCanvasText(
           context,
-          participant.duckName.replace(/^Vịt\s+/u, ""),
-          duckX + duckWidth * 0.16,
+          `${Math.round(duckDisplayPercent)}%`,
+          duckX + duckWidth * 0.53,
           duckY + duckHeight * 0.73,
-          duckWidth * 0.72,
+          duckWidth * 0.36,
+          compact ? 6 : 7,
         );
         context.textAlign = "start";
       } else {
@@ -354,44 +378,25 @@ function DuckRaceCanvas({
       }
 
       context.fillStyle = "#0f3f2d";
-      context.font = `700 ${compact ? 11 : 13}px ui-sans-serif, system-ui, sans-serif`;
-      drawFittedCanvasText(
+      context.font = `800 ${compact ? 8 : 10}px ui-sans-serif, system-ui, sans-serif`;
+      drawScaledCanvasText(
         context,
         participant.name,
         compact ? 8 : 16,
         duckY + 18,
-        startX - (compact ? 16 : 28),
+        labelAreaWidth - (compact ? 10 : 16),
+        compact ? 6 : 8,
       );
       context.font = `600 ${compact ? 9 : 11}px ui-sans-serif, system-ui, sans-serif`;
       context.fillStyle = "rgba(15, 63, 45, 0.78)";
       context.fillText(
-        `${participant.duckName} - ${participant.score} điểm`,
+        `${participant.score} điểm - ${Math.round(participant.distancePercent)}%`,
         compact ? 8 : 16,
         duckY + (compact ? 34 : 39),
       );
-
-      const bubbleWidth = compact ? 52 : 68;
-      const bubbleX = Math.min(
-        canvasWidth - bubbleWidth - 8,
-        duckX + duckWidth - 4,
-      );
-      context.fillStyle = "rgba(255,255,255,0.92)";
-      context.fillRect(
-        bubbleX,
-        duckY + (compact ? 4 : 8),
-        bubbleWidth,
-        compact ? 22 : 26,
-      );
-      context.fillStyle = "#114b35";
-      context.font = `700 ${compact ? 10 : 12}px ui-sans-serif, system-ui, sans-serif`;
-      context.fillText(
-        `${Math.round(displayProgress)}%`,
-        bubbleX + (compact ? 10 : 14),
-        duckY + (compact ? 19 : 25),
-      );
     });
   }, [
-    displayProgress,
+    displayDistances,
     canvasHeight,
     canvasWidth,
     compact,
@@ -415,12 +420,10 @@ function DuckRaceCanvas({
     .slice(0, 3)
     .map(
       (participant) =>
-        `hạng ${participant.rank} ${participant.name} cùng ${participant.duckName}, ${participant.score} điểm`,
+        `hạng ${participant.rank} ${participant.name}, ${participant.score} điểm, ${Math.round(participant.distancePercent)}% đường đua`,
     )
     .join("; ");
-  const canvasLabel = `Đường đua vịt đã hoàn thành ${Math.round(
-    displayProgress,
-  )}%. ${raceSummary}.`;
+  const canvasLabel = `Đường đua vịt. Mỗi vịt tiến theo số câu đúng của người chơi. ${raceSummary}.`;
 
   return (
     <div
@@ -438,6 +441,25 @@ function DuckRaceCanvas({
       </canvas>
     </div>
   );
+}
+
+function createDistanceMap(standings: DuckRaceStanding[]): Record<string, number> {
+  return standings.reduce<Record<string, number>>((distances, participant) => {
+    distances[participant.id] = participant.distancePercent;
+    return distances;
+  }, {});
+}
+
+function sortRaceLanesByJoinOrder(
+  standings: DuckRaceStanding[],
+): DuckRaceStanding[] {
+  return standings
+    .slice()
+    .sort(
+      (left, right) =>
+        left.joinedAt.localeCompare(right.joinedAt) ||
+        left.id.localeCompare(right.id),
+    );
 }
 
 function drawFinishLine(
@@ -493,6 +515,48 @@ function drawFittedCanvasText(
     shortened = shortened.slice(0, -1);
   }
   context.fillText(`${shortened}…`, x, y);
+}
+
+function drawScaledCanvasText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  minFontSize: number,
+) {
+  const currentFont = context.font;
+  const fontMatch = currentFont.match(/(\d+(?:\.\d+)?)px\s+(.+)$/);
+  if (!fontMatch || context.measureText(text).width <= maxWidth) {
+    context.fillText(text, x, y);
+    return;
+  }
+
+  const [, rawFontSize, fontFamily] = fontMatch;
+  const fontSize = Number(rawFontSize);
+  if (!Number.isFinite(fontSize)) {
+    drawFittedCanvasText(context, text, x, y, maxWidth);
+    return;
+  }
+
+  let nextFontSize = fontSize;
+  while (
+    nextFontSize > minFontSize &&
+    context.measureText(text).width > maxWidth
+  ) {
+    nextFontSize -= 0.5;
+    context.font = currentFont.replace(
+      `${rawFontSize}px ${fontFamily}`,
+      `${nextFontSize}px ${fontFamily}`,
+    );
+  }
+
+  if (context.measureText(text).width <= maxWidth) {
+    context.fillText(text, x, y);
+  } else {
+    drawFittedCanvasText(context, text, x, y, maxWidth);
+  }
+  context.font = currentFont;
 }
 
 function RaceStatCard({
