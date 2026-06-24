@@ -57,6 +57,36 @@ describe("hoc-tap room identity", () => {
     expect(storage.getItem("ai_troly_hoc_tap_room_AB12")).toBeNull();
   });
 
+  it("recovers identity saved under a display-name alias after email hydrate", () => {
+    const storage = createMemoryStorage();
+    saveHocTapRoomIdentity(
+      "AB12",
+      "demo user",
+      {
+        participantId: "host-player",
+        hostToken: "host-token",
+      },
+      storage,
+    );
+
+    expect(
+      readHocTapRoomIdentity(
+        "AB12",
+        "demo@example.com",
+        ["demo user"],
+        storage,
+      ),
+    ).toEqual({
+      participantId: "host-player",
+      hostToken: "host-token",
+    });
+    expect(
+      storage.values.has(
+        getHocTapRoomIdentityStorageKey("AB12", "demo@example.com"),
+      ),
+    ).toBe(true);
+  });
+
   it("clears both current and legacy keys", () => {
     const storage = createMemoryStorage();
     saveHocTapRoomIdentity(

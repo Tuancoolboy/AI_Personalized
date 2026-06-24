@@ -239,6 +239,13 @@ function createFakeSupabase(seed?: Partial<FakeDb>) {
           return { data: { error_code: "ROOM_LOCKED" }, error: null };
         }
 
+        const playerCount = tables.hoc_tap_room_participants.filter(
+          (row) => row.room_id === room.id && row.is_host === false,
+        ).length;
+        if (playerCount >= Number(room.max_players ?? 20)) {
+          return { data: { error_code: "ROOM_FULL" }, error: null };
+        }
+
         const participantId = String(args.requested_participant_id);
         const now = new Date().toISOString();
         tables.hoc_tap_room_participants.push({
@@ -294,6 +301,7 @@ describe("hoc-tap room service", () => {
       "player-user": "org-1",
       "outside-user": "org-2",
       "new-user": "org-1",
+      "third-user": "org-1",
       "community-a": "community-org",
       "community-b": "community-org",
     };
@@ -326,7 +334,7 @@ describe("hoc-tap room service", () => {
         code: created.room.code,
         isLocked: true,
         mapTheme: "duck-race",
-        participantCount: 1,
+        participantCount: 0,
       }),
     ]);
 
@@ -339,7 +347,7 @@ describe("hoc-tap room service", () => {
       },
     );
 
-    expect(joined.room.participantCount).toBe(2);
+    expect(joined.room.participantCount).toBe(1);
     expect(joined.room.mapTheme).toBe("duck-race");
     expect(joined.room.participants).toEqual(
       expect.arrayContaining([
@@ -352,7 +360,7 @@ describe("hoc-tap room service", () => {
     );
   });
 
-  it("lets a human host start and answer as a player", async () => {
+  it("treats a human host as spectator and rejects host answers", async () => {
     const created = await createSupabaseHocTapRoom(
       { userId: "host-user" },
       {
@@ -362,7 +370,27 @@ describe("hoc-tap room service", () => {
       },
     );
 
-    expect(created.room.participantCount).toBe(1);
+    expect(created.room.participantCount).toBe(0);
+    await expect(
+      startSupabaseHocTapRoom(
+        { userId: "host-user" },
+        created.room.code,
+        created.participantId,
+      ),
+    ).rejects.toMatchObject({
+      code: "ROOM_EMPTY",
+    });
+
+    mockSupabase.userId = "player-user";
+    await joinSupabaseHocTapRoom(
+      { userId: "player-user" },
+      {
+        code: created.room.code,
+        playerName: "Lan Anh",
+      },
+    );
+
+    mockSupabase.userId = "host-user";
     const started = await startSupabaseHocTapRoom(
       { userId: "host-user" },
       created.room.code,
@@ -374,20 +402,18 @@ describe("hoc-tap room service", () => {
       .getRows("hoc_tap_rooms")[0]?.questions_json as Array<{
       correctIndex: number;
     }>;
-    const answered = await submitSupabaseHocTapRoomAnswer(
-      { userId: "host-user" },
-      {
-        code: created.room.code,
-        participantId: created.participantId,
-        questionIndex: 0,
-        answerIndex: question[0]?.correctIndex ?? 0,
-      },
-    );
-
-    expect(answered.phase).toBe("reveal");
-    expect(answered.leaderboard[0]).toMatchObject({
-      name: "Host One",
-      isHost: true,
+    await expect(
+      submitSupabaseHocTapRoomAnswer(
+        { userId: "host-user" },
+        {
+          code: created.room.code,
+          participantId: created.participantId,
+          questionIndex: 0,
+          answerIndex: question[0]?.correctIndex ?? 0,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "HOST_CANNOT_ANSWER",
     });
   });
 
@@ -453,6 +479,158 @@ describe("hoc-tap room service", () => {
         .getRows("hoc_tap_room_participants")
         .filter((row) => row.user_id === "player-user"),
     ).toHaveLength(1);
+  });
+
+  it("blocks full Supabase rooms and opens a slot after a player leaves", async () => {
+    const created = await createSupabaseHocTapRoom(
+      { userId: "host-user" },
+      {
+        hostName: "Host One",
+        quizId: "ai-marketing",
+        mode: "classic",
+        maxPlayers: 2,
+      },
+    );
+
+    mockSupabase.userId = "player-user";
+    const firstJoin = await joinSupabaseHocTapRoom(
+      { userId: "player-user" },
+      {
+        code: created.room.code,
+        playerName: "Lan Anh",
+      },
+    );
+
+    mockSupabase.userId = "new-user";
+    await joinSupabaseHocTapRoom(
+      { userId: "new-user" },
+      {
+        code: created.room.code,
+        playerName: "Minh",
+      },
+    );
+
+    mockSupabase.userId = "third-user";
+    await expect(
+      joinSupabaseHocTapRoom(
+        { userId: "third-user" },
+        {
+          code: created.room.code,
+          playerName: "Người thứ ba",
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "ROOM_FULL",
+      message: "Phòng đầy.",
+    });
+
+    mockSupabase.userId = "player-user";
+    await leaveSupabaseHocTapRoom(
+      { userId: "player-user" },
+      {
+        code: created.room.code,
+        participantId: firstJoin.participantId,
+      },
+    );
+
+    mockSupabase.userId = "third-user";
+    const joinedAfterLeave = await joinSupabaseHocTapRoom(
+      { userId: "third-user" },
+      {
+        code: created.room.code,
+        playerName: "Người thứ ba",
+      },
+    );
+
+    expect(joinedAfterLeave.room.participantCount).toBe(2);
+  });
+
+  it("blocks the same Supabase creator from opening another active room", async () => {
+    const first = await createSupabaseHocTapRoom(
+      { userId: "host-user" },
+      {
+        hostName: "Host One",
+        quizId: "ai-marketing",
+      },
+    );
+
+    await expect(
+      createSupabaseHocTapRoom(
+        { userId: "host-user" },
+        {
+          hostName: "Host One",
+          quizId: "ai-ban-hang",
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "ACTIVE_ROOM_EXISTS",
+      message:
+        "Bạn đã có một phòng đang mở. Hãy rời & xoá phòng cũ trước khi tạo phòng mới.",
+    });
+    expect(mockSupabase.client!.getRows("hoc_tap_rooms")).toHaveLength(1);
+
+    await expect(
+      leaveSupabaseHocTapRoom(
+        { userId: "host-user" },
+        {
+          code: first.room.code,
+          participantId: first.participantId,
+        },
+      ),
+    ).resolves.toEqual({ code: first.room.code, roomDeleted: true });
+
+    await expect(
+      createSupabaseHocTapRoom(
+        { userId: "host-user" },
+        {
+          hostName: "Host One",
+          quizId: "ai-ban-hang",
+        },
+      ),
+    ).resolves.toMatchObject({
+      room: expect.objectContaining({
+        quizId: "ai-ban-hang",
+      }),
+    });
+  });
+
+  it("deletes a system-hosted Supabase room when the creator-player leaves", async () => {
+    const created = await createSupabaseHocTapRoom(
+      { userId: "host-user" },
+      {
+        hostName: "Creator Player",
+        quizId: "ai-marketing",
+        entryRole: "player",
+      },
+    );
+
+    expect(created.room.hostMode).toBe("system");
+    expect(created.room.participantCount).toBe(1);
+    await expect(
+      createSupabaseHocTapRoom(
+        { userId: "host-user" },
+        {
+          hostName: "Creator Player",
+          quizId: "ai-ban-hang",
+          entryRole: "player",
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "ACTIVE_ROOM_EXISTS",
+    });
+
+    await expect(
+      leaveSupabaseHocTapRoom(
+        { userId: "host-user" },
+        {
+          code: created.room.code,
+          participantId: created.participantId,
+        },
+      ),
+    ).resolves.toEqual({ code: created.room.code, roomDeleted: true });
+
+    expect(mockSupabase.client!.getRows("hoc_tap_rooms")).toHaveLength(0);
+    expect(mockSupabase.client!.getRows("hoc_tap_room_participants")).toHaveLength(0);
   });
 
   it("lets a player leave without deleting the room and cascades their answers", async () => {
@@ -523,7 +701,7 @@ describe("hoc-tap room service", () => {
         created.participantId,
       ),
     ).resolves.toMatchObject({
-      participantCount: 1,
+      participantCount: 0,
       viewerParticipantId: created.participantId,
     });
   });

@@ -179,6 +179,13 @@ export async function createSupabaseHocTapRoom(
   input: HocTapRoomCreateInput,
 ): Promise<HocTapRoomCreateResult> {
   const organizationId = await resolveRoomOrganizationId(session.userId);
+  await cleanupExpiredRooms(organizationId);
+  const supabase = await createSupabaseServerClient();
+  await assertCreatorCanOpenSupabaseRoom(
+    supabase,
+    organizationId,
+    session.userId,
+  );
   const displayName = normalizeDisplayName(input.hostName);
   const avatarChoice = normalizeAvatarChoice(input.avatarSeed);
   const roomType = input.roomType ?? "host-review";
@@ -192,7 +199,6 @@ export async function createSupabaseHocTapRoom(
   const hostParticipantId = randomUUID();
   let participantId = hostParticipantId;
 
-  const supabase = await createSupabaseServerClient();
   const { error: roomError } = await supabase.from("hoc_tap_rooms").insert({
     id: roomId,
     code,
@@ -403,10 +409,10 @@ export async function submitSupabaseHocTapRoomAnswer(
       "Bạn chưa tham gia phòng này.",
     );
   }
-  if (participant.is_host && settled.room.host_mode === "system") {
+  if (participant.is_host) {
     throw new HocTapRoomError(
       "HOST_CANNOT_ANSWER",
-      "AI Host chỉ điều khiển phòng và không tham gia trả lời.",
+      "Chủ phòng chỉ quan sát và không tham gia trả lời.",
     );
   }
 
@@ -767,7 +773,10 @@ function serializeRoom(
     viewerParticipantId,
     isHost,
     canManageRoom,
-    canStart: loaded.room.status === "waiting" && canManageRoom,
+    canStart:
+      loaded.room.status === "waiting" &&
+      canManageRoom &&
+      getPlayers(loaded).length > 0,
     leaderboard,
     roundTopFive: leaderboard.slice(0, 5),
     finalTopThree:
@@ -906,6 +915,31 @@ async function cleanupExpiredRooms(organizationId: string): Promise<void> {
     .eq("organization_id", organizationId)
     .eq("status", "finished")
     .lt("last_activity_at", finishedCutoff);
+}
+
+async function assertCreatorCanOpenSupabaseRoom(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  organizationId: string,
+  userId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("hoc_tap_rooms")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("created_by_user_id", userId)
+    .in("status", ["waiting", "playing"])
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  if (data) {
+    throw new HocTapRoomError(
+      "ACTIVE_ROOM_EXISTS",
+      "Bạn đã có một phòng đang mở. Hãy rời & xoá phòng cũ trước khi tạo phòng mới.",
+    );
+  }
 }
 
 async function resolveRoomOrganizationId(userId: string): Promise<string> {
@@ -1292,9 +1326,7 @@ function getQuestionAt(
 }
 
 function getPlayers(loaded: LoadedRoom): ParticipantRow[] {
-  return loaded.room.host_mode === "human"
-    ? loaded.participants
-    : loaded.participants.filter((participant) => !participant.is_host);
+  return loaded.participants.filter((participant) => !participant.is_host);
 }
 
 function countAnsweredPlayers(
@@ -1355,7 +1387,7 @@ function throwJoinRoomRpcError(errorCode?: string) {
     );
   }
   if (errorCode === "ROOM_FULL") {
-    throw new HocTapRoomError("ROOM_FULL", "Phòng đã đủ người chơi.");
+    throw new HocTapRoomError("ROOM_FULL", "Phòng đầy.");
   }
   if (errorCode === "ROOM_LOCKED") {
     throw new HocTapRoomError(

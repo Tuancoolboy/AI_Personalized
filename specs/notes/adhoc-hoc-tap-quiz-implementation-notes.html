@@ -165,5 +165,55 @@
   <p>Dùng thứ tự tham gia thay vì hash participant id để tránh trùng sprite sớm khi chưa đủ 10 người. Tradeoff là nếu dữ liệu joined time bị đổi, tên vịt có thể đổi theo, nhưng trong room runtime hiện tại <code>joinedAt</code> ổn định.</p>
   <h3>Bất kỳ điều gì khác cần lưu ý</h3>
   <p>Verification: targeted Vitest <code>hoc-tap-duck-race.test.ts</code> pass 7/7; <code>npm run lint</code> pass với 5 warning cũ; Node 20 build pass.</p>
+
+  <h2>10. Update 2026-06-23 — Chủ phòng quan sát, sức chứa và Đua vịt theo câu đúng</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Supersede hai quyết định gần nhất: human host không còn là player nữa và tên vịt cố định không còn hiển thị cho user. Memory store và Supabase service cùng dùng invariant <code>player = participant không phải host</code>. Duck Race vẫn quay vòng sprite theo thứ tự vào phòng, nhưng <code>duckName</code> là tên user trong lobby; distance tính riêng từ <code>score / (questionCount * 100)</code>.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Host ở chế độ <code>entryRole="host"</code> chỉ được start/advance/lock/leave-delete và xem kết quả, không trả lời quiz, không tính vào capacity, answer completion hay leaderboard. Luồng <code>entryRole="player"</code> vẫn giữ người tạo là player thật dưới AI Host để không mất lựa chọn tự chơi.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không thêm schema mới để tách host và player role, vì row <code>is_host</code> hiện đã đủ cho quyền điều khiển. Migration mới chỉ override preview/join RPC để đếm non-host participant, tránh sửa migration đã push. UI chặn full room ở card và sảnh, nhưng runtime/API vẫn là lớp quyết định cuối để tránh race condition nhiều người join cùng lúc.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Migration mới là <code>20260623163938_hoc_tap_room_host_spectator_capacity.sql</code>. Verification: <code>npm run db:validate</code> pass 42 migrations; targeted Vitest room/duck/migration/route pass 55/55; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run test</code> unit phase pass 361/361 rồi API integration dừng trước case đầu tiên do Supabase credential local chứa ký tự Unicode không hợp lệ trong HTTP header (<code>ByteString</code>, value 7852); <code>npm run build</code> pass ngoài sandbox; <code>git diff --check</code> pass. Browser smoke chưa chạy vì repo không có Playwright/UI smoke script.</p>
+
+  <h2>11. Update 2026-06-24 — Mỗi creator chỉ có một phòng active</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Không xoá phòng khi người tạo chỉ back khỏi trang room hoặc đóng tab. Thay vào đó, runtime chặn user tạo phòng mới nếu còn phòng <code>waiting</code>/<code>playing</code> do chính user đó tạo; UI/API trả thông báo rõ để user quay lại thao tác <code>Rời &amp; xoá phòng</code>.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Memory store trước đó không có danh tính creator theo account nên runtime truyền thêm <code>creatorKey = session.userId</code>. Supabase dùng sẵn <code>created_by_user_id</code> và kiểm tra active room trong cùng audience trước khi insert room mới. Creator tạo bằng vai <code>entryRole="player"</code> vẫn là controller của phòng AI Host; khi participant đó rời phòng, cả room bị xoá.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không thêm unique index/migration mới để tránh fail migration nếu production đã có dữ liệu active trùng từ bug cũ. Service/runtime là lớp chặn chính cho create flow hiện tại; nếu sau này cần chống race ở mức DB, nên dọn dữ liệu trùng trước rồi mới thêm partial unique index.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Verification: <code>npm run db:validate</code> pass 42 migrations; targeted Vitest <code>hoc-tap-room-store.test.ts</code>, <code>hoc-tap-room-service.test.ts</code>, <code>hoc-tap-room-runtime.test.ts</code> pass 40/40; route create conflict test pass 2/2; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run test</code> unit 367/367 rồi API integration dừng trước case đầu tiên do Supabase credential local chứa ký tự Unicode không hợp lệ trong HTTP header (<code>ByteString</code>, value 7852); <code>npm run build</code> pass ngoài sandbox; <code>git diff --check</code> pass.</p>
+
+  <h2>12. Update 2026-06-24 — Đồng bộ avatar qua cài đặt và phòng team</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Avatar preference nay được ghi vào cả identity canonical và alias thay vì chỉ một key. Identity canonical vẫn ưu tiên email khi có, nhưng các key tên hiển thị/fullName được giữ đồng bộ để settings, account menu, Học tập và room team cùng đọc một avatar choice.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Room identity localStorage cũng chuyển sang đọc/lưu/xoá theo alias list. Khi màn tạo phòng lưu bằng tên hiển thị nhưng trang phòng hydrate sang email, app migrate mềm <code>participantId</code>/<code>hostToken</code> sang key mới thay vì coi user là người mới và hiển thị form vào phòng lại.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không đổi schema hoặc thêm trường profile mới vì server đã nhận avatar qua <code>learning_profile.avatar</code>. Cách alias localStorage giải quyết bug lệch identity trong cùng browser ngay lập tức, còn sync đa thiết bị vẫn dựa vào profile API khi Supabase real mode đã cấu hình.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Verification: targeted Node 20 Vitest <code>avatar-preferences.test.ts</code> và <code>hoc-tap-room-identity.test.ts</code> pass 5/5; scoped ESLint pass; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run test</code> Node 20 unit pass 370/370 rồi API dừng vì Node 20 thiếu native WebSocket; retry Node 22 unit pass 370/370 rồi API dừng ở lỗi credential Supabase local chứa ký tự Unicode không hợp lệ trong HTTP header (<code>ByteString</code> value 7852); Node 20 <code>npm run build</code> pass; <code>git diff --check</code> pass.</p>
+
+  <h2>13. Update 2026-06-24 — Thêm catalog avatar Alohe</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Giữ cách tải avatar Alohe qua CDN <code>cdn.jsdelivr.net/gh/alohe/avatars/png</code> thay vì commit file PNG vào repo. Catalog trong code dùng nhóm/range theo README chính thức để sinh đủ 133 avatar: <code>vibrent</code>, <code>3d</code>, <code>bluey</code>, <code>memo</code>, <code>notion</code>, <code>teams</code>, <code>toon</code> và <code>upstream</code>.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Avatar picker trước đó chỉ có 8 ảnh Alohe chọn lọc. Bản này mở toàn bộ catalog Alohe và thêm scroll cho lưới option để popup không chiếm quá nhiều chiều cao màn hình.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không tải binary về local giúp tránh tăng repository size và giữ đúng pattern hiện có của app. Tradeoff là avatar Alohe vẫn phụ thuộc CDN ngoài; nếu cần offline hoặc kiểm soát asset tuyệt đối, mở task riêng để vendor một subset ảnh vào <code>src/frontend/public/images</code>.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Verification: targeted Node 20 Vitest <code>app-avatar.test.ts</code> và <code>avatar-preferences.test.ts</code> pass 3/3; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run test</code> Node 20 unit pass 372/372 rồi API dừng vì Node 20 thiếu native WebSocket; retry Node 22 unit pass 372/372 rồi API dừng ở lỗi credential Supabase local chứa ký tự Unicode không hợp lệ trong HTTP header (<code>ByteString</code> value 7852); Node 20 <code>npm run build</code> pass.</p>
+
+  <h2>14. Update 2026-06-24 — Siết đồng bộ avatar demo</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Tạo cụm sync identity riêng cho demo employee và demo manager trong <code>avatar-preferences</code>. Employee demo đồng bộ qua <code>Demo User</code>, <code>nhanvien@congty.vn</code>, <code>demo@aitroly.local</code>; manager demo đồng bộ qua <code>Chị Quản lý</code>, <code>Quản lý</code>, <code>quanly@congty.vn</code>.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Header demo không còn truyền tên hiển thị vào field email. Nó dùng email demo thật giống trang tài khoản để account menu, cài đặt, Học tập và phòng team có cùng canonical identity ngay từ đầu.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không dùng một global avatar key cho mọi user vì có thể làm avatar demo manager/employee hoặc nhiều tài khoản thật trong cùng browser leak sang nhau. Thay vào đó, chỉ expand các identity demo đã biết, còn tài khoản thật vẫn bám email/fullName alias hiện có.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Verification: targeted Node 20 Vitest <code>avatar-preferences.test.ts</code>, <code>app-avatar.test.ts</code>, <code>hoc-tap-room-identity.test.ts</code> pass 10/10; <code>npm run lint</code> pass với 5 warning cũ; <code>npm run test</code> Node 20 unit pass 375/375 rồi API dừng vì Node 20 thiếu native WebSocket; Node 20 <code>npm run build</code> pass.</p>
 </body>
 </html>

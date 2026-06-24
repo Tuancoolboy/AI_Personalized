@@ -11,6 +11,16 @@ import {
 
 const AVATAR_STORAGE_KEY = "ai_troly_avatar_preferences_v2";
 const LEGACY_AVATAR_STORAGE_KEY = "ai_troly_avatar_preferences_v1";
+const DEMO_EMPLOYEE_AVATAR_IDENTITIES = [
+  "demo user",
+  "nhanvien@congty.vn",
+  "demo@aitroly.local",
+] as const;
+const DEMO_MANAGER_AVATAR_IDENTITIES = [
+  "chị quản lý",
+  "quản lý",
+  "quanly@congty.vn",
+] as const;
 
 export const AVATAR_PREFERENCE_EVENT =
   "ai-troly-avatar-preference-updated";
@@ -59,14 +69,7 @@ export function buildAvatarPickerOptions(identity: string): AppAvatarOption[] {
 }
 
 export function getPreferredAvatarChoice(identity: string): AppAvatarChoice | null {
-  const normalizedIdentity = normalizeAvatarIdentity(identity);
-  if (!normalizedIdentity || typeof window === "undefined") {
-    return null;
-  }
-
-  const store = readAvatarPreferenceStore();
-  const value = store[normalizedIdentity];
-  return value ? normalizeAvatarChoice(parseAvatarChoice(value), normalizedIdentity) : null;
+  return getPreferredAvatarChoiceForIdentities([identity]);
 }
 
 export function getPreferredAvatarSeed(identity: string): string | null {
@@ -82,9 +85,10 @@ export function getPreferredAvatarChoiceForIdentities(
   }
 
   const store = readAvatarPreferenceStore();
-  for (const identity of identities) {
-    const normalizedIdentity = normalizeAvatarIdentity(identity ?? "");
-    if (!normalizedIdentity) continue;
+  const lookupIdentities = expandAvatarSyncIdentities(
+    normalizeAvatarIdentityList(identities),
+  );
+  for (const normalizedIdentity of lookupIdentities) {
     const value = store[normalizedIdentity];
     if (!value) continue;
     const choice = normalizeAvatarChoice(
@@ -108,19 +112,33 @@ export function setPreferredAvatarChoice(
   identity: string,
   choice: AppAvatarChoice,
 ): void {
-  const normalizedIdentity = normalizeAvatarIdentity(identity);
+  setPreferredAvatarChoiceForIdentities(identity, [], choice);
+}
+
+export function setPreferredAvatarChoiceForIdentities(
+  identity: string,
+  aliasIdentities: Array<string | null | undefined>,
+  choice: AppAvatarChoice,
+): void {
+  const identities = expandAvatarSyncIdentities(
+    normalizeAvatarIdentityList([identity, ...aliasIdentities]),
+  );
+  const normalizedIdentity = identities[0];
   if (!normalizedIdentity || typeof window === "undefined") {
     return;
   }
 
   const normalizedChoice = normalizeAvatarChoice(choice, normalizedIdentity);
   const store = readAvatarPreferenceStore();
+  const serializedChoice = serializeAvatarChoice(normalizedChoice);
+  const nextStore = { ...store };
+  for (const identityKey of identities) {
+    nextStore[identityKey] = serializedChoice;
+  }
+
   window.localStorage.setItem(
     AVATAR_STORAGE_KEY,
-    JSON.stringify({
-      ...store,
-      [normalizedIdentity]: serializeAvatarChoice(normalizedChoice),
-    }),
+    JSON.stringify(nextStore),
   );
   window.dispatchEvent(new Event(AVATAR_PREFERENCE_EVENT));
 }
@@ -154,6 +172,41 @@ function readAvatarPreferenceStore(): Record<string, string> {
   } catch {
     return {};
   }
+}
+
+function normalizeAvatarIdentityList(
+  identities: Array<string | null | undefined>,
+): string[] {
+  return Array.from(
+    new Set(
+      identities
+        .map((identity) => normalizeAvatarIdentity(identity ?? ""))
+        .filter(Boolean),
+    ),
+  );
+}
+
+function expandAvatarSyncIdentities(identities: string[]): string[] {
+  const expanded = new Set(identities);
+  const hasEmployeeDemoIdentity = DEMO_EMPLOYEE_AVATAR_IDENTITIES.some(
+    (identity) => expanded.has(identity),
+  );
+  const hasManagerDemoIdentity = DEMO_MANAGER_AVATAR_IDENTITIES.some(
+    (identity) => expanded.has(identity),
+  );
+
+  if (hasEmployeeDemoIdentity) {
+    for (const identity of DEMO_EMPLOYEE_AVATAR_IDENTITIES) {
+      expanded.add(identity);
+    }
+  }
+  if (hasManagerDemoIdentity) {
+    for (const identity of DEMO_MANAGER_AVATAR_IDENTITIES) {
+      expanded.add(identity);
+    }
+  }
+
+  return Array.from(expanded);
 }
 
 function migrateLegacyAvatarStore(): string | null {

@@ -72,7 +72,10 @@ export async function createHocTapRoomWithRuntime(
   }
 
   return {
-    ...createHocTapRoom(input),
+    ...createHocTapRoom({
+      ...input,
+      creatorKey: session.userId,
+    }),
     persisted: false,
     source: "memory",
   } as const;

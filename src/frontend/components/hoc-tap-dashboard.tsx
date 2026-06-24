@@ -43,7 +43,7 @@ import {
   type AppAvatarChoice,
   type AppAvatarOption,
 } from "@/lib/app-avatar";
-import { buildAvatarIdentity } from "@/lib/avatar-preferences";
+import { buildAvatarIdentityCandidates } from "@/lib/avatar-preferences";
 import {
   HocTapOverview,
   HocTapOverviewLeaderboard,
@@ -53,8 +53,10 @@ import {
   fetchHocTapDepartments,
   fetchHocTapOverview,
   fetchHocTapRooms,
+  isSupabaseBackend,
   joinHocTapRoomByCode,
   previewHocTapRoomQuestions,
+  updateProfile,
   type HocTapAiRoomDifficulty,
 } from "@/lib/client-api";
 import {
@@ -252,17 +254,22 @@ export function HocTapDashboard({
     profile?.roleId && isAvailableQuizRoleId(profile.roleId)
       ? profile.roleId
       : null;
-  const avatarIdentity = buildAvatarIdentity(fullName, displayName, email);
+  const avatarIdentities = useMemo(
+    () => buildAvatarIdentityCandidates(fullName, displayName, email),
+    [displayName, email, fullName],
+  );
+  const avatarIdentity = avatarIdentities.primary;
+  const avatarIdentityAliases = avatarIdentities.aliases;
   const {
     avatarOptions,
     avatarSeed,
     avatarUrl,
     selectAvatar,
-  } = usePreferredAvatar(avatarIdentity, remoteAvatar, [
-    fullName,
-    displayName,
-    email,
-  ]);
+  } = usePreferredAvatar(
+    avatarIdentity,
+    remoteAvatar,
+    avatarIdentityAliases,
+  );
   const [activeTab, setActiveTab] = useState<HocTapActiveTab>(initialTab);
   const [quizQuery, setQuizQuery] = useState("");
   const [quizDepartmentFilter, setQuizDepartmentFilter] =
@@ -467,6 +474,15 @@ export function HocTapDashboard({
     setQuizExpanded(false);
   }
 
+  function handleSelectAvatar(choice: AppAvatarChoice) {
+    selectAvatar(choice);
+    if (!isSupabaseBackend()) return;
+
+    void updateProfile({ avatar: choice }).catch((error) => {
+      console.warn("[hoc-tap-dashboard:avatar-sync]", error);
+    });
+  }
+
   return (
     <div className="mx-auto grid w-full max-w-[1550px] grid-cols-1 gap-6 px-4 py-5 sm:px-6 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)_320px] 2xl:grid-cols-[260px_minmax(0,1fr)_340px]">
       <aside className="space-y-6 lg:sticky lg:top-5 lg:self-start">
@@ -475,7 +491,7 @@ export function HocTapDashboard({
           avatarOptions={avatarOptions}
           avatarSeed={avatarSeed}
           avatarUrl={avatarUrl}
-          onSelectAvatar={selectAvatar}
+          onSelectAvatar={handleSelectAvatar}
           roleLabel={profileRoleLabel}
           level={levelProgress.level}
           currentXp={levelProgress.currentXp}
@@ -544,6 +560,7 @@ export function HocTapDashboard({
         <TeamActionCards
           avatarSeed={avatarSeed}
           identityKey={avatarIdentity}
+          identityAliases={avatarIdentityAliases}
           displayName={displayName}
           quizzes={catalog}
           currentRoleId={currentRoleId}
@@ -1313,12 +1330,14 @@ const AI_ROOM_DIFFICULTY_OPTIONS: HocTapAiRoomDifficulty[] = [
 function TeamActionCards({
   avatarSeed,
   identityKey,
+  identityAliases,
   displayName,
   quizzes,
   currentRoleId,
 }: {
   avatarSeed: string;
   identityKey: string;
+  identityAliases: string[];
   displayName: string;
   quizzes: HocTapQuizItem[];
   currentRoleId: AvailableQuizRoleId | null;
@@ -1364,6 +1383,7 @@ function TeamActionCards({
     "openai" | "fallback" | null
   >(null);
   const [lockedRoom, setLockedRoom] = useState(false);
+  const [maxPlayers, setMaxPlayers] = useState(20);
   const [roomCode, setRoomCode] = useState("");
   const [playerName, setPlayerName] = useState(displayName);
   const [isCreating, setIsCreating] = useState(false);
@@ -1451,7 +1471,7 @@ function TeamActionCards({
               mode: "classic",
               mapTheme,
               roomType,
-              maxPlayers: 20,
+              maxPlayers,
               entryRole,
               locked: lockedRoom,
             })
@@ -1462,18 +1482,23 @@ function TeamActionCards({
               mode: "classic",
               mapTheme,
               roomType,
-              maxPlayers: 20,
+              maxPlayers,
               entryRole,
               locked: lockedRoom,
             });
-      saveHocTapRoomIdentity(response.room.code, identityKey, response.hostToken
-        ? {
-            participantId: response.participantId,
-            hostToken: response.hostToken,
-          }
-        : {
-            participantId: response.participantId,
-          });
+      saveHocTapRoomIdentity(
+        response.room.code,
+        identityKey,
+        response.hostToken
+          ? {
+              participantId: response.participantId,
+              hostToken: response.hostToken,
+            }
+          : {
+              participantId: response.participantId,
+            },
+        identityAliases,
+      );
       router.push(`/hoc-tap/phong/${response.room.code}`);
     } catch (err) {
       setCreateError(
@@ -1533,9 +1558,14 @@ function TeamActionCards({
         playerName: playerName.trim(),
         avatarSeed,
       });
-      saveHocTapRoomIdentity(response.room.code, identityKey, {
-        participantId: response.participantId,
-      });
+      saveHocTapRoomIdentity(
+        response.room.code,
+        identityKey,
+        {
+          participantId: response.participantId,
+        },
+        identityAliases,
+      );
       router.push(`/hoc-tap/phong/${response.room.code}`);
     } catch (err) {
       setJoinError(
@@ -1611,6 +1641,38 @@ function TeamActionCards({
                   }`}
                 />
               </button>
+            </label>
+
+            <label className="grid gap-2 rounded-2xl border border-line bg-white/70 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black text-ink">
+                    Số người chơi tối đa
+                  </p>
+                  <p className="text-[10px] font-semibold leading-4 text-ink-3">
+                    Chỉ tính người chơi thật, không tính chủ phòng.
+                  </p>
+                </div>
+                <input
+                  type="number"
+                  min={2}
+                  max={50}
+                  value={maxPlayers}
+                  onChange={(event) =>
+                    setMaxPlayers(
+                      Math.min(
+                        50,
+                        Math.max(
+                          2,
+                          Number.parseInt(event.target.value, 10) || 20,
+                        ),
+                      ),
+                    )
+                  }
+                  className="h-9 w-20 rounded-xl border border-line bg-white px-3 text-center text-xs font-black text-ink outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10"
+                  aria-label="Số người chơi tối đa"
+                />
+              </div>
             </label>
 
             {createSource === "quiz" ? (
@@ -2128,6 +2190,8 @@ function TeamRoomCard({
   const theme = QUIZ_THEME[room.theme];
   const Icon = theme.icon;
   const status = roomStatusConfig(room.status);
+  const isWaitingRoomFull =
+    room.isLive && room.status === "waiting" && room.participants >= room.capacity;
 
   return (
     <article className="group flex min-h-[176px] flex-col justify-between rounded-2xl border border-line bg-card p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-brand/20 hover:shadow-lg motion-reduce:transform-none">
@@ -2214,7 +2278,16 @@ function TeamRoomCard({
             </strong>
           </span>
         </div>
-        {room.href && !room.isLocked ? (
+        {isWaitingRoomFull ? (
+          <button
+            type="button"
+            disabled
+            className="inline-flex min-h-10 flex-none items-center justify-center rounded-xl bg-red-50 px-4 text-xs font-extrabold text-red-700"
+            title="Phòng đầy. Khi có người rời phòng, slot sẽ tự mở lại."
+          >
+            Phòng đầy
+          </button>
+        ) : room.href && !room.isLocked ? (
           <Link
             href={room.href}
             className="inline-flex min-h-10 flex-none items-center justify-center rounded-xl bg-brand px-4 text-xs font-extrabold text-brand-foreground transition hover:bg-brand-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"

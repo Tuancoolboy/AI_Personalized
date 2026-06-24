@@ -26,7 +26,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { useAppProfile } from "@/hooks/use-app-profile";
 import { usePreferredAvatar } from "@/hooks/use-preferred-avatar";
-import { buildAvatarIdentity } from "@/lib/avatar-preferences";
+import { buildAvatarIdentityCandidates } from "@/lib/avatar-preferences";
 import type { UserType } from "@/lib/supabase/is-configured";
 import { useAppLogout } from "@/components/app-nav-logout-button";
 
@@ -118,16 +118,17 @@ export function AccountMenu({
   const logout = useAppLogout();
   const sections = groupItems(getAccountMenuItems(userType));
   const { avatar: remoteAvatar, fullName, email, hydrated } = useAppProfile();
-  const avatarIdentity = buildAvatarIdentity(
+  const avatarIdentities = buildAvatarIdentityCandidates(
     fullName,
     email,
     userName,
     userEmail,
   );
+  const avatarIdentity = avatarIdentities.primary;
   const { avatarUrl: preferredAvatarUrl } = usePreferredAvatar(
     avatarIdentity,
     remoteAvatar,
-    [fullName, email, userName, userEmail],
+    avatarIdentities.aliases,
   );
   const effectiveAvatarUrl = hydrated
     ? preferredAvatarUrl

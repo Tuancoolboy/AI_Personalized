@@ -100,7 +100,7 @@ export function DicebearAvatarPicker({
             Tải ảnh lên làm avatar
           </button>
 
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid max-h-[22rem] grid-cols-4 gap-2 overflow-y-auto pr-1">
             {options.map((option, index) => {
               const active =
                 option.provider === selectedChoice.provider &&

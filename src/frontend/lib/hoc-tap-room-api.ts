@@ -23,9 +23,10 @@ export function hocTapRoomRouteError(error: unknown) {
       error.code === "ROOM_NOT_WAITING" ||
       error.code === "ROOM_NOT_PLAYING" ||
       error.code === "ROOM_EMPTY" ||
+      error.code === "ACTIVE_ROOM_EXISTS" ||
       error.code === "HOST_CANNOT_ANSWER" ||
-      error.code === "QUESTION_MISMATCH"
-      || error.code === "PLAYER_NOT_FOUND"
+      error.code === "QUESTION_MISMATCH" ||
+      error.code === "PLAYER_NOT_FOUND"
     ) {
       return apiError("CONFLICT", error.message);
     }

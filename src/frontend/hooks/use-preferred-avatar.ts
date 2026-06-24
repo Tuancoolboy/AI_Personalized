@@ -6,7 +6,7 @@ import {
   buildAvatarPreviewUrl,
   buildAvatarPickerOptions,
   getPreferredAvatarSeedForIdentities,
-  setPreferredAvatarChoice,
+  setPreferredAvatarChoiceForIdentities,
   type AppAvatarChoice,
   type AppAvatarOption,
 } from "@/lib/avatar-preferences";
@@ -73,11 +73,19 @@ export function usePreferredAvatar(
     const aliasChoice = parseAvatarChoice(aliasSeed);
     if (!aliasChoice) return;
 
-    setPreferredAvatarChoice(normalizedIdentity, aliasChoice);
+    setPreferredAvatarChoiceForIdentities(
+      normalizedIdentity,
+      normalizedAliasIdentities,
+      aliasChoice,
+    );
   }, [normalizedAliasIdentities, normalizedIdentity]);
 
   function selectAvatar(choice: AppAvatarChoice) {
-    setPreferredAvatarChoice(normalizedIdentity, choice);
+    setPreferredAvatarChoiceForIdentities(
+      normalizedIdentity,
+      normalizedAliasIdentities,
+      choice,
+    );
   }
 
   return {
