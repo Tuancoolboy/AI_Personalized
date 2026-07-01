@@ -1,5 +1,3 @@
-import { UNANSWERED_QUIZ_OPTION } from "@/lib/quiz-answers";
-
 export const AVAILABLE_QUIZ_ROLE_IDS = [
   "van-hanh",
   "kinh-doanh",
@@ -1457,13 +1455,12 @@ export function gradeHocTapQuizAnswers(input: {
     if (
       !question ||
       !Number.isInteger(answer) ||
-      answer < UNANSWERED_QUIZ_OPTION ||
       answer >= question.options.length
     ) {
       return null;
     }
     if (
-      answer !== UNANSWERED_QUIZ_OPTION &&
+      answer >= 0 &&
       answer === question.correctIndex
     ) {
       correctCount += 1;

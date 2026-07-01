@@ -127,5 +127,15 @@
   <p>Không đổi schema BE-07 và không thêm migration mới. Các migration/activation/platform-admin/email file đã có từ <code>develop</code> được restore nguyên trạng để branch không xoá nền production khi merge.</p>
   <h3>Bất kỳ điều gì khác cần lưu ý</h3>
   <p>Verification: targeted Vitest 54/54 pass; <code>npm run lint -- --ignore-pattern 'duck-race-master/**'</code> pass với 5 warning cũ; <code>npm run test</code> unit pass 447/447 và build pass, nhưng API integration dừng ở 21/30 vì env local đang Supabase mode nhưng thiếu auth credentials nên endpoint authenticated trả 401; <code>npm run db:validate</code> pass 50 migrations; <code>npm run build</code> pass; <code>git diff --check</code> pass.</p>
+
+  <h2>8. Update 2026-07-01 — PR review guard fix cho quiz route</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Khôi phục kiểm tra quyền truy cập ngay trong server page <code>/kiem-tra/[roleId]</code>, không chỉ dựa vào proxy. Trong real mode, trang quiz phải kiểm tra session, platform admin, manager, onboarding role và <code>learning_activated</code> trước khi render component quiz.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Spec BE-07 nói quiz result persistence; review chỉ ra route UI cũng cần giữ cùng invariant. Page quiz nay dùng lại <code>getCurrentUser()</code> và <code>loadLearningActivationRecord()</code> giống <code>/lo-trinh</code>, đồng thời vẫn giữ query <code>from=hoc-tap&amp;quiz=...</code> để mở đúng bộ đề Học tập.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không đổi schema và không mở rộng room runtime. Cảnh báo concurrency về in-memory room store được rà lại: real-mode Supabase session đi qua <code>hoc-tap-room-service</code>; memory store chỉ còn cho demo mode/test khi Supabase không được cấu hình.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Grader MCQ và Học tập nay coi mọi đáp án integer âm là chưa trả lời/sai thay vì trả <code>null</code>, nên payload âm bất thường không làm đứt flow chấm điểm. Verification: <code>git diff --check</code> pass; lint pass khi ignore hai thư mục untracked cục bộ <code>.codex/skills/**</code> và <code>duck-race-master/**</code> (0 error, 5 warning cũ); unit tests pass 88/88 files và 449/449 tests; <code>npm run build</code> pass bằng Node 20. Full API integration local chưa pass: Supabase-mode thiếu auth credentials dừng ở 21/30; demo-mode dừng ở 28/30 do hai case chat demo/manager ngoài phạm vi diff.</p>
 </body>
 </html>

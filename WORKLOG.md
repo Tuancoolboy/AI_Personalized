@@ -6,6 +6,18 @@
 
 ---
 
+## [2026-07-01] — Review fix: khóa lại quyền truy cập quiz và grader âm
+
+**Context:** PR review báo `/kiem-tra/[roleId]` bị mất guard auth/onboarding/activation khi branch quiz/avatar merge thêm `searchParams`; reviewer cũng chỉ ra `gradeHocTapQuizAnswers()` trả `null` nếu nhận đáp án âm nhỏ hơn sentinel `-1`.
+
+**Decision:** Khôi phục guard server-side giống `develop`: real-mode phải có session, không phải platform admin/manager, đã onboarding và đã được kích hoạt học trước khi render quiz. Giữ logic `from=hoc-tap&quiz=...` của branch quiz/avatar. Grader MCQ/Học tập nay chỉ reject đáp án không phải integer hoặc vượt quá số option; mọi integer âm được tính như câu chưa trả lời/sai để payload lạ không làm gãy flow chấm điểm.
+
+**Owner:** Codex
+
+**Status:** Verified for push
+
+**Tests:** `git diff --check` pass; `npm run lint` bị fail khi quét thư mục untracked `duck-race-master/**`, chạy lại với ignore `.codex/skills/**` + `duck-race-master/**` pass 0 error / 5 warning cũ; `npm run test` unit pass 88 files / 449 tests nhưng API integration dừng ở 21/30 do local Supabase mode thiếu auth credentials; demo-mode API thử lại đạt 28/30 nhưng còn 2 fail luồng chat demo/manager ngoài phạm vi diff; `npm run build` pass bằng Node 20.
+
 ## [2026-07-01] — Resolve develop merge conflicts for quiz/avatar branch
 
 **Context:** Branch `feat/tuanvh/quiz+avatar` đã push được nhưng GitHub báo không merge được vào `develop`. Merge simulation cho thấy conflict chỉ nằm ở file docs/log, không phải code runtime.

@@ -40,6 +40,19 @@ describe("gradeMcqQuiz", () => {
     expect(result?.score).toBe(90);
   });
 
+  it("counts unexpected negative answers as wrong instead of rejecting the attempt", () => {
+    const roleId = "kinh-doanh";
+    const quiz = getRole(roleId)!.quiz;
+    const answers = quiz.map((q) => q.correctIndex);
+    answers[0] = -999;
+
+    const result = gradeMcqQuiz({ roleId, answers });
+
+    expect(result?.correctCount).toBe(quiz.length - 1);
+    expect(result?.questionCount).toBe(quiz.length);
+    expect(result?.score).toBe(90);
+  });
+
   it("rejects answer indexes outside the option range", () => {
     const roleId = "kinh-doanh";
     const quiz = getRole(roleId)!.quiz;

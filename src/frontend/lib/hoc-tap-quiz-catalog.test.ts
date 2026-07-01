@@ -214,4 +214,22 @@ describe("hoc-tap quiz catalog", () => {
       questionCount: quiz.questions.length,
     });
   });
+
+  it("counts unexpected negative hoc-tap answers as wrong instead of rejecting the attempt", () => {
+    const quiz = getHocTapQuiz("ai-marketing")!;
+    const answers = quiz.questions.map((question) => question.correctIndex);
+    answers[0] = -999;
+
+    expect(
+      gradeHocTapQuizAnswers({
+        quizId: quiz.id,
+        roleId: quiz.roleId,
+        answers,
+      }),
+    ).toEqual({
+      score: 90,
+      correctCount: quiz.questions.length - 1,
+      questionCount: quiz.questions.length,
+    });
+  });
 });

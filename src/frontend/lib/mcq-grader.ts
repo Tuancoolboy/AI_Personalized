@@ -37,7 +37,6 @@ export function gradeMcqQuiz(input: McqGradingInput): McqGradingResult | null {
     if (
       typeof selected !== "number" ||
       !Number.isInteger(selected) ||
-      selected < UNANSWERED_QUIZ_OPTION ||
       selected >= q.options.length
     ) {
       return null;
