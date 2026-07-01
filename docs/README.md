@@ -20,8 +20,10 @@
 ## Current notable files
 
 - `docs/ops/supabase-setup.md`
+- `docs/ops/production-deployment.md`
 - `docs/ops/tuan-1-deploy-checklist.md`
 - `docs/product/user-journey.md`
+- `docs/product/gate-3-cost-report.md`
 - `docs/handoffs/ket-qua-ban-giao.md`
 - `docs/archive/tom-tat-thong-tin-bai-tap.html`
-
+- `docs/gate-3-submission.md`

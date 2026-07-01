@@ -24,6 +24,16 @@ __CLARIFY__:{"step":1,"total":3,"question":"Báo cáo này tập trung vào ho�
     expect(parsed.clarify?.options).toHaveLength(4);
   });
 
+  it("strips raw clarify payload from visible content when parsing fails", () => {
+    const raw = `Chào bạn! Em cần hiểu rõ hơn một chút.
+
+__CLARIFY__:{not-json}`;
+
+    const parsed = parseAssistantMessageContent(raw);
+    expect(parsed.content).toBe("Chào bạn! Em cần hiểu rõ hơn một chút.");
+    expect(parsed.clarify).toBeUndefined();
+  });
+
   it("infers options from inline hay-list", () => {
     const enriched = enrichWithClarifyBlock(
       "Chào bạn! Em muốn hỏi thêm một chút — báo cáo này thuộc loại nào: social media, performance ads, hay tổng kết gửi sếp?",
@@ -215,6 +225,68 @@ __CLARIFY__:{"step":3,"total":3,"question":"A có muốn tìm hiểu thêm?","op
     expect(clarify.options.some((o) => /nhân sự|chấm công|tuyển dụng/i.test(o))).toBe(true);
   });
 
+  it("keeps extra-skill card flow focused on learner intent instead of report data", () => {
+    const context = {
+      namedAddress: "bạn",
+      casualAddress: "bạn",
+      topicHint: "Nhưng tôi là HR, học skill khác có vấn đề gì không?",
+      roleId: "nhan-su",
+    };
+
+    const step2 = getClarifyStepTemplate(2, context);
+    expect(step2.question).toMatch(/áp dụng.*HR|việc HR/i);
+    expect(step2.question).not.toMatch(/số liệu|tài liệu/i);
+    expect(step2.options.some((o) => /tuyển dụng|thương hiệu tuyển dụng/i.test(o))).toBe(true);
+
+    const step3 = getClarifyStepTemplate(3, context);
+    expect(step3.question).toMatch(/hỗ trợ/i);
+    expect(step3.question).not.toMatch(/deliverable|Word|PDF|slide/i);
+    expect(step3.options.some((o) => /bài học|checklist|prompt/i.test(o))).toBe(true);
+  });
+
+  it("forces extra-skill step 2 after selecting an extra-skill branch", () => {
+    const result = finalizeClarifyingAssistantText(
+      "Cảm ơn bạn đã chọn Quảng cáo. Bạn đã có số liệu hoặc tài liệu nào sẵn chưa?",
+      2,
+      {
+        userJustAnsweredClarify: true,
+        clarifyCompleted: 1,
+        clarifyContext: {
+          namedAddress: "bạn",
+          casualAddress: "bạn",
+          topicHint: "Nhưng tôi là HR, học skill khác có vấn đề gì không?",
+          roleId: "nhan-su",
+        },
+      },
+    );
+
+    const parsed = parseAssistantMessageContent(result);
+    expect(parsed.clarify?.step).toBe(2);
+    expect(parsed.clarify?.question).toMatch(/áp dụng.*HR|việc HR/i);
+    expect(parsed.clarify?.question).not.toMatch(/số liệu|tài liệu/i);
+  });
+
+  it("runtime hint for extra-skill answer carries the next learner-intent card", () => {
+    const hint = buildClarifyRuntimeHint(
+      1,
+      formatClarifyUserAnswer(
+        "Bạn muốn học thêm nhóm kỹ năng nào trước?",
+        "Quảng cáo (Google/Facebook Ads)",
+      ),
+      undefined,
+      {
+        namedAddress: "bạn",
+        casualAddress: "bạn",
+        topicHint: "Nhưng tôi là HR, học skill khác có vấn đề gì không?",
+        roleId: "nhan-su",
+      },
+    );
+
+    expect(hint).toContain("áp dụng kỹ năng này vào việc HR");
+    expect(hint).toContain("Tuyển dụng / thu hút ứng viên");
+    expect(hint).not.toContain("user đã có số liệu/tài liệu gì sẵn chưa");
+  });
+
   it("packages completed clarify answers as XML context and forbids re-asking", () => {
     const hint = buildClarifyRuntimeHint(
       3,
@@ -230,5 +302,6 @@ __CLARIFY__:{"step":3,"total":3,"question":"A có muốn tìm hiểu thêm?","op
     expect(hint).toContain("<format>");
     expect(hint).toContain("<do_not_ask_again>");
     expect(hint).toMatch(/không hỏi lại|CẤM hỏi thêm/i);
+    expect(hint).toMatch(/câu hỏi hiện tại|1–2 lượt trao đổi gần nhất/i);
   });
 });

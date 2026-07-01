@@ -14,6 +14,7 @@ const VALID_ROLES = new Set<RoleId>([
   "marketing",
   "van-hanh",
   "khac",
+  "nhan-su",
 ]);
 
 type GraderPayload = {

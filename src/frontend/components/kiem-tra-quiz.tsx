@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles } from "lucide-react";
+import { Clock, Sparkles, TimerOff } from "lucide-react";
 import { trackEvent, isSupabaseBackend, submitQuizResult } from "@/lib/client-api";
 import { addDemoQuizResult } from "@/lib/demo-storage";
 import {
@@ -13,6 +13,7 @@ import {
   type HocTapQuizAttemptResult,
   type QuizReturnHref,
 } from "@/lib/hoc-tap-quiz-catalog";
+import { UNANSWERED_QUIZ_OPTION } from "@/lib/quiz-answers";
 import { getRole } from "@/lib/roles";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 
@@ -27,23 +28,182 @@ export function KiemTraQuiz({
 }) {
   const router = useRouter();
   const role = getRole(roleId);
-  const hocTapQuiz =
-    returnHref === "/hoc-tap"
-      ? resolveHocTapQuizForRoute(roleId, hocTapQuizId)
-      : null;
+  const hocTapQuiz = useMemo(
+    () =>
+      returnHref === "/hoc-tap"
+        ? resolveHocTapQuizForRoute(roleId, hocTapQuizId)
+        : null,
+    [hocTapQuizId, returnHref, roleId],
+  );
   const isHocTapQuiz = Boolean(hocTapQuiz);
+  const hocTapQuizIdValue = hocTapQuiz?.id ?? null;
+  const hocTapQuizRoleId = hocTapQuiz?.roleId ?? null;
+  const questions = useMemo(
+    () => hocTapQuiz?.questions ?? role?.quiz ?? [],
+    [hocTapQuiz?.questions, role?.quiz],
+  );
+  const timeLimitSeconds = getQuizTimeLimitSeconds({
+    questionCount: questions.length,
+    durationMinutes: hocTapQuiz?.durationMinutes,
+  });
   const [idx, setIdx] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<number[]>([]);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [score, setScore] = useState(0);
   const [done, setDone] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
+  const [finalCorrectCount, setFinalCorrectCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [saveWarning, setSaveWarning] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState(timeLimitSeconds);
+  const [timeExpired, setTimeExpired] = useState(false);
+  const [finishedByTimeout, setFinishedByTimeout] = useState(false);
   const [hocTapAttemptResult, setHocTapAttemptResult] =
     useState<HocTapQuizAttemptResult | null>(null);
   const hocTapAttemptId = useRef(createQuizAttemptId());
+  const deadlineRef = useRef<number | null>(null);
+  const finalizingRef = useRef(false);
+
+  const question = questions[idx];
+  const progressPct =
+    questions.length > 0
+      ? ((idx + (done ? 1 : 0)) / questions.length) * 100
+      : 0;
+  const returnLabel =
+    returnHref === "/hoc-tap" ? "Quay lại Học tập" : "Quay lại lộ trình";
+  const quizModeLabel = isHocTapQuiz ? "Bộ đề thực hành" : "Bài kiểm tra";
+
+  useEffect(() => {
+    deadlineRef.current =
+      questions.length > 0 ? Date.now() + timeLimitSeconds * 1000 : null;
+
+    return () => {
+      deadlineRef.current = null;
+    };
+  }, [hocTapQuizIdValue, questions.length, roleId, timeLimitSeconds]);
+
+  const finishQuiz = useCallback(
+    async (reason: "completed" | "timeout") => {
+      if (finalizingRef.current || done || questions.length === 0) return;
+
+      finalizingRef.current = true;
+      if (reason === "timeout") {
+        setTimeExpired(true);
+        setFinishedByTimeout(true);
+        setRemainingSeconds(0);
+      }
+
+      const submittedAnswers = buildSubmittedAnswers({
+        answers,
+        currentIndex: idx,
+        questionCount: questions.length,
+        selected,
+      });
+      const correctCount = countCorrectAnswers(questions, submittedAnswers);
+      const percentScore = Math.round((correctCount / questions.length) * 100);
+
+      setFinalCorrectCount(correctCount);
+      setFinalScore(percentScore);
+      setSaving(true);
+      setErrorMessage("");
+      setSaveWarning("");
+
+      try {
+        if (hocTapQuizIdValue && hocTapQuizRoleId) {
+          const attemptResult = isSupabaseConfigured()
+            ? await saveRealHocTapAttempt({
+                roleId,
+                quizId: hocTapQuizIdValue,
+                answers: submittedAnswers,
+                attemptId: hocTapAttemptId.current,
+              })
+            : recordDemoHocTapQuizAttempt(
+                hocTapQuizIdValue,
+                percentScore,
+                hocTapAttemptId.current,
+              );
+          setHocTapAttemptResult(attemptResult);
+          setFinalScore(attemptResult.attempt.score);
+          if (isSupabaseBackend()) {
+            void trackEvent("hoc_tap_quiz_submitted", {
+              quizId: hocTapQuizIdValue,
+              roleId: hocTapQuizRoleId,
+              score: attemptResult.attempt.score,
+              xpEarned: attemptResult.xpEarned,
+              reason,
+            });
+          }
+        } else if (isSupabaseConfigured()) {
+          const res = await submitQuizResult({
+            roleId,
+            answers: submittedAnswers,
+          });
+          if (typeof res.score === "number") {
+            setFinalScore(res.score);
+          }
+          if (typeof res.correctCount === "number") {
+            setFinalCorrectCount(res.correctCount);
+          }
+        } else {
+          addDemoQuizResult(roleId, percentScore);
+        }
+        if (!hocTapQuizIdValue && isSupabaseBackend()) {
+          void trackEvent("quiz_submitted", { roleId, score: percentScore, reason });
+          if (percentScore >= 70) {
+            void trackEvent("quiz_passed", { roleId, score: percentScore });
+          }
+        }
+        setDone(true);
+      } catch (err) {
+        console.warn("[kiem-tra] Không lưu được kết quả quiz:", err);
+        const message = isHocTapQuiz
+          ? "Chưa cộng được XP cho quiz này. Vui lòng thử lại."
+          : "Chưa lưu được điểm kiểm tra. Vui lòng thử lại.";
+        if (reason === "timeout") {
+          setSaveWarning(message);
+          setDone(true);
+        } else {
+          setErrorMessage(message);
+          finalizingRef.current = false;
+        }
+      } finally {
+        setSaving(false);
+      }
+    },
+    [
+      answers,
+      done,
+      hocTapQuizIdValue,
+      hocTapQuizRoleId,
+      idx,
+      isHocTapQuiz,
+      questions,
+      roleId,
+      selected,
+    ],
+  );
+
+  useEffect(() => {
+    if (done || saving || questions.length === 0) return;
+
+    function tick() {
+      const deadline = deadlineRef.current;
+      if (!deadline) return;
+      const nextRemaining = Math.max(
+        0,
+        Math.ceil((deadline - Date.now()) / 1000),
+      );
+      setRemainingSeconds(nextRemaining);
+      if (nextRemaining <= 0) {
+        void finishQuiz("timeout");
+      }
+    }
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [done, finishQuiz, questions.length, saving]);
 
   if (!role && !hocTapQuiz) {
     return (
@@ -57,13 +217,6 @@ export function KiemTraQuiz({
     );
   }
 
-  const questions = hocTapQuiz?.questions ?? role?.quiz ?? [];
-  const question = questions[idx];
-  const progressPct = ((idx + (done ? 1 : 0)) / questions.length) * 100;
-  const returnLabel =
-    returnHref === "/hoc-tap" ? "Quay lại Học tập" : "Quay lại lộ trình";
-  const quizModeLabel = isHocTapQuiz ? "Bộ đề thực hành" : "Bài kiểm tra";
-
   if (!question) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-16 text-center">
@@ -73,7 +226,7 @@ export function KiemTraQuiz({
   }
 
   function handleSelect(optionIdx: number) {
-    if (showExplanation) return;
+    if (showExplanation || timeExpired || saving) return;
     setSelected(optionIdx);
     setShowExplanation(true);
     setAnswers((prev) => {
@@ -81,9 +234,6 @@ export function KiemTraQuiz({
       next[idx] = optionIdx;
       return next;
     });
-    if (optionIdx === question.correctIndex) {
-      setScore((s) => s + 1);
-    }
   }
 
   async function handleNext() {
@@ -93,67 +243,7 @@ export function KiemTraQuiz({
       setShowExplanation(false);
       setErrorMessage("");
     } else {
-      const percentScore = Math.round((score / questions.length) * 100);
-      setFinalScore(percentScore);
-      setSaving(true);
-      setErrorMessage("");
-      try {
-        if (hocTapQuiz) {
-          const submittedAnswers = [...answers];
-          if (selected !== null) submittedAnswers[idx] = selected;
-          const attemptResult = isSupabaseConfigured()
-            ? await saveRealHocTapAttempt({
-                roleId,
-                quizId: hocTapQuiz.id,
-                answers: submittedAnswers,
-                attemptId: hocTapAttemptId.current,
-              })
-            : recordDemoHocTapQuizAttempt(
-                hocTapQuiz.id,
-                percentScore,
-                hocTapAttemptId.current,
-              );
-          setHocTapAttemptResult(attemptResult);
-          setFinalScore(
-            attemptResult.attempt.score,
-          );
-          if (isSupabaseBackend()) {
-            void trackEvent("hoc_tap_quiz_submitted", {
-              quizId: hocTapQuiz.id,
-              roleId: hocTapQuiz.roleId,
-              score: attemptResult.attempt.score,
-              xpEarned: attemptResult.xpEarned,
-            });
-          }
-        } else if (isSupabaseConfigured()) {
-          const payload =
-            answers.length === questions.length
-              ? { roleId, answers }
-              : { roleId, score: percentScore };
-          const res = await submitQuizResult(payload);
-          if (typeof res.score === "number") {
-            setFinalScore(res.score);
-          }
-        } else {
-          addDemoQuizResult(roleId, percentScore);
-        }
-        if (!hocTapQuiz && isSupabaseBackend()) {
-          void trackEvent("quiz_submitted", { roleId, score: percentScore });
-          if (percentScore >= 70) {
-            void trackEvent("quiz_passed", { roleId, score: percentScore });
-          }
-        }
-        setDone(true);
-      } catch (err) {
-        console.warn("[kiem-tra] Không lưu được kết quả quiz:", err);
-        setErrorMessage(
-          isHocTapQuiz
-            ? "Chưa cộng được XP cho quiz này. Vui lòng thử lại."
-            : "Chưa lưu được điểm kiểm tra. Vui lòng thử lại.",
-        );
-      } finally {
-        setSaving(false);
-      }
+      await finishQuiz("completed");
     }
   }
 
@@ -171,6 +261,25 @@ export function KiemTraQuiz({
               ? "Tuyệt vời!"
               : "Cần ôn lại nhé"}
         </h1>
+
+        {finishedByTimeout ? (
+          <div className="mx-auto mt-6 flex max-w-md items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-left text-sm font-semibold text-amber-800">
+            <TimerOff className="mt-0.5 size-5 flex-none" aria-hidden="true" />
+            <p>
+              Hết thời gian nên bài đã tự nộp. Các câu chưa chọn đáp án được
+              tính là chưa đúng.
+            </p>
+          </div>
+        ) : null}
+
+        {saveWarning ? (
+          <p
+            className="mx-auto mt-4 max-w-md rounded-2xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive"
+            role="alert"
+          >
+            {saveWarning}
+          </p>
+        ) : null}
 
         <div className="relative mx-auto mt-8 grid h-48 w-48 place-items-center">
           <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
@@ -206,7 +315,7 @@ export function KiemTraQuiz({
         <p className="mt-6 text-base text-ink-2">
           Bạn trả lời đúng{" "}
           <strong className="text-ink">
-            {score}/{questions.length}
+            {finalCorrectCount}/{questions.length}
           </strong>{" "}
           câu.{" "}
           {isHocTapQuiz
@@ -271,17 +380,29 @@ export function KiemTraQuiz({
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-12 md:py-14">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
           {quizModeLabel} · Câu {idx + 1} / {questions.length}
         </p>
-        <button
-          type="button"
-          onClick={() => router.push(returnHref)}
-          className="text-xs font-medium text-ink-3 hover:text-ink-2"
-        >
-          Thoát ×
-        </button>
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <span
+            className={`inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-extrabold ${
+              remainingSeconds <= 60
+                ? "border-amber-200 bg-amber-50 text-amber-800"
+                : "border-line bg-card text-ink-2"
+            }`}
+          >
+            <Clock className="size-3.5" aria-hidden="true" />
+            Còn {formatQuizDuration(remainingSeconds)}
+          </span>
+          <button
+            type="button"
+            onClick={() => router.push(returnHref)}
+            className="text-xs font-medium text-ink-3 hover:text-ink-2"
+          >
+            Thoát ×
+          </button>
+        </div>
       </div>
       <div className="h-2 overflow-hidden rounded-full border border-line bg-secondary">
         <div
@@ -325,7 +446,7 @@ export function KiemTraQuiz({
                 key={optionIdx}
                 type="button"
                 onClick={() => handleSelect(optionIdx)}
-                disabled={showExplanation}
+                disabled={showExplanation || timeExpired || saving}
                 className={`flex w-full items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left text-sm font-medium transition disabled:cursor-not-allowed ${classes}`}
               >
                 <span
@@ -363,7 +484,7 @@ export function KiemTraQuiz({
           <button
             type="button"
             onClick={handleNext}
-            disabled={!showExplanation || saving}
+            disabled={!showExplanation || saving || timeExpired}
             className="inline-flex h-11 items-center justify-center rounded-full bg-brand px-8 text-sm font-semibold text-brand-foreground shadow-md transition hover:bg-brand-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {saving
@@ -425,6 +546,53 @@ async function saveRealHocTapAttempt(input: {
     leveledUp: response.level > levelBefore,
     levelProgress,
   };
+}
+
+function getQuizTimeLimitSeconds(input: {
+  questionCount: number;
+  durationMinutes?: number;
+}): number {
+  if (input.durationMinutes && input.durationMinutes > 0) {
+    return input.durationMinutes * 60;
+  }
+  return Math.max(60, input.questionCount * 60);
+}
+
+function buildSubmittedAnswers(input: {
+  answers: number[];
+  currentIndex: number;
+  questionCount: number;
+  selected: number | null;
+}): number[] {
+  const submittedAnswers = Array.from(
+    { length: input.questionCount },
+    (_, index) =>
+      Number.isInteger(input.answers[index])
+        ? input.answers[index]
+        : UNANSWERED_QUIZ_OPTION,
+  );
+  if (input.selected !== null && input.currentIndex < input.questionCount) {
+    submittedAnswers[input.currentIndex] = input.selected;
+  }
+  return submittedAnswers;
+}
+
+function countCorrectAnswers(
+  questions: Array<{ correctIndex: number }>,
+  answers: number[],
+): number {
+  return questions.reduce(
+    (count, question, index) =>
+      answers[index] === question.correctIndex ? count + 1 : count,
+    0,
+  );
+}
+
+function formatQuizDuration(totalSeconds: number): string {
+  const safeSeconds = Math.max(0, Math.ceil(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 function createQuizAttemptId(): string {

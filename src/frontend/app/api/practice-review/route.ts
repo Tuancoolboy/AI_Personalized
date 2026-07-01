@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { resolveApiSession } from "@/lib/api-auth";
 import { apiError, apiOk } from "@/lib/api-error";
 import { fetchModuleById } from "@/lib/learning-modules";
+import { canAccessLearning, loadLearningActivationRecord } from "@/lib/learning-activation";
 import {
   getDemoPracticeReview,
   gradePracticeSubmission,
@@ -23,6 +24,7 @@ const VALID_ROLES = new Set<RoleId>([
   "marketing",
   "van-hanh",
   "khac",
+  "nhan-su",
 ]);
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -192,6 +194,10 @@ export async function GET(request: Request) {
   if (!session || session.mode !== "supabase") {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
   }
+  const access = await loadLearningActivationRecord(session.userId);
+  if (!canAccessLearning(access)) {
+    return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
+  }
 
   const moduleId = new URL(request.url).searchParams.get("moduleId")?.trim();
   if (!moduleId) {
@@ -226,6 +232,12 @@ export async function POST(request: Request) {
   const session = await resolveApiSession();
   if (!session) {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
+  }
+  if (session.mode === "supabase") {
+    const access = await loadLearningActivationRecord(session.userId);
+    if (!canAccessLearning(access)) {
+      return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
+    }
   }
 
   let body: ReviewPayload;

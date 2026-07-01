@@ -13,6 +13,7 @@ const VALID_ROLES = new Set([
   "marketing",
   "van-hanh",
   "khac",
+  "nhan-su",
 ]);
 
 export async function GET() {

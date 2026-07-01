@@ -26,18 +26,10 @@ loadEnvLocal();
 
 const results = [];
 
-function getSupabasePublicKey() {
-  return (
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
-    ""
-  );
-}
-
 function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      getSupabasePublicKey() &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() &&
       process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   );
 }
@@ -52,7 +44,7 @@ async function createSessionCookie(emailPrefix) {
   const { createClient } = await import("@supabase/supabase-js");
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, "");
-  const anon = getSupabasePublicKey();
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const email = `${emailPrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}@test.local`;
   const password = "TestPass123!";

@@ -157,7 +157,8 @@ function DicebearAvatarImage({
   fallbackText: string;
   size: "sm" | "md" | "lg";
 }) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const imageFailed = failedSrc === src;
 
   const sizeClassName =
     size === "lg" ? "size-16" : size === "md" ? "size-14" : "size-12";
@@ -179,7 +180,7 @@ function DicebearAvatarImage({
       src={src}
       alt={alt}
       className={`${sizeClassName} rounded-full bg-secondary object-cover shadow-md`}
-      onError={() => setImageFailed(true)}
+      onError={() => setFailedSrc(src)}
     />
   );
 }

@@ -29,6 +29,7 @@ import {
   formatOrganizationLearningContext,
   loadOrganizationLearningContext,
 } from "@/lib/chat-knowledge-company";
+import { buildExtraSkillLessonsContext } from "@/lib/chat-knowledge-extra";
 import { buildCurriculumKnowledgeContext, buildDemoCurriculumKnowledgeContext } from "@/lib/chat-knowledge-curriculum";
 import { buildPersonalKnowledgeContext } from "@/lib/chat-knowledge-personal";
 import type { ChatAudience } from "@/lib/chat-types";
@@ -44,6 +45,7 @@ import {
   isOpenAIConfigured,
   type RoleId,
 } from "@/lib/openai";
+import { stripLeadingAssistantGreeting } from "@/lib/chat-prompt-safety";
 import { checkRateLimit } from "@/lib/rate-limit-memory";
 import { getSafetyWarning } from "@/lib/safety";
 import { buildDemoTeamSummary } from "@/lib/team-data";
@@ -83,6 +85,7 @@ async function streamDemoOpenAI(
           roleId ?? "khac",
           message,
         ),
+        extraSkillSummary: "",
         personalSummary: "",
         companySummary: "",
         ahaSummary: "",
@@ -114,7 +117,9 @@ async function streamDemoOpenAI(
           const text = chunk.choices[0]?.delta?.content ?? "";
           if (text) rawText += text;
         }
-        const answer = finalizeClarifyingAssistantText(rawText, 1);
+        const answer = stripLeadingAssistantGreeting(
+          finalizeClarifyingAssistantText(rawText, 1),
+        );
         if (answer) controller.enqueue(encoder.encode(answer));
         controller.close();
       } catch (err) {
@@ -144,6 +149,7 @@ const VALID_ROLES = new Set<RoleId>([
   "marketing",
   "van-hanh",
   "khac",
+  "nhan-su",
 ]);
 
 type ChatPayload = {
@@ -181,7 +187,7 @@ function streamText(text: string, safety?: string): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
   const chunks: string[] = [];
   if (safety) chunks.push(`__SAFETY__:${safety}\n`);
-  chunks.push(text);
+  chunks.push(stripLeadingAssistantGreeting(text));
   let i = 0;
   return new ReadableStream({
     pull(controller) {
@@ -239,7 +245,7 @@ export async function POST(request: Request) {
     const fallback = cached
       ? { answer: cached, safety }
       : getFallbackAnswer(message, cachedRole);
-    const answer = fallback.answer;
+    const answer = stripLeadingAssistantGreeting(fallback.answer);
     const safetyMsg = fallback.safety ?? safety;
     return new Response(streamText(answer, safetyMsg), {
       headers: {
@@ -317,48 +323,9 @@ export async function POST(request: Request) {
   try {
     const profile = await resolveProfileBasics(session.userId);
     const effectiveRoleId = roleId ?? profile.roleId;
-    const coreContext = await loadCoreContext(session.userId, audience);
-
-    let systemPrompt: string;
-    let employeePreferredAddress: import("@/lib/learning-profile").PreferredAddress | undefined;
-    if (isManager) {
-      const teamSummary = await getTeamAnalysisSummary(session.userId);
-      systemPrompt = buildManagerSystemPrompt({
-        fullName: profile.fullName,
-        coreContext,
-        teamSummary,
-      });
-    } else if (effectiveRoleId) {
-      const learningContext = await loadOrganizationLearningContext(
-        session.userId,
-      );
-      const [curriculumSummary, personalCtx, conversationMemory] =
-        await Promise.all([
-          buildCurriculumKnowledgeContext(
-            session.userId,
-            effectiveRoleId,
-            message,
-            learningContext,
-          ),
-          buildPersonalKnowledgeContext(session.userId),
-          loadCoreContext(session.userId, audience),
-        ]);
-      systemPrompt = buildEmployeeSystemPrompt(effectiveRoleId, {
-        fullName: profile.fullName,
-        preferredAddress: personalCtx.preferredAddress,
-        curriculumSummary,
-        personalSummary: personalCtx.block,
-        companySummary: formatOrganizationLearningContext(learningContext),
-        ahaSummary: personalCtx.ahaSummary,
-        conversationMemory,
-      });
-      employeePreferredAddress = personalCtx.preferredAddress;
-    } else {
-      return apiError(
-        "VALIDATION_ERROR",
-        "Chưa chọn vai trò. Hoàn thành onboarding trước.",
-      );
-    }
+    const conversationMemory = forceNew
+      ? ""
+      : await loadCoreContext(session.userId, audience);
 
     const conversationId = await getOrCreateConversation(
       session.userId,
@@ -375,6 +342,9 @@ export async function POST(request: Request) {
       ...history,
       { role: "user", content: message },
     ]);
+    let employeePreferredAddress:
+      | import("@/lib/learning-profile").PreferredAddress
+      | undefined;
     const clarifyContext = buildClarifyContextFromHistory(
       history,
       message,
@@ -392,6 +362,50 @@ export async function POST(request: Request) {
       message,
       clarifyAnswersSummary,
     );
+    let systemPrompt: string;
+    if (isManager) {
+      const teamSummary = await getTeamAnalysisSummary(session.userId);
+      systemPrompt = buildManagerSystemPrompt({
+        fullName: profile.fullName,
+        coreContext: conversationMemory,
+        teamSummary,
+        freshConversation: forceNew,
+      });
+    } else if (effectiveRoleId) {
+      const learningContext = await loadOrganizationLearningContext(
+        session.userId,
+      );
+      const [curriculumSummary, extraSkillSummary, personalCtx] = await Promise.all([
+        buildCurriculumKnowledgeContext(
+          session.userId,
+          effectiveRoleId,
+          message,
+          learningContext,
+        ),
+        buildExtraSkillLessonsContext(session.userId, effectiveRoleId, message),
+        buildPersonalKnowledgeContext(session.userId),
+      ]);
+      const conversationMemoryForPrompt =
+        clarifyCompleted > 0 ? "" : conversationMemory;
+      systemPrompt = buildEmployeeSystemPrompt(effectiveRoleId, {
+        fullName: profile.fullName,
+        preferredAddress: personalCtx.preferredAddress,
+        curriculumSummary,
+        extraSkillSummary,
+        personalSummary: personalCtx.block,
+        companySummary: formatOrganizationLearningContext(learningContext),
+        ahaSummary: personalCtx.ahaSummary,
+        conversationMemory: conversationMemoryForPrompt,
+        freshConversation: forceNew,
+      });
+      employeePreferredAddress = personalCtx.preferredAddress;
+    } else {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Chưa chọn vai trò. Hoàn thành onboarding trước.",
+      );
+    }
+
     const effectiveSystemPrompt = clarifyHint
       ? `${systemPrompt}\n\n${clarifyHint}`
       : systemPrompt;
@@ -453,15 +467,13 @@ export async function POST(request: Request) {
           }
           ticker.stop();
           const clarifyStep = clarifyCompleted + 1;
-          assistantText = finalizeClarifyingAssistantText(
-            assistantText,
-            clarifyStep,
-            {
+          assistantText = stripLeadingAssistantGreeting(
+            finalizeClarifyingAssistantText(assistantText, clarifyStep, {
               userJustAnsweredClarify: isClarifyUserAnswer(message),
               clarifyContext,
               clarifyCompleted,
               clarifyAnswers,
-            },
+            }),
           );
           if (assistantText) {
             controller.enqueue(encoder.encode(assistantText));

@@ -21,6 +21,18 @@ describe("post-auth-redirect", () => {
     );
   });
 
+  it("routes platform admin to van-hanh", () => {
+    expect(getPostAuthPath(null, "admin@c2-app-009.io.vn", "employee", true)).toBe(
+      "/van-hanh",
+    );
+  });
+
+  it("routes pending learner to cho-kich-hoat", () => {
+    expect(getPostAuthPath("kinh-doanh", "nv@congty.vn", "employee", false, false)).toBe(
+      "/cho-kich-hoat",
+    );
+  });
+
   it("routes onboarded employee to lo-trinh", () => {
     expect(getPostAuthPath("kinh-doanh", "nv@congty.vn")).toBe("/lo-trinh");
   });

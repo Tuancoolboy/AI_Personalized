@@ -17,6 +17,7 @@ import {
 import { AppAssistantHost } from "@/components/app-assistant-host";
 import { AppNav } from "@/components/app-nav";
 import { buildAvatarUrl } from "@/lib/app-avatar";
+import { RouteDeniedBanner } from "@/components/route-denied-banner";
 import {
   metadataFullName,
   resolveFullDisplayName,
@@ -41,6 +42,24 @@ const MANAGER_NAV = [
   { href: "/bang-xep-hang", label: "Xếp hạng" },
   { href: "/tro-ly", label: "Trợ lý AI" },
 ];
+
+const OPERATOR_NAV = [
+  { href: "/van-hanh", label: "Vận hành" },
+];
+
+function uniqueNavItems(items: Array<{ href: string; label: string }>) {
+  const seenHrefs = new Set<string>();
+  const seenLabels = new Set<string>();
+  return items.filter((item) => {
+    const labelKey = item.label.trim().toLocaleLowerCase("vi");
+    if (seenHrefs.has(item.href) || seenLabels.has(labelKey)) return false;
+    seenHrefs.add(item.href);
+    seenLabels.add(labelKey);
+    return true;
+  });
+}
+
+const PLATFORM_ADMIN_NAV = uniqueNavItems(OPERATOR_NAV);
 
 export default async function AppLayout({
   children,
@@ -100,19 +119,22 @@ export default async function AppLayout({
 
   const isPlatformAdmin = await isPlatformAdminUser();
   const baseNav = userType === "manager" ? MANAGER_NAV : EMPLOYEE_NAV;
-  // Platform admin thấy thêm link khu Quản trị nền tảng (/quan-tri).
   const NAV_ITEMS = isPlatformAdmin
-    ? [{ href: "/quan-tri", label: "Quản trị" }, ...baseNav]
+    ? PLATFORM_ADMIN_NAV
     : baseNav;
+  const assistantUserType = isPlatformAdmin ? "manager" : userType;
   const userRoleLabel =
-    userType === "manager"
-      ? "Trưởng phòng"
-      : isDemo
-        ? "Nhân viên · Demo"
-        : "Nhân viên";
+    isPlatformAdmin
+      ? "Quản trị hệ thống"
+      : userType === "manager"
+        ? "Trưởng phòng"
+        : isDemo
+          ? "Nhân viên · Demo"
+          : "Nhân viên";
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
+      <RouteDeniedBanner />
       {isDemo && (
         <div className="bg-accent/95 text-accent-foreground">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs sm:px-6 sm:text-sm">
@@ -132,13 +154,14 @@ export default async function AppLayout({
         userName={userDisplayName}
         userEmail={userEmail}
         userRoleLabel={userRoleLabel}
-        userType={userType}
-        homeHref={userType === "manager" ? "/quan-ly" : "/lo-trinh"}
+        userType={assistantUserType}
+        homeHref={isPlatformAdmin ? "/van-hanh" : userType === "manager" ? "/quan-ly" : "/lo-trinh"}
         avatarUrl={avatarUrl}
+        showRolePill={!isPlatformAdmin}
       />
       <main className="flex min-h-0 flex-1 flex-col">{children}</main>
       <AppAssistantHost
-        userType={userType}
+        userType={assistantUserType}
         displayName={userDisplayName}
       />
     </div>

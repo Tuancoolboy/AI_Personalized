@@ -45,6 +45,26 @@ const baseModules: RecommendableModule[] = [
     status: "published",
     prerequisites: [],
   },
+  {
+    id: "nhan-su-m1",
+    roleId: "nhan-su",
+    level: 1,
+    sortOrder: 1,
+    scope: "global",
+    status: "published",
+    prerequisites: [],
+    goalTags: ["tuyen-dung"],
+  },
+  {
+    id: "nhan-su-m2",
+    roleId: "nhan-su",
+    level: 2,
+    sortOrder: 2,
+    scope: "global",
+    status: "published",
+    prerequisites: ["nhan-su-m1"],
+    goalTags: ["onboarding"],
+  },
 ];
 
 function baseInput(
@@ -65,6 +85,19 @@ describe("pathRecommender rankModules", () => {
     const result = rankModules(baseInput());
     expect(result[0]?.moduleId).toBe("common-m1");
     expect(result.some((r) => r.moduleId === "kinh-doanh-m1")).toBe(true);
+    expect(result.some((r) => r.moduleId === "ke-toan-m1")).toBe(false);
+  });
+
+  it("ranks nhan-su modules for HR role, excludes other roles", () => {
+    const result = rankModules(
+      baseInput({
+        roleId: "nhan-su",
+        masteredModuleIds: ["common-m1"],
+        goalTags: ["tuyen-dung"],
+      }),
+    );
+    expect(result.some((r) => r.moduleId === "nhan-su-m1")).toBe(true);
+    expect(result.some((r) => r.moduleId === "kinh-doanh-m1")).toBe(false);
     expect(result.some((r) => r.moduleId === "ke-toan-m1")).toBe(false);
   });
 

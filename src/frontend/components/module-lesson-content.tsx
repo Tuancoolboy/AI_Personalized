@@ -18,26 +18,30 @@ import {
   setModuleStatus,
 } from "@/lib/demo-storage";
 import {
+  saveEmployeeExtraLesson,
+  getEmployeeExtraLessons,
+} from "@/lib/supabase/employee";
+import {
   getLearningModuleById,
   getLearningModulesByRole,
   resolveNextModuleId,
   type LearningModuleRecord,
 } from "@/lib/learning-modules-data";
 import { PRACTICE_PASS_SCORE, canAutoCompletePractice } from "@/lib/practice-grader";
-import { getRole } from "@/lib/roles";
+import { getRole, ROLES, SKILL_LABELS } from "@/lib/roles";
 import {
   getDeptAiTool,
   getToolForModule,
   setOrgAiTool,
   type ResolvedTool,
 } from "@/lib/ai-tool-helper";
+import { type RoleId } from "@/lib/openai";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import {
   getEmployeeProfile,
   getEmployeeProgress,
   saveEmployeeModuleStatus,
 } from "@/lib/supabase/employee";
-import { useHocTapStudySession } from "@/hooks/use-hoc-tap-study-session";
 
 function levelLabel(level: number) {
   return level === 1 ? "Nhập môn" : level === 2 ? "Trung cấp" : "Nâng cao";
@@ -298,7 +302,13 @@ function ToolAccountCheck({ tool }: { tool: ResolvedTool }) {
   );
 }
 
-export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
+export function ModuleLessonContent({
+  moduleId,
+  fromExtraSuggestion = false,
+}: {
+  moduleId: string;
+  fromExtraSuggestion?: boolean;
+}) {
   const router = useRouter();
   const [mod, setMod] = useState<LearningModuleRecord | null>(null);
   const [status, setStatus] = useState<"chua-hoc" | "dang-hoc" | "hoan-thanh">(
@@ -311,6 +321,11 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
   const [practiceReview, setPracticeReview] = useState<PracticeReview | null>(
     null,
   );
+  const [currentRoleId, setCurrentRoleId] = useState<string | null>(null);
+  const [extraLessons, setExtraLessons] = useState<
+    Array<{ moduleId: string }>
+  >([]);
+  const [savingExtraLesson, setSavingExtraLesson] = useState(false);
 
   // Trạng thái hành trình 5 bước.
   const [step1Done, setStep1Done] = useState(false);
@@ -319,8 +334,6 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
   const [memoSaved, setMemoSaved] = useState(false);
   // Tool chính của công ty (mục 3) — nguồn sự thật qua getOrgAiTool().
   const [orgAiTool, setOrgAiToolState] = useState("claude");
-
-  useHocTapStudySession(moduleId, hydrated && Boolean(mod));
 
   const markLessonComplete = useCallback(
     async (review: PracticeReview) => {
@@ -364,6 +377,8 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
   );
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
       let lesson: LearningModuleRecord | null = null;
       try {
@@ -382,6 +397,7 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
             getEmployeeProfile(),
             getEmployeeProgress(),
           ]);
+          setCurrentRoleId(prof?.roleId ?? null);
           aiLevel = prof?.assessment?.aiLevel ?? 0;
           const s = prog[moduleId];
           if (s === "hoan-thanh" || s === "dang-hoc" || s === "chua-hoc") {
@@ -407,9 +423,11 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
           }
         } catch (err) {
           console.warn("[lesson] Không đọc được tiến độ Supabase:", err);
+          setCurrentRoleId(getDemoProfile()?.roleId ?? null);
           setStatus(getDemoProgress()[moduleId] ?? "dang-hoc");
         }
       } else {
+        setCurrentRoleId(getDemoProfile()?.roleId ?? null);
         const p = getDemoProgress();
         setStatus(p[moduleId] ?? "dang-hoc");
         setModuleStatus(moduleId, "dang-hoc");
@@ -422,9 +440,20 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
           );
         }
       }
-      setHydrated(true);
+      try {
+        const lessons = await getEmployeeExtraLessons();
+        if (!cancelled) {
+          setExtraLessons(lessons.map((lesson) => ({ moduleId: lesson.moduleId })));
+        }
+      } catch (err) {
+        console.warn("[lesson] Không đọc được Kỹ năng khác:", err);
+      }
+      if (!cancelled) setHydrated(true);
     }
     void load();
+    return () => {
+      cancelled = true;
+    };
   }, [moduleId]);
 
   // Hydrate tool theo PHÒNG BAN của học viên (Phần C §1): dept tool → fallback
@@ -465,6 +494,41 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
     router.refresh();
   }
 
+  const sourceModule = mod
+    ? ROLES[mod.role_id as RoleId]?.modules.find((item) => item.id === mod.id) ?? null
+    : null;
+  const extraSkillSlug = sourceModule?.skills?.find(Boolean) ?? null;
+  const handleSaveExtraLesson = useCallback(async () => {
+    if (!mod || !extraSkillSlug) return;
+    setSaveError("");
+    setSavingExtraLesson(true);
+    try {
+      await saveEmployeeExtraLesson({
+        moduleId: mod.id,
+        skillSlug: extraSkillSlug,
+        sourceRoleId: mod.role_id as RoleId,
+        enrolledAt: new Date().toISOString(),
+      });
+      const nextLessons = await getEmployeeExtraLessons();
+      setExtraLessons(nextLessons.map((lesson) => ({ moduleId: lesson.moduleId })));
+    } catch (err) {
+      console.warn("[lesson] Không lưu được Kỹ năng khác:", err);
+      setSaveError(
+        err instanceof Error
+          ? err.message
+          : "Không thêm được vào Kỹ năng khác. Thử lại sau nhé.",
+      );
+    } finally {
+      setSavingExtraLesson(false);
+    }
+  }, [extraSkillSlug, mod]);
+  const isComplete = status === "hoan-thanh";
+  const practiceScore = practiceReview?.score ?? 0;
+  const passed =
+    isComplete || (practiceReview ? practiceReview.score >= PRACTICE_PASS_SCORE : false);
+  const unlockedSummary = passed && (reflectDone || isComplete);
+
+  // Công cụ AI cho bài này (mục 2 + 3): tool chuyên dụng nếu bài cần, else tool chính.
   if (!hydrated) {
     return <LessonSkeleton />;
   }
@@ -481,13 +545,19 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
   }
 
   const role = getRole(mod.role_id);
-  const isComplete = status === "hoan-thanh";
-  const practiceScore = practiceReview?.score ?? 0;
-  const passed =
-    isComplete || (practiceReview ? practiceReview.score >= PRACTICE_PASS_SCORE : false);
-  const unlockedSummary = passed && (reflectDone || isComplete);
-
-  // Công cụ AI cho bài này (mục 2 + 3): tool chuyên dụng nếu bài cần, else tool chính.
+  const sourceRole = ROLES[mod.role_id as RoleId] ?? null;
+  const extraSkillLabel = extraSkillSlug
+    ? SKILL_LABELS[extraSkillSlug] ?? extraSkillSlug
+    : null;
+  const isSavedAsExtraLesson = extraLessons.some(
+    (item) => item.moduleId === mod.id,
+  );
+  const isCrossRoleLesson =
+    Boolean(currentRoleId) && currentRoleId !== mod.role_id;
+  const canViewLesson = !isCrossRoleLesson || isSavedAsExtraLesson;
+  const showNextLessonButton = !isCrossRoleLesson && Boolean(nextModuleId);
+  const canSaveAsExtraLesson =
+    isCrossRoleLesson && !isSavedAsExtraLesson && Boolean(extraSkillSlug);
   const tool = getToolForModule(mod, orgAiTool);
   const isSpecialistTool = Boolean(mod.tool);
 
@@ -503,6 +573,65 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
   ];
 
   const memos = mod.learnings.slice(0, 3);
+
+  if (!canViewLesson) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10 md:py-14">
+        <Link
+          href="/lo-trinh"
+          className="text-sm font-medium text-brand hover:underline"
+        >
+          ← Về lộ trình {getRole(currentRoleId ?? "")?.shortLabel ?? role?.shortLabel ?? ""}
+        </Link>
+        <div className="mt-6 rounded-2xl border border-brand/20 bg-brand-soft p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand">
+            Kỹ năng khác
+          </p>
+          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-ink">
+            {mod.title}
+          </h1>
+          {extraSkillLabel && sourceRole && (
+            <p className="mt-2 text-xs text-ink-2">
+              Kỹ năng: <b>{extraSkillLabel}</b> · Nguồn: {sourceRole.label}
+            </p>
+          )}
+          <p className="mt-3 text-sm leading-relaxed text-ink-2">
+            {fromExtraSuggestion
+              ? "Trợ lý gợi ý bài này ngoài lộ trình chính. Thêm vào section Kỹ năng khác để bắt đầu học."
+              : "Bài học này thuộc vai trò khác. Thêm vào section Kỹ năng khác để mở nội dung bài học."}
+          </p>
+          {canSaveAsExtraLesson ? (
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={() => void handleSaveExtraLesson()}
+                disabled={savingExtraLesson}
+                className="inline-flex h-10 items-center justify-center rounded-full bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:bg-brand-2 disabled:opacity-60"
+              >
+                {savingExtraLesson ? "Đang lưu..." : "Thêm vào Kỹ năng khác"}
+              </button>
+              <Link
+                href="/lo-trinh"
+                className="inline-flex h-10 items-center justify-center rounded-full border border-brand/30 bg-white px-4 text-sm font-semibold text-brand transition hover:bg-brand-soft"
+              >
+                Về lộ trình
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href="/lo-trinh"
+              className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:bg-brand-2"
+            >
+              Về lộ trình
+            </Link>
+          )}
+          {saveError && (
+            <p className="mt-3 text-sm text-destructive">{saveError}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10 md:py-14">
@@ -527,6 +656,43 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
         </h1>
         <p className="mt-3 text-base text-ink-2">{mod.summary}</p>
       </header>
+
+      {isCrossRoleLesson && (
+        <div className="mt-5 rounded-2xl border border-brand/20 bg-brand-soft p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-brand">
+                Kỹ năng khác
+              </p>
+              <p className="mt-1 text-sm text-ink">
+                {isSavedAsExtraLesson
+                  ? "Bài này đã nằm trong section Kỹ năng khác của bạn."
+                  : "Bài này không thuộc lộ trình chính, nhưng có trong catalog hệ thống. Bạn có thể lưu nó để học riêng ở section Kỹ năng khác."}
+              </p>
+              {extraSkillLabel && sourceRole && (
+                <p className="mt-1 text-xs text-ink-2">
+                  Kỹ năng: <b>{extraSkillLabel}</b> · Nguồn: {sourceRole.label}
+                </p>
+              )}
+            </div>
+            {canSaveAsExtraLesson && (
+              <button
+                type="button"
+                onClick={() => void handleSaveExtraLesson()}
+                disabled={savingExtraLesson}
+                className="inline-flex h-10 items-center justify-center rounded-full bg-brand px-4 text-sm font-semibold text-brand-foreground transition hover:bg-brand-2 disabled:opacity-60"
+              >
+                {savingExtraLesson ? "Đang lưu..." : "Thêm vào Kỹ năng khác"}
+              </button>
+            )}
+            {isSavedAsExtraLesson && (
+              <span className="inline-flex h-10 items-center rounded-full border border-brand/20 bg-white px-4 text-sm font-semibold text-brand">
+                Đã lưu
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Infographic: công thức prompt */}
       <p className="mt-8 text-center text-sm text-ink-2">
@@ -744,7 +910,7 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
           Về lộ trình
         </button>
 
-        {nextModuleId && (
+        {showNextLessonButton && (
           <button
             type="button"
             onClick={goNextLesson}
@@ -777,7 +943,7 @@ export function ModuleLessonContent({ moduleId }: { moduleId: string }) {
         </p>
       )}
 
-      {isComplete && nextModuleId && (
+      {isComplete && showNextLessonButton && (
         <p className="mt-3 text-center text-sm text-ink-2">
           Bài đã hoàn thành — tiếp tục với{" "}
           <span className="font-semibold text-brand">bài tiếp theo</span>.

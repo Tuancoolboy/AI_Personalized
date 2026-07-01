@@ -15,8 +15,6 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Local Codex skill bundle is agent tooling, not application source.
     ".codex/**",
-    // Local duck-race reference app is an external asset source, not runtime code.
-    "duck-race-master/**",
     // Python backend (linted by ruff, not eslint)
     "src/backend/**",
     // Local Vercel build output

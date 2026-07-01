@@ -37,6 +37,18 @@ describe("resolveFlowInput (demo mode = cá nhân)", () => {
     expect(input.aiLevel).toBe(5);
     expect(input.roleId).toBe("khac");
   });
+
+  it("giữ vai trò nhan-su (HR), không hạ về khac", async () => {
+    const input = await resolveFlowInput(demoSession, {
+      roleId: "nhan-su",
+      aiLevel: 1,
+    });
+    expect(input.roleId).toBe("nhan-su");
+    expect(input.assessmentGapModuleIds.length).toBeGreaterThan(0);
+    expect(
+      input.assessmentGapModuleIds.every((id) => id.startsWith("nhan-su-")),
+    ).toBe(true);
+  });
 });
 
 describe("buildSupabaseFlowInput (Supabase org flow)", () => {
@@ -136,6 +148,8 @@ describe("computeFingerprint", () => {
     primaryTool: "chatgpt",
     completedModuleIds: ["m1", "m2"],
     dailyTasks: ["x"],
+    goalTags: ["x"],
+    assessmentGapModuleIds: ["gap-m1"],
     organizationName: "Cty A",
     departmentId: "marketing",
     assignedPathTitle: "Path marketing",
@@ -172,6 +186,14 @@ describe("computeFingerprint", () => {
       }),
     ).not.toBe(fp1);
   });
+
+  it("đổi khi assessment gap / goalTags thay đổi", () => {
+    const fp1 = computeFingerprint(base);
+    expect(
+      computeFingerprint({ ...base, assessmentGapModuleIds: ["gap-m2"] }),
+    ).not.toBe(fp1);
+    expect(computeFingerprint({ ...base, goalTags: ["y"] })).not.toBe(fp1);
+  });
 });
 
 describe("buildFallbackPath (cả 2 luồng)", () => {
@@ -184,6 +206,8 @@ describe("buildFallbackPath (cả 2 luồng)", () => {
       primaryTool: "claude",
       completedModuleIds: [],
       dailyTasks: [],
+      goalTags: [],
+      assessmentGapModuleIds: [],
       organizationName: "Cty B",
       departmentId: "van-hanh",
       assignedPathTitle: "Onboarding vận hành",
@@ -213,6 +237,8 @@ describe("buildFallbackPath (cả 2 luồng)", () => {
       primaryTool: "copilot",
       completedModuleIds: [],
       dailyTasks: [],
+      goalTags: [],
+      assessmentGapModuleIds: [],
     };
     const r = buildFallbackPath(input, "fp2");
     expect(r.flow).toBe("individual");
@@ -228,6 +254,8 @@ describe("buildFallbackPath (cả 2 luồng)", () => {
       primaryTool: "claude",
       completedModuleIds: [],
       dailyTasks: [],
+      goalTags: [],
+      assessmentGapModuleIds: [],
     };
     const r = buildFallbackPath(input, "fp3");
     expect(r.missingSkills.length).toBeGreaterThan(0);

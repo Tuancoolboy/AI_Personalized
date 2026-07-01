@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthLoginForm } from "@/components/auth-login-form";
+import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 
 export const metadata: Metadata = {
   title: "Đăng nhập · AI Trợ Lý",
@@ -13,6 +14,10 @@ type LoginPageProps = {
     registered?: string;
   }>;
 };
+
+export function shouldShowDemoLoginHint(): boolean {
+  return !isSupabaseConfigured();
+}
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const query = await searchParams;
@@ -40,18 +45,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         urlSuccess={urlSuccess}
         registered={registered}
       />
-      <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 text-xs text-ink-2">
-        <p className="font-semibold text-accent">Demo nhanh — chọn vai trò:</p>
-        <p className="mt-1">
-          • <code className="font-mono">nhanvien@congty.vn</code> → trải nghiệm
-          như nhân viên
-        </p>
-        <p>
-          • <code className="font-mono">quanly@congty.vn</code> → xem dashboard
-          quản lý đội
-        </p>
-        <p className="mt-1 text-ink-3">Mật khẩu bất kỳ.</p>
-      </div>
+      {shouldShowDemoLoginHint() && (
+        <div className="rounded-xl border border-accent/30 bg-accent/10 p-3 text-xs text-ink-2">
+          <p className="font-semibold text-accent">Demo nhanh — chọn vai trò:</p>
+          <p className="mt-1">
+            • <code className="font-mono">nhanvien@congty.vn</code> → trải nghiệm
+            như nhân viên
+          </p>
+          <p>
+            • <code className="font-mono">quanly@congty.vn</code> → xem dashboard
+            quản lý đội
+          </p>
+          <p className="mt-1 text-ink-3">Mật khẩu bất kỳ.</p>
+        </div>
+      )}
     </div>
   );
 }

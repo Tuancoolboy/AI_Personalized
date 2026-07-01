@@ -1177,7 +1177,7 @@ const HR_STARTER_KIT: Role["starterKit"] = {
   ],
 };
 
-// --- Quiz tình huống (5 câu) -------------------------------------------------
+// --- Quiz tình huống (10 câu) ------------------------------------------------
 const HR_QUIZ: Role["quiz"] = [
   {
     question:
@@ -1243,6 +1243,71 @@ const HR_QUIZ: Role["quiz"] = [
     correctIndex: 1,
     explanation:
       "Tự động hóa HR hiệu quả là đóng gói việc lặp thành quy trình chuẩn với Claude, đo lường lợi ích thực và lan tỏa best practice — con người vẫn kiểm soát và chịu trách nhiệm.",
+  },
+  {
+    question:
+      "Khi dùng Claude viết JD cho vị trí mới, dữ kiện nào nên có trước?",
+    options: [
+      "Mục tiêu vị trí, nhiệm vụ chính, kỹ năng bắt buộc, cấp bậc và tiêu chí đánh giá",
+      "Chỉ tên chức danh",
+      "Mức lương bí mật của từng ứng viên",
+      "Yêu cầu Claude tự sao chép JD của công ty khác",
+    ],
+    correctIndex: 0,
+    explanation:
+      "JD tốt cần bám mục tiêu tuyển dụng và tiêu chí rõ ràng. Không nên sao chép JD bên ngoài hoặc đưa dữ liệu nhạy cảm không cần thiết.",
+  },
+  {
+    question:
+      "Bạn muốn AI tổng hợp phản hồi khảo sát nhân viên. Cách nào giảm rủi ro nhất?",
+    options: [
+      "Ẩn tên/email, nhóm phản hồi theo chủ đề và giữ nguyên các ý quan trọng cần phân tích",
+      "Dán nguyên danh sách phản hồi kèm tên người góp ý",
+      "Yêu cầu AI đoán ai đang bất mãn",
+      "Công khai từng phản hồi cá nhân",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Khảo sát nhân viên thường nhạy cảm. Nên ẩn danh, tổng hợp theo chủ đề và kiểm chứng trước khi ra quyết định.",
+  },
+  {
+    question:
+      "AI đề xuất loại một ứng viên vì 'không phù hợp văn hóa' nhưng không nêu bằng chứng. HR nên làm gì?",
+    options: [
+      "Loại ngay để tiết kiệm thời gian",
+      "Yêu cầu đối chiếu tiêu chí công việc, bỏ nhận xét mơ hồ và để người tuyển dụng xem lại",
+      "Dựa vào tuổi và ngoại hình để quyết định",
+      "Gửi nhận xét đó cho ứng viên",
+    ],
+    correctIndex: 1,
+    explanation:
+      "AI có thể tạo nhận xét thiên kiến hoặc mơ hồ. Tuyển dụng cần tiêu chí công việc rõ và con người chịu trách nhiệm quyết định.",
+  },
+  {
+    question:
+      "Khi nhờ AI tạo kế hoạch đào tạo nội bộ, đầu ra nào tốt nhất?",
+    options: [
+      "Mục tiêu học, nội dung từng buổi, bài thực hành, cách đo kết quả và tài liệu cần chuẩn bị",
+      "Một danh sách chủ đề thật dài",
+      "Slide hoàn chỉnh không cần người duyệt",
+      "Chỉ khẩu hiệu truyền cảm hứng",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Kế hoạch đào tạo cần mục tiêu đo được, hoạt động thực hành và cách đánh giá. AI hỗ trợ soạn khung, HR vẫn duyệt và triển khai.",
+  },
+  {
+    question:
+      "Bảng headcount có lương, phòng ban và kế hoạch tuyển mới. Trước khi dùng AI công cộng, HR cần làm gì?",
+    options: [
+      "Ẩn danh/giảm dữ liệu nhạy cảm, chỉ giữ phần cần phân tích và tuân thủ chính sách công ty",
+      "Upload nguyên file để AI nhìn đủ",
+      "Chia sẻ link chỉnh sửa công khai",
+      "Không cần hỏi vì đây là dữ liệu nội bộ",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Headcount và lương là dữ liệu nhạy cảm. Cần ẩn danh, giảm trường dữ liệu và tuân thủ chính sách bảo mật trước khi dùng AI.",
   },
 ];
 

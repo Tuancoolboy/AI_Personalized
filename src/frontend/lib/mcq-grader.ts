@@ -1,5 +1,6 @@
 import { deriveReviewStatus } from "@/lib/agents/grader-types";
 import type { PracticeReviewResult } from "@/lib/practice-grader";
+import { UNANSWERED_QUIZ_OPTION } from "@/lib/quiz-answers";
 import { getRole } from "@/lib/roles";
 
 export const MCQ_PASS_SCORE = 70;
@@ -16,6 +17,10 @@ export type McqGradingResult = {
   review: PracticeReviewResult;
 };
 
+type McqRubricBreakdown = NonNullable<
+  PracticeReviewResult["grading"]
+>["rubricBreakdown"];
+
 export function gradeMcqQuiz(input: McqGradingInput): McqGradingResult | null {
   const role = getRole(input.roleId);
   if (!role?.quiz.length) return null;
@@ -24,21 +29,32 @@ export function gradeMcqQuiz(input: McqGradingInput): McqGradingResult | null {
   if (input.answers.length !== questions.length) return null;
 
   let correctCount = 0;
-  const breakdown = questions.map((q, index) => {
+  const rubricBreakdown: McqRubricBreakdown = [];
+  for (let index = 0; index < questions.length; index += 1) {
+    const q = questions[index];
+    if (!q) return null;
     const selected = input.answers[index];
+    if (
+      typeof selected !== "number" ||
+      !Number.isInteger(selected) ||
+      selected < UNANSWERED_QUIZ_OPTION ||
+      selected >= q.options.length
+    ) {
+      return null;
+    }
     const valid =
-      Number.isInteger(selected) &&
+      selected !== UNANSWERED_QUIZ_OPTION &&
       selected >= 0 &&
       selected < q.options.length;
     const isCorrect = valid && selected === q.correctIndex;
     if (isCorrect) correctCount += 1;
-    return {
+    rubricBreakdown.push({
       criterion: `Câu ${index + 1}: ${q.question.slice(0, 80)}`,
       points: isCorrect ? 1 : 0,
       maxPoints: 1,
       note: isCorrect ? "Đúng" : q.explanation.slice(0, 120),
-    };
-  });
+    });
+  }
 
   const questionCount = questions.length;
   const score = Math.round((correctCount / questionCount) * 100);
@@ -73,7 +89,7 @@ export function gradeMcqQuiz(input: McqGradingInput): McqGradingResult | null {
           ? improvements
           : ["Ôn lại module và làm lại bài kiểm tra"],
       grading: {
-        rubricBreakdown: breakdown,
+        rubricBreakdown,
         evidence: [`Đúng ${correctCount}/${questionCount} câu trắc nghiệm`],
         confidence,
         reviewStatus,

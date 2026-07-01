@@ -6,264 +6,200 @@
 
 ---
 
-## [2026-06-24] — Chặn creator tạo nhiều phòng active
+## [2026-07-01] — Resolve develop merge conflicts for quiz/avatar branch
 
-**Context:** User báo khi người tạo đang ở trong phòng rồi thoát về trang ngoài có thể tạo tiếp phòng khác, gây lạm dụng và làm luồng rời phòng khó hiểu. Đồng thời cần đảm bảo nếu người tạo chọn vai `Người chơi` trong phòng AI Host thì khi người đó chủ động rời, phòng cũng bị xoá.
+**Context:** Branch `feat/tuanvh/quiz+avatar` đã push được nhưng GitHub báo không merge được vào `develop`. Merge simulation cho thấy conflict chỉ nằm ở file docs/log, không phải code runtime.
 
-**Decision:** Không gắn xoá phòng vào browser back/đóng tab. Room chỉ bị xoá khi người tạo bấm nút rời phòng chủ động. Thêm khóa creator ở memory runtime bằng `session.userId`, Supabase dùng `created_by_user_id`; trước khi tạo phòng mới, nếu user còn phòng `waiting/playing` trong cùng audience thì API trả conflict với copy “Bạn đã có một phòng đang mở. Hãy rời & xoá phòng cũ trước khi tạo phòng mới.” Creator-player trong phòng AI Host vẫn là controller nên rời phòng sẽ xoá cả phòng.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** `npm run db:validate` pass 42 migrations; targeted Vitest `src/frontend/lib/hoc-tap-room-store.test.ts`, `src/frontend/lib/hoc-tap-room-service.test.ts`, `src/frontend/lib/hoc-tap-room-runtime.test.ts` pass 40/40; route test `src/frontend/app/api/hoc-tap/rooms/route-get.test.ts` pass 2/2; `npm run lint` pass với 5 warning cũ; `npm run test` pass unit 367/367 rồi API integration dừng trước case đầu tiên do Supabase credential local chứa ký tự Unicode không hợp lệ trong HTTP header (`ByteString`, value 7852); `npm run build` pass ngoài sandbox; `git diff --check` pass.
-
-## [2026-06-23] — Chủ phòng quan sát, sức chứa phòng và Đua vịt theo câu đúng
-
-**Context:** User đổi yêu cầu cho room Học tập: khi tạo phòng ở vai `Chủ phòng`, host chỉ bấm bắt đầu rồi quan sát; cần chỉnh số lượng người chơi tối đa, phòng đầy thì chặn join nhưng rời phòng sẽ mở slot; Đua vịt phải tiến theo từng câu đúng của từng người và label vịt dùng tên user trong sảnh.
-
-**Decision:** Supersede quyết định trước đó cho human host. Từ giờ `getPlayers()` ở memory và Supabase luôn là participant không phải host; human host không tính capacity, không answer, không leaderboard, chỉ điều khiển/xem. Luồng `entryRole=player` vẫn giữ system host và người tạo là player thật. Duck Race dùng `score / (questionCount * 100)` để tính distance riêng từng người; sprite vẫn quay vòng theo thứ tự vào phòng nhưng `duckName` là tên user.
+**Decision:** Merge `develop` vào branch feature, lấy docs/log của `develop` làm nền để không làm mất Gate 3/CI notes, rồi chèn lại entry merge-fix cho quiz/avatar. Code avatar, quiz timer, Học tập quiz/team rooms và các phần restore từ `develop` giữ nguyên.
 
 **Owner:** Codex
 
 **Status:** Active
 
-**Tests:** `npm run db:validate` pass 42 migrations; targeted Vitest room/duck/migration/route pass 55/55; `npm run lint` pass với 5 warning cũ; `npm run test:unit` pass 361/361; `npm run test` unit phase pass rồi API integration dừng trước case đầu tiên do Supabase credential local chứa ký tự Unicode không hợp lệ trong HTTP header (`ByteString`, value 7852); `npm run build` pass ngoài sandbox; `git diff --check` pass. Browser smoke chưa chạy vì repo không có Playwright/UI smoke script.
+**Tests:** Pending sau khi resolve conflict; sẽ chạy `git diff --check`, targeted unit/build nếu cần trước khi push lại.
 
-## [2026-06-23] — Đặt tên vịt và vòng sprite khi đông người
+## [2026-06-25] — Gate 3 submission package and canonical production URL
 
-**Context:** User muốn khi số người chơi nhiều hơn số sprite vịt thì danh sách vịt quay vòng lại, đồng thời UI không hiển thị số vịt nữa mà hiển thị tên con vịt.
+**Context:** Gate 3 requires deployed production, multiple eval metrics,
+guardrails, a 3–5 minute pitch/live-demo draft, and estimated cost/user/month.
+The repo had most raw evidence but it was spread across Gate 2 docs, an older
+eval report and generic cost guidance. Two Vercel aliases also pointed at
+different production revisions.
 
-**Decision:** Đua vịt nay có 10 tên cố định (`Vịt Vàng`, `Vịt Lá`, ...). Skin được gán theo thứ tự người vào phòng, dùng hết 10 sprite thì quay lại sprite đầu tiên; rank/điểm vẫn xếp hạng riêng. Canvas và leaderboard tổng kết hiển thị tên vịt thay cho `Vịt #n`.
+**Decision:** Use only `https://c2-app-009.vercel.app` as the canonical
+production URL sourced from `main`; reassign it to deployment commit `3b20a7e`
+and remove `ai-tro-ly.vercel.app`. A snapshot redeploy/local prebuilt deploy
+kept public Supabase env out of the client bundle, so production was rebuilt
+remotely from an isolated `origin/main` worktree; real auth mode was then
+confirmed by Google OAuth visibility and rejected invalid credentials.
+Package Gate 3 evidence into dedicated
+submission/eval/guardrail/cost/demo artifacts. Keep `c2-app-009.io.vn` as a
+future coordinated DNS + callback migration, not a code-only rename.
 
-**Tests:** Targeted Vitest `hoc-tap-duck-race.test.ts` pass 7/7; `npm run lint` pass với 5 warning cũ; Node 20 build pass.
+**Cost model:** Use current `gpt-4o-mini` prices, low/base/high scenarios and
+25% contingency. High usage at 30 chat calls/day is estimated at ~20.468đ per
+user/month including contingency.
 
-## [2026-06-23] — Đua vịt theo pha, khoá/rời phòng và default all cho Học tập
+**Verification so far:** production remote deployment READY; landing/login
+browser smoke in Supabase real mode; HTTP 200;
+cached chat HTTP 200 with `X-Chat-Mode: cache`; unauthenticated
+`/api/platform-admin` HTTP 403; targeted guardrail suite 23/23; Gate 3 eval
+summary generated from raw baseline.
 
-**Context:** User yêu cầu tiếp tục trên `feat/hoc-tap-real-data` để đồng bộ memory + Supabase cho bốn hành vi: vịt tiến theo từng câu, phòng tự khóa khi start và chặn người mới, host/player rời phòng đúng vai trò, và tab Học tập/Chơi với team mặc định lọc `Tất cả phòng ban`.
+**Production copy fix:** Login page now hides the demo-account/mật-khẩu-bất-kỳ
+hint whenever Supabase public env is configured, so the production recording
+does not contradict real auth behavior.
+
+**CD fix:** `.github/workflows/deploy.yml` now uploads source for a Vercel
+remote build instead of deploying a local prebuilt bundle. It parses the final
+deployment URL, assigns `c2-app-009.vercel.app`, and removes
+`ai-tro-ly.vercel.app`; the manual deploy script applies the same alias cleanup.
+
+**Final verification:** `npm run lint` pass with 5 pre-existing warnings;
+`npm run test` pass (70 Vitest files / 337 tests, 30 Phase 1 API, 12
+manager/invite, 7 auth/OAuth, 88 pytest); `npm run build` pass. Local
+production HTML confirms Google sign-in is present and demo credentials are
+hidden in real Supabase mode. Pitch deck rendered and visually inspected
+slide-by-slide.
+
+**Files:** `docs/gate-3-submission.md`,
+`docs/product/gate-3-cost-report.md`,
+`docs/ops/production-deployment.md`, `eval/**`,
+`scripts/summarize-gate3-eval.mjs`,
+`planning/demo/gate-3-demo-video-plan.md`, `presentation/**`,
+`specs/notes/adhoc-gate-3-submission-implementation-notes.html`.
+
+## [2026-06-23] — CI/CD GitHub Actions trên self-hosted runners BTC
+
+**Context:** GitHub Org giới hạn credit hosted runners; BTC cung cấp shared self-hosted runners (FIFO) cho toàn chương trình.
+
+**Decision:** Đổi `.github/workflows/ci.yml` sang `runs-on: self-hosted`, bật lại trigger `push`/`pull_request` trên `develop` và `main` (job: `db:validate`, lint, test, build). Thêm `.github/workflows/deploy.yml` deploy Vercel production sau CI pass trên `main`, hoặc chạy tay qua `workflow_dispatch`.
+
+**Secrets CD (repo Settings → Secrets):** `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` — lấy từ Vercel dashboard / `vercel link`.
+
+**Files:** `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`, `WORKLOG.md`, `specs/PROJECT-CONTINUATION.md`.
+
+## [2026-06-23] — Fix Phase 1 API tests trên CI demo mode
+
+**Context:** CI runner không có `.env.local` → app chạy demo mode; test vẫn expect Supabase (401 history, manager chat).
+
+**Decision:** `detectServerMode()` probe `/api/chat/history`; demo dùng cookie manager đúng; skip manager Supabase khi seed membership fail.
+
+**Files:** `scripts/test-phase1-apis.mjs`.
+
+## [2026-06-23] — Fix CI API test nhầm server shared runner :3000
+
+**Context:** Self-hosted runner BTC có process khác đang listen `:3000`; `run-all-tests.mjs` reuse nhầm → test 404 fail.
+
+**Decision:** Trên CI (`GITHUB_ACTIONS`/`CI`) luôn start server riêng `:3099`; local chỉ reuse `:3000` khi probe unknown route trả 404.
+
+**Files:** `scripts/run-all-tests.mjs`.
+
+## [2026-06-21] — Fix AI log submit HTTP 413 (body too large)
+
+**Context:** Pre-push hook `submit_log.py` fail với HTTP 413 vì `session.jsonl` ~48MB; batch 500 entries ~6.7MB vượt giới hạn grading server. Log phình do hook Claude ghi cả `postToolUse` Write (nội dung file trong `tool_input`).
+
+**Decision:** Chia batch theo bytes (`MAX_PAYLOAD_BYTES=900000`) + giới hạn 100 entries; tối đa 8 batch/push với pause 1s (tránh 429); sửa restore để không nhân đôi file khi fail; recover orphan `session.pending.*`.
+
+**Files:** `scripts/submit_log.py`, `WORKLOG.md`, `specs/PROJECT-CONTINUATION.md`.
+
+**Verify:** `bash scripts/_pyrun.sh scripts/submit_log.py` — drain backlog ~4.6k entries thành công (HTTP 202); `session.jsonl` trống sau submit.
+
+## [2026-06-20] — Platform Admin sửa `role_id`, `ai_level` và reset cache lộ trình
+
+**Context:** Người vận hành cần sửa cứu hộ tài khoản chọn sai vai trò / sai mức AI, rồi ép hệ thống sinh lại lộ trình mới mà không xoá chat hay điểm số.
+
+**Decision:** Thêm `ai_level` vào draft/report user; cho dropdown work role edit `role_id` trực tiếp trên bảng; khi đổi `role_id` hoặc `ai_level` thì xoá `learning_recommendations`; `reset-user-learning` có scope `learning_recommendations` để nút “Sinh lại lộ trình” chỉ reset cache lộ trình.
+
+**Files:** `src/frontend/lib/platform-admin-console.ts`, `src/frontend/lib/platform-admin-types.ts`, `src/frontend/components/platform-admin/users-tab.tsx`, `src/frontend/components/platform-admin/platform-admin-console.types.ts`, `src/frontend/hooks/use-platform-admin-console.ts`, `src/frontend/lib/platform-admin-console.test.ts`.
+
+**Verify:** `npm run lint` pass (5 pre-existing warnings); `npm run test` pass (63 Vitest / 309 unit, 30 API, 12 manager/invite, 7 auth/OAuth, 88 pytest); `npx -y -p node@20 node node_modules/next/dist/bin/next build src/frontend` pass.
+
+## [2026-06-19] — Fix card follow-up cho luồng học Kỹ năng khác
+
+**Context:** Screenshot `/tro-ly` cho thấy user hỏi “tôi là HR, học skill khác có vấn đề gì không?”, chọn nhánh quảng cáo, nhưng card kế tiếp lại hỏi “đã có số liệu/tài liệu chưa?” — lệch sang flow báo cáo thay vì flow người học muốn học cross-skill.
+
+**Decision:** Thêm flow `extra-skill` trong `chat-clarify-steps`: step 1 hỏi nhóm kỹ năng muốn học, step 2 hỏi muốn áp dụng vào việc HR nào, step 3 hỏi kiểu hỗ trợ/học mong muốn. Runtime hint giờ dùng template theo context thay vì hard-code lớp 2 là “số liệu/tài liệu”.
+
+**Files:** `src/frontend/lib/chat-clarify-steps.ts`, `src/frontend/app/api/chat/route.ts`, `src/frontend/lib/chat-clarify-parse.test.ts`.
+
+**Verify:** `npm run test -- src/frontend/lib/chat-clarify-parse.test.ts` pass (script chạy full suite: 283 unit, 30 API, 12 manager/invite, 7 auth/OAuth, 88 pytest); `npm run lint` pass (5 pre-existing warnings); `npm run build` pass. Browser smoke was attempted but blocked by Browser plugin virtual clipboard input error.
+
+---
+
+## [2026-06-19] — Fix race làm mất tin nhắn đầu ở `/tro-ly`
+
+**Context:** User vẫn thấy câu hỏi đầu tiên của session chat bị mất và vùng chat bị nháy khi gửi lượt đầu.
+
+**Decision:** Init chat history giờ có run/version guard, nên init cũ hoặc init bị user gửi message chen vào sẽ không được overwrite `messages`; gửi message đầu sẽ tắt skeleton ngay; `ChatConversationBody` bỏ `key={sessionLoadKey}` để tránh remount toàn bộ vùng hội thoại.
+
+**Files:** `src/frontend/hooks/use-assistant-chat.ts`, `src/frontend/components/chat-conversation-body.tsx`, `src/frontend/components/tro-ly-chat.tsx`.
+
+**Verify:** `npm run test` pass; `npm run lint` pass (5 pre-existing warnings); `npm run build` pass; browser smoke real-mode `/tro-ly` confirmed first user bubble stayed visible across 30 samples during first-answer thinking and after stream.
+
+---
+
+## [2026-06-19] — Harden Kỹ năng khác enroll sau Bugbot review
+
+**Context:** Review PR #63 phát hiện blocked cross-role page không có nút lưu, demo mode thiếu cap 5, validation role null lỏng, và insert Supabase bypass được qua client.
+
+**Decision:** Preview blocked vẫn hiện CTA lưu; link chat dùng `?extra=1`; `validateExtraSkillLessonEnrollment` dùng chung FE; migration trigger `enforce_extra_skill_lesson_rules` guard insert/update ở DB để upsert không né rule.
+
+**Files:** `module-lesson-content.tsx`, `extra-skill-lessons.ts`, `employee.ts`, `demo-storage.ts`, `20260619203000_extra_skill_lessons_guards.sql`, tests.
+
+**Verify:** `npm run db:validate`, `npm run lint`, `npm run test` (280 Vitest), `npm run build` pass.
+
+---
+
+## [2026-06-19] — Chặn xem lesson ngoài role nếu chưa được lưu và tắt nút bài tiếp theo trong extra lesson
+
+**Context:** User phát hiện lesson ngoài role vẫn có thể mở tiếp sang các bài khác qua nút “Bài tiếp theo”, khiến học viên lách được sang nội dung không được gợi ý.
 
 **Options:**
-1. Chỉ vá UI Đua vịt và giữ các helper room hiện có.
-2. Siết lại invariant ở helper/test: progress đường đua theo phase, điểm chỉ xếp hạng; route/service/store đều có regression start-lock/leave; migration RPC join chặn account mới sau khi room đã chơi.
+1. Chỉ ẩn nút “Bài tiếp theo”.
+2. Chỉ chặn một vài URL cụ thể.
+3. Chỉ cho xem lesson ngoài role khi đã nằm trong section “Kỹ năng khác”, và tắt nút bài tiếp theo ở các lesson đó.
 
-**Decision:** Chọn phương án 2. `buildDuckRaceStandings()` chỉ xếp hạng theo điểm/joined time và không tự biến điểm thành quãng đường; `applyDuckRaceQuestionProgress()` là nguồn quyết định vị trí vịt, nên trong lúc chơi cả team tiến 0 → 1/N → … và màn tổng kết đưa mọi vịt tới 100%. Room memory và Supabase đều set locked khi start; RPC `join_hoc_tap_room_by_code` kiểm tra existing participant trước rồi mới chặn room không còn `waiting`, nên người cũ reload/rejoin được nhưng người mới bị từ chối. `/leave` xóa cả room nếu creator/host rời, còn player chỉ xóa participant của chính mình; DB cascade answer theo participant.
+**Decision:** Chọn phương án 3. Cross-role lesson giờ có màn chặn nếu chưa được lưu vào “Kỹ năng khác”; lesson đã lưu vẫn xem được nhưng không hiện nút “Bài tiếp theo”, nên không dẫn người học sang các bài ngoài phạm vi gợi ý.
 
-**Owner:** Codex
+**Owner:** Minh Hải
 
-**Status:** Active
+## [2026-06-19] — Chặn rò rỉ “bài tiếp theo” trong chat extra-skill
 
-**Tests:** `npm run db:validate` pass 41 migrations; targeted Vitest room/duck/migration/route pass 56/56; `npm run lint` pass với 5 warning cũ; `npm run test` unit pass 359/359 và production build trong phase API pass, nhưng API integration dừng trước case đầu tiên vì credential Supabase trong `.env.local` chứa ký tự Unicode không hợp lệ khi đưa vào HTTP header (`ByteString`, value 7852); Node 20 build riêng pass; `git diff --check` pass.
+**Context:** Khi user hỏi từ AI trợ lý chính kiểu “sau bài này học gì tiếp”, bot vẫn có thể lôi module tiếp theo của lộ trình chính ra dù đang nói về một bài học thêm.
 
-## [2026-06-23] — Dữ liệu thật cho Học tập, XP và phân tách Công ty/Cộng đồng
+**Decision:** Thêm luật ưu tiên cao cho `extraSkillSummary` và ngữ cảnh Kỹ năng khác: bài học thêm là bài độc lập, không có “next lesson” mặc định; nếu user hỏi tiếp theo thì chỉ được nói đây là bài học thêm riêng hoặc gợi ý thêm một bài Kỹ năng khác liên quan khác trong catalog.
 
-**Context:** `/hoc-tap` còn dùng XP, cấp độ, thứ hạng, biểu đồ, leaderboard và room seed mẫu. Quiz Học tập ghi localStorage nên không đồng bộ thiết bị; migration ngày 22/06 còn cho phép account ngoài công ty xem/join phòng bằng mã, trái với yêu cầu công ty riêng.
+**Verification:** Browser retest trên hội thoại mới đã không còn lộ link bài tiếp theo; các câu hỏi lách luật trước đó vẫn đi qua clarify nhưng không rò rỉ module kế tiếp ở câu trả lời cuối.
 
-**Options:**
-1. Giữ localStorage và chỉ đổi số hiển thị về 0.
-2. Lưu điểm trực tiếp từ client vào Supabase.
-3. Giữ nội dung quiz chuẩn trong code, chấm trên server, ghi attempt + phần XP tăng bằng RPC transaction, đồng thời dùng `organization_members` để phân giải audience Cộng đồng/Công ty.
+## [2026-06-19] — Fix flicker/missing message và siết clarify context
 
-**Decision:** Chọn phương án 3. Tài khoản không có membership dùng organization hệ thống `Cộng đồng AI Trợ Lý` nhưng không được tạo membership; migration cũng xóa membership placeholder `Tổ chức mặc định` mà `0008` từng backfill cho mọi account legacy để chúng thực sự trở về Cộng đồng. Tài khoản nhận invite dùng organization công ty. XP tách theo audience, bắt đầu `Lv.1 · 0/100 XP`, mỗi quiz chỉ tính điểm cao nhất và `attempt_id` chống ghi trùng; retry idempotent trả 0 XP để UI không thông báo cộng lại. Direct insert `points_ledger` bị thu hồi; direct insert `quiz_results` chỉ còn cho quiz learning cũ, không thể giả mạo attempt Học tập. Room list/create/preview/join bị giới hạn đúng audience hiện tại, nên migration mới chủ động thu hồi cross-company join của `20260622054535`.
+**Context:** User báo rằng chat bị mất message và nháy lại màn hình sau khi gửi; ngoài ra clarify payload lỗi còn lộ raw `__CLARIFY__`, và câu trả lời sau card 3 bị kéo quá nhiều memory cũ.
 
-**Owner:** Codex
+**Decision:** Bỏ dependency `activeConversationId` khỏi init effect để chat không remount khi conversation id được resolve; khi parse clarify fail thì strip raw payload khỏi UI; và khi đang ở nhánh clarify thì giảm việc nhét memory cũ vào system prompt để câu trả lời bám sát câu hỏi hiện tại hơn.
 
-**Status:** Đã apply migration lên Supabase; smoke nhiều account còn chờ thực hiện.
-
-**Tests:** `npm run db:validate` pass (38 migrations); targeted Vitest 30/30 và full unit 336/336 pass; `npm run lint` pass (0 error, 7 warning cũ ngoài scope); build production bằng Node 20 pass. `npm run test` đã build + khởi động test server thành công, nhưng API integration dừng trước case đầu tiên vì credential Supabase được inject vào môi trường test có ký tự Unicode không hợp lệ trong HTTP header; không phải assertion hoặc lỗi feature. `npm run db:push` đã apply thành công migration `20260623023753` lên remote.
-
-## [2026-06-22] — Chuyển room team sang session + RLS và cho join xuyên công ty bằng mã
-
-**Context:** User tiếp tục báo production preview vẫn `500` ở `GET /api/hoc-tap/rooms`, sau đó account thứ hai mở đúng URL phòng lại nhận `404` và UI hiểu nhầm thành “Phòng đã bị xoá”. Trace cho thấy có hai nguyên nhân nối tiếp: service layer phụ thuộc `createSupabaseServiceClient()` nên Vercel thiếu/lệch service-role sẽ nổ `500`; đồng thời lookup room dùng cả `code + organization_id`, nên mã phòng toàn cục vẫn vô dụng với account thuộc công ty khác.
-
-**Options:**
-1. Giữ service-role và chỉ nhắc team cấu hình env Vercel cho đúng.
-2. Chuyển room service sang `createSupabaseServerClient()` và bắt buộc hai account cùng công ty.
-3. Dùng session + RLS, nhưng thêm RPC security-definer chỉ trả metadata sảnh chờ và join participant bằng đúng mã phòng để account ngoài công ty có thể vào mà chưa đọc được bộ câu hỏi trước khi tham gia.
-
-**Decision:** Chọn phương án 3. Room service dùng server session client cho mọi thao tác và không còn phụ thuộc `SUPABASE_SERVICE_ROLE_KEY`. Migration `20260622054535_allow_cross_org_hoc_tap_room_join.sql` thêm preview/join RPC theo mã toàn cục và mở RLS đọc/cập nhật cho participant thật sau khi join; list phòng vẫn company-scoped. Account ngoài công ty chỉ nhận metadata sảnh chờ trước khi bấm “Vào phòng”, không nhận `questions_json`. Đồng thời bổ sung `minWidth={0}` + wrapper `min-w-0` cho các Recharts còn thiếu ở manager dashboard.
-
-**Owner:** Codex
+**Verification:** `npm run test -- src/frontend/hooks/use-assistant-chat.test.ts src/frontend/lib/chat-clarify-parse.test.ts src/frontend/lib/openai.test.ts` pass; `npm run build` pass; browser smoke trên `/tro-ly` xác nhận bong bóng user không mất, không nháy lại, và clarify hiển thị sạch.
 
 **Status:** Active
 
-**Tests:** Targeted Vitest room runtime/service/routes pass 13/13; full unit phase pass 325/325 rồi API integration dừng ở lỗi nền Node 20 thiếu native WebSocket; `npm run db:validate` pass 37 migrations; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. `tsc --noEmit` riêng vẫn báo các lỗi test type có sẵn ở `path-agent-input.test.ts` và `hoc-tap-room-store.test.ts`, trong khi Next production type-check pass. `npm run db:sync` đã apply thành công hai migration room `20260621183748` và `20260622054535` lên remote project `cuyyhasurnxxdvzysngt`.
+**Tests:** `npm run lint` pass với 5 warning có sẵn; `npm run test` pass (59 Vitest files / 273 tests, 30 API, 12 manager/invite, 7 auth/OAuth, 88 pytest); `npm run build` pass; browser smoke xác nhận lesson ngoài role chưa lưu bị chặn, lesson đã lưu xem được nhưng không còn nút bài tiếp theo.
 
-## [2026-06-22] — Tắt mock/fallback room khi test Supabase thật và cô lập identity theo account
+## [2026-06-19] — Thêm “Kỹ năng khác” cho bài học ngoài role và giới hạn tối đa 5 bài
 
-**Context:** Sau patch fallback trước đó, user xác nhận flow test 2 account vẫn lệch kỳ vọng: khi đổi sang account khác để vào cùng mã phòng thì có lúc không thấy phòng hoặc rơi vào trạng thái “phòng đã bị xoá”. Phân tích cho thấy có 3 nguồn nhiễu cùng lúc: dashboard Học tập vẫn trộn seed room mock với room thật, real mode Supabase vẫn có nhánh fallback về memory nếu room backend lỗi, và trang room lưu `participantId` localStorage chỉ theo `code`, nên đổi account trong cùng browser có thể tái dùng identity của account cũ.
+**Context:** User muốn cho phép học một skill có thật trong hệ thống nhưng không thuộc role hiện tại, lưu riêng thành section “Kỹ năng khác”, và mỗi người chỉ được thêm tối đa 5 bài.
 
 **Options:**
-1. Giữ fallback/memory để “an toàn demo”, chỉ vá localStorage stale identity.
-2. Chuyển hẳn room team sang strict Supabase mode khi env thật đã bật: tắt mock room seed, không fallback về memory, và namespace room identity theo account hiện tại.
+1. Chỉ nới boundary của chat, không lưu riêng bài học.
+2. Nhét bài ngoài role vào cùng lộ trình chính.
+3. Tạo catalog riêng cho bài ngoài role, lưu riêng ở section cuối lộ trình và enforce limit 5.
 
-**Decision:** Chọn phương án 2 theo yêu cầu test đồng bộ thật bằng Supabase. `hoc-tap-room-runtime` nay chỉ dùng memory khi đang demo mode; nếu đã vào real Supabase mode mà room backend/service-role lỗi thì trả lỗi thật thay vì silently quay về memory. Dashboard tab team chỉ render `buildLiveTeamRooms()` khi `isSupabaseBackend()` bật, không cộng thêm `TEAM_ROOM_SEEDS`. Ngoài ra, `hoc-tap-team-room` lưu `participantId/hostToken` theo cặp `account + room code`, và service snapshot Supabase không còn trust `requestedParticipantId` của account khác, nên đổi user trong cùng browser không còn “mượn” participant cũ rồi nhìn nhầm sang trạng thái đã bị xoá.
+**Decision:** Chọn phương án 3. Thêm bảng `extra_skill_lessons`, helper catalog/prompt context, CTA trên trang bài học ngoài role, và section “Kỹ năng khác” ở cuối `/lo-trinh`. Chỉ cho lưu khi bài có thật trong catalog, không link sang lộ trình tổng của role khác, và chặn thêm mới sau 5 bài.
 
-**Owner:** Codex
+**Owner:** Minh Hải
 
 **Status:** Active
 
-**Tests:** Targeted Vitest room runtime/service/routes pass 12/12; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. Full `npx -y -p node@20 node scripts/run-all-tests.mjs` vẫn dừng ở API integration vì môi trường hiện tại thiếu native WebSocket support cho Node 20 (`scripts/test-phase1-apis.mjs`), nhưng unit phase trong full suite pass 324/324.
-
-## [2026-06-22] — Harden fallback cho Học tập room API + chặn warning chart âm kích thước
-
-**Context:** User báo tab “Chơi với team” trên production lặp `GET /api/hoc-tap/rooms 500` và banner “Phòng quiz tạm thời chưa phản hồi.”, đồng thời console hiện warning Recharts `The width(-1) and height(-1) of chart should be greater than 0`. Trace code cho thấy `GET /api/hoc-tap/rooms` là route room hiếm hoi chưa bọc `try/catch`, còn runtime `hoc-tap-room-runtime.ts` gần như không bao giờ fallback về memory vì chỉ cho phép code `FORBIDDEN`.
-
-**Options:**
-1. Chỉ thêm `try/catch` cho GET route để user nhận JSON lỗi đẹp hơn, giữ nguyên Supabase-first runtime.
-2. Vừa bọc GET route, vừa nới fallback của room runtime để khi Supabase room backend/migration/service role lệch ở production thì flow room vẫn rơi về memory runtime thay vì chết cứng.
-
-**Decision:** Chọn phương án 2. Runtime giờ fallback về memory cho lỗi hạ tầng Supabase kiểu generic `Error` và `ROOM_NOT_FOUND`/`FORBIDDEN`, đồng thời log cảnh báo rõ action bị degrade. `GET /api/hoc-tap/rooms` nay dùng cùng `hocTapRoomRouteError()` như POST/PATCH/DELETE để response nhất quán. Ở mặt Overview, các `ResponsiveContainer` được thêm `minWidth={0}` và wrapper `min-w-0` để chặn warning kích thước âm khi chart mount trong layout hẹp/chuyển tab.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Targeted Vitest cho `hoc-tap-room-runtime`, `GET /api/hoc-tap/rooms`, room routes/service pass 11/11; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `next build src/frontend` pass. Full `npm run test` trên Node mặc định bị chặn ở bước build Turbopack trong sandbox (`binding to a port`), còn khi ép `run-all-tests.mjs` bằng Node 20 thì unit pass nhưng API integration script fail vì môi trường hiện tại thiếu native WebSocket support cho Node 20 (`scripts/test-phase1-apis.mjs`), ngoài phạm vi patch này.
-
-## [2026-06-22] — Vá migration learning content để tương thích bảng learning_paths cũ
-
-**Context:** `npm run db:sync` bị dừng ở `20260612100000_learning_content_schema.sql` với lỗi `column "status" does not exist`. Nguyên nhân là migration `20260611120000_job_positions_learning_paths.sql` đã tạo `public.learning_paths` trước đó với schema cũ (`name`, chưa có `status/title/path_type/updated_at`), nên khi migration 20260612100000 chạy `create table if not exists` rồi tạo index `(organization_id, status)` thì index đụng cột chưa tồn tại.
-
-**Options:**
-1. Tạo migration timestamp mới để ALTER `learning_paths`.
-2. Vá trực tiếp migration 20260612100000 để nó tự nâng cấp bảng cũ trước khi tạo index/policy.
-
-**Decision:** Chọn phương án 2 vì remote DB mới đang fail ngay ở migration 20260612100000; thêm migration mới phía sau sẽ không bao giờ được chạy. Migration này nay `alter table ... add column if not exists`, backfill `title` từ `name`, set default/not-null cho `scope/path_type/status/updated_at`, và drop legacy policy `learning_paths_select/write` trước khi tạo policy mới.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** `npm run db:validate` pass; `npm run db:sync` pass sau patch; `npm run db:status` xác nhận local = remote tới `20260620080312_learning_study_sessions.sql`.
-
-## [2026-06-22] — Tương thích Supabase publishable key với setup SSR hiện tại
-
-**Context:** User đưa quickstart Supabase mới dùng `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, trong khi repo hiện tại đọc `NEXT_PUBLIC_SUPABASE_ANON_KEY` ở helper SSR/client, Next 16 proxy, auth callback, lead API, và nhiều smoke scripts. Nếu copy nguyên quickstart sẽ tạo thêm lớp helper trùng chỗ canonical và có nguy cơ auth chạy demo mode dù public key đã có.
-
-**Options:**
-1. Copy nguyên quickstart vào `utils/supabase/*` và thêm middleware riêng.
-2. Giữ cấu trúc repo hiện tại, thêm một helper env dùng chung để runtime/script nhận cả publishable key lẫn anon key.
-
-**Decision:** Chọn phương án 2. Tạo `src/frontend/lib/supabase/public-env.ts`, cho runtime ưu tiên `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` rồi fallback `NEXT_PUBLIC_SUPABASE_ANON_KEY`, cập nhật `client.ts`, `server.ts`, `is-configured.ts`, `proxy.ts`, `/auth/callback`, `/api/leads`, cùng các script smoke Supabase. `.env.local` chỉ được bổ sung publishable key cục bộ; chưa tự ý đổi toàn bộ URL/service-role pair vì repo còn nhiều API server-side dùng `SUPABASE_SERVICE_ROLE_KEY` và việc đổi nửa chừng có thể làm lệch project. Theo yêu cầu cài package, `npm install @supabase/supabase-js @supabase/ssr` cũng refresh `@supabase/supabase-js` từ `^2.108.0` lên `^2.108.2`.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** `npm install @supabase/supabase-js @supabase/ssr` thành công; `npm run lint` pass với 5 warning cũ và 0 error; `npm run test` ngoài sandbox đi qua build thành công nhưng còn 3 API failures có sẵn (`POST /api/chat sensitive data warning`, `GET /api/chat/history without auth → 401`, `POST /api/chat manager without role_id streams` khi seed manager membership lỗi); `npx -y -p node@20 node node_modules/next/dist/bin/next build src/frontend` pass.
-
-## [2026-06-21] — Xoá phòng, khoá phòng theo mã, và avatar DiceBear cho room team
-
-**Context:** User yêu cầu bổ sung 3 capability cho flow team room đang chạy bằng memory store: host có thể xoá phòng bất kỳ lúc nào, phòng có thể bật trạng thái khoá để vẫn hiện ở danh sách nhưng chỉ vào bằng mã, và participant cần có avatar thay vì chỉ hiện initials.
-
-**Options:**
-1. Chỉ chặn bằng UI ở dashboard, không đổi state/API room.
-2. Mở rộng room snapshot/store/Route Handlers để lock/delete/avatar là behavior thật, rồi nối UI vào cùng regression test.
-
-**Decision:** Chọn phương án 2. Store nay materialize `avatarUrl` DiceBear `bottts-neutral` theo `participant.id`, thêm `isLocked` ở room/public room, và thêm `canManageRoom` để host thật hoặc người tạo system-hosted đều có thể bật/tắt khoá và xoá phòng qua `PATCH/DELETE /api/hoc-tap/rooms/[code]`. Dashboard hiển thị badge “Phòng khoá” và vô hiệu CTA vào trực tiếp; room page hiển thị banner khoá, control host khi đang ở room, và empty state “Phòng đã bị xoá” khi polling gặp 404 sau khi room từng tồn tại.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Targeted Node 20 Vitest cho room store + route handlers 25/25 pass; scoped ESLint pass; `npm run lint` pass với 5 warning cũ; Node 20 `next build src/frontend` pass; full `npm run test` vẫn fail 2 case API phase 1 có sẵn: `GET /api/chat/history without auth` và `POST /api/chat manager without role_id streams` (seed manager membership).
-
-## [2026-06-21] — Avatar chọn được ở hồ sơ/Học tập và tách panel điểm-hạng thành 2 hàng
-
-**Context:** User muốn avatar ở UI học tập hoặc thông tin cá nhân bấm được để chọn mẫu DiceBear thay vì chỉ random cố định, đồng thời panel “Điểm của bạn / Hạng của bạn” đang bị cắt số nên cần đổi layout dọc rõ hơn.
-
-**Options:**
-1. Chỉ đổi avatar ở dashboard bằng state cục bộ, không nối sang room.
-2. Tạo preference local dùng lại cho dashboard + tài khoản, rồi đẩy `avatarSeed` qua create/join room để avatar đã chọn tiếp tục xuất hiện trong phòng.
-
-**Decision:** Chọn phương án 2. Thêm local preference cho avatar DiceBear trên browser, render picker ở cả thẻ hồ sơ Học tập và tab “Thông tin cá nhân”, đồng thời truyền `avatarSeed` qua luồng tạo phòng/tham gia phòng để host/player giữ avatar đã chọn trong room team. Panel tóm tắt điểm/hạng chuyển sang 2 hàng dọc với typography lớn hơn để XP dài không còn bị `truncate`.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Sẽ chạy targeted Vitest room/store + lint scoped + Node 20 build sau khi hoàn tất patch.
-
-## [2026-06-21] — Giữ đáp án ẩn cho tới khi cả phòng xong hoặc hết 60 giây
-
-**Context:** User chốt lại kỳ vọng của flow room team: khi vào bằng vai người chơi, phòng phải đứng ở sảnh chờ cho tới khi người tạo bấm bắt đầu; trong lúc câu hỏi còn mở 60 giây thì người chơi chỉ được biết mình đã chốt đáp án, chưa được lộ đúng/sai hay đáp án đúng; chỉ khi cả phòng trả lời xong hoặc timeout mới reveal 5 giây rồi sang leaderboard.
-
-**Options:**
-1. Giữ store hiện tại và chỉ đổi copy/UI.
-2. Sửa snapshot/store để tách “đã trả lời” khỏi “đã reveal”, rồi cập nhật UI/test theo invariant mới.
-
-**Decision:** Chọn phương án 2. `viewerAnswer` nay có cờ `revealed`, nên trong pha `question` người chơi chỉ giữ được lựa chọn đã bấm để khóa nút và hiển thị trạng thái chờ, còn `correctIndex`, `isCorrect`, `points`, `explanation` chỉ lộ ra ở pha `reveal/leaderboard`. Đồng thời đổi copy trên dashboard/room để nhấn mạnh đây là sảnh chờ do người tạo bấm bắt đầu, không tự chạy, và vá thêm fallback `canStart` trong `services/quizApi.ts` để build TypeScript qua.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Targeted Node 20 Vitest `src/frontend/lib/hoc-tap-room-store.test.ts` 15/15 pass; `npm run lint` pass với 5 warning cũ; Node 20 `next build src/frontend` pass ngoài sandbox. Full `npm run test` chạy lại ngoài sandbox vẫn fail 2 case API phase 1 có sẵn: `GET /api/chat/history without auth` và `POST /api/chat manager without role_id streams` (seed manager membership).
-
-## [2026-06-21] — Reveal đúng/sai trước leaderboard + role host/player cho AI project
-
-**Context:** User yêu cầu hoàn thiện room quiz team ở 4 điểm đang lệch trải nghiệm: sau khi trả lời phải thấy màu đúng/sai trước khi nhảy sang leaderboard, AI project cũng phải có vai trò `Chủ phòng / Người chơi` cho cả `Host kiểm duyệt` và `AI bí mật`, nút quay lại trong phòng phải trở về “Chơi với team” thay vì tổng quan Học tập, và card “Tham gia phòng” không được bị kéo cao theo card “Tạo phòng mới”.
-
-**Options:**
-1. Chỉ vá UI để nhìn giống hơn nhưng giữ flow room cũ.
-2. Sửa tận store phase + UI + regression test để hành vi và giao diện khớp nhau.
-
-**Decision:** Chọn phương án 2. Store thêm pha `reveal` giữa `question` và `leaderboard` để hiện màu xanh lá/đỏ cùng đáp án đúng trước khi chuyển tiếp. `entryRole=player` nay áp dụng cho cả AI project và quiz có sẵn, nên người tạo có thể vào vai player trong cả `host-review` lẫn `ai-secret` và room sẽ dùng system host. Màn phòng đổi toàn bộ CTA quay lại sang `/choi-voi-team`, còn layout card tham gia phòng được tách khỏi grid stretch để không oversize theo card tạo phòng.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Targeted Node 20 Vitest 17/17 pass; full `eslint .` pass với 5 warning cũ; Node 20 `next build src/frontend` pass. Full `npm run test` vẫn fail 2 case API phase 1 có sẵn: `GET /api/chat/history without auth` và `POST /api/chat manager without role_id streams` (seed manager membership).
-
-## [2026-06-20] — Hardening luồng tạo phòng AI project cho hai loại phòng
-
-**Context:** User làm rõ `specs/ai_studio_codegame_project_room_types.html` chỉ là tham khảo luồng hoạt động, UI hiện tại đã đúng. Phần cần siết là backend/hành vi tạo phòng AI project với 2 loại: host kiểm duyệt và AI bí mật.
-
-**Options:**
-1. Chỉ ẩn preview bằng UI.
-2. Chặn preview phòng bí mật ở server, giữ host-review được xem/sửa câu trước, và bổ sung regression tests.
-
-**Decision:** Chọn phương án 2. `/api/hoc-tap/rooms/preview` nay từ chối `ai-secret`; store/test xác nhận host không tính là người chơi, cần player thật mới start, host không trả lời, host-review mới lộ đáp án/review questions, còn AI bí mật không cho xem/sửa bộ câu hỏi trước. Sửa thêm type fallback của `services/quizApi.ts` để build production không gãy khi dùng wrapper room cũ.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Targeted Vitest room/preview 11/11 pass; scoped ESLint các file vừa chạm pass; `npm run lint` pass với 5 warning cũ; `npm run build` pass; migration filename đã đổi sang `20260620080312_learning_study_sessions.sql` và `npm run db:validate` pass. `npm run test` chưa pass: Unit 302/302 pass, API phase 1 còn 28/30 do 2 lỗi chat/manager có sẵn (`/api/chat/history` unauth và manager seed membership).
-
-## [2026-06-20] — Khóa regression cho flow host/player và auto-phase của phòng quiz team
-
-**Context:** `specs/continual.md` mô tả pha tiếp theo của Team Quiz Room: tách hẳn vai trò host/player cho quiz có sẵn, room system-hosted tự bắt đầu, và flow chạy theo `waiting -> question -> leaderboard -> finished`. Logic nền đã có trong store/UI nhưng còn thiếu regression test và build production vẫn lộ type drift ở wrapper room cũ.
-
-**Options:**
-1. Chỉ dựa vào browser smoke cho flow mới.
-2. Thêm regression test ở store/route cho flow mới, đồng thời sửa type drift để build phản ánh đúng shape snapshot hiện tại.
-
-**Decision:** Chọn phương án 2. Bổ sung test cho room system-hosted khi vào quiz với vai trò player, auto-transition bằng timer, Top 5/Top 3 không tính host, và route invariant cho `entryRole=player`. Đồng thời sửa wrapper room cũ để `hostToken` optional, đồng bộ fallback snapshot với `hostMode/phase/questionEndsAt/phaseEndsAt/answeredPlayerCount/roundTopFive/finalTopThree`, và sửa `serializeRoom()` không remap nhầm `roundTopFive/finalTopThree` như `StoredParticipant`.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Targeted Node 20 Vitest 15/15 pass; scoped ESLint các file vừa chạm pass; full `eslint .` pass với 6 warning cũ; Node 20 `next build src/frontend` pass. Full `npm run test` vẫn fail 2 case API phase 1 có sẵn: `GET /api/chat/history without auth` và `POST /api/chat manager without role_id streams` (seed manager membership).
-
-## [2026-06-19] — Tạo phòng quiz online kiểu Kahoot cho Học tập
-
-**Context:** User yêu cầu code đầy đủ chức năng tạo phòng/tham gia online giống Kahoot cho màn “Chơi với team”. Trước đó UI team play mới có seed room và nút demo, đồng thời có một mảnh socket.io untracked nhưng thiếu dependency/runtime riêng nên có nguy cơ làm build gãy.
-
-**Options:**
-1. Dùng socket.io server riêng ở `src/quiz-server`.
-2. Thêm Supabase Realtime/schema mới.
-3. Dùng Next.js Route Handlers + in-memory room store + polling để có create/join/lobby/game ngay trong app hiện tại.
-
-**Decision:** Chọn phương án 3 cho bước này. Tính năng có mã phòng 6 ký tự, host token lưu localStorage, join bằng tên, lobby, start game, trả lời câu hỏi, chuyển câu/kết thúc và bảng điểm. Đây là online demo chạy tốt trên một Next runtime/dev server; production đa instance hoặc Vercel serverless cần nâng cấp sang Supabase Realtime hoặc backend socket bền vững trước khi coi là dữ liệu thật.
-
-**Owner:** Codex
-
-**Status:** Active
-
-**Tests:** Targeted Vitest Học tập/room 22/22 pass; scoped ESLint các file room/dashboard/API pass. Full lint/test/build sẽ chạy trước khi báo xong.
+**Tests:** `npm run lint` pass với 5 warning có sẵn; `npm run test` pass (59 Vitest files / 273 tests, 30 API, 12 manager/invite, 7 auth/OAuth, 88 pytest); `npm run build` pass; browser smoke real Supabase session đã xác nhận đăng ký/login, thêm lesson ngoài role, và section “Kỹ năng khác” hiển thị bài đã lưu.
 
 ## [2026-06-19] — Giữ greeting chat và chặn init state cũ ghi đè khi conversation được resolve
 
@@ -1754,132 +1690,132 @@ nền tảng Phase 2 đang có, chuỗi phụ thuộc và toàn bộ roadmap Pha
 
 **Tests:** `npm run lint` pass (5 warnings cũ); `npm run test` pass (84 pytest + Vitest); `npm run build` pass.
 
-## 2026-06-22 — Harden hoc-tap room create/list/join runtime
+## 2026-06-18 — Chat prompt repair expansion
 
-**Goal:** Làm nhánh room Supabase bám đúng contract UI để có thể chạy thật phần tạo phòng mà không lệch so với memory runtime.
+**Goal:** Làm prompt phản hồi tốt hơn khi user yêu cầu đổi format hoặc sửa câu trả lời theo hướng rất cụ thể.
 
-**Decision:** Phòng `locked` vẫn phải xuất hiện trong live list ở real mode giống nhánh memory, chỉ disable CTA vào trực tiếp; join bằng mã vẫn hợp lệ. Đồng thời dọn các contract room cũ còn sót ở wrapper/runtime (`participantId` null trong memory wrapper, fallback snapshot cũ thiếu `viewerParticipantId`, helper runtime đặt tên `use*` bị ESLint hiểu nhầm là hook) để build production không gãy vì mismatch type.
+**Decision:** Khi user muốn checklist, bảng, bản ngắn kiểu gửi sếp, ưu tiên việc làm ngay, key takeaways, một câu chốt, so sánh 2 phương án, ví dụ theo nghề, prompt copy-paste, bản cuối, 3 lựa chọn, bớt máy, ưu nhược, bản ngắn/bản dài, hoặc chỉ cần bản sửa, assistant phải sửa trực tiếp theo format đó thay vì chỉ hỏi làm rõ nếu đã có đủ context. Canned responses cũng cần bắt các cụm này để demo mode không bị lạc sang clarify.
 
-**Shipped:** bỏ filter ẩn locked room trong `hoc-tap-room-service.ts`, thêm `hoc-tap-room-service.test.ts` với fake Supabase client cho flow create/list/join thật, và vá `hoc-tap-room-runtime.ts` + `services/quizApi.ts` cho shape `HocTapRoomSnapshot` mới.
+**Shipped:** bổ sung guidance và regression tests trong `src/frontend/lib/openai.ts`, `src/frontend/lib/tro-ly-canned-responses.ts`, `src/frontend/lib/chat-knowledge-personal.test.ts`, `src/frontend/lib/tro-ly-canned-responses.test.ts`.
 
-**Tests:** targeted Node 20 Vitest 4 files / 27 tests pass; `npm run lint` pass với 7 warning cũ ngoài phạm vi; Node 20 `npm run build` pass.
+**Tests:** verify pending trong task này.
 
-## 2026-06-22 — Fix avatar snapshot infinite loop on Hoc Tap
+## 2026-06-18 — Frontend font build fix
 
-**Goal:** Chặn lỗi React `getSnapshot should be cached` và `Maximum update depth exceeded` khi vào `/hoc-tap`.
+**Goal:** Loại dependency build lên Google Fonts để Next build chạy ổn định trên máy không có mạng.
 
-**Decision:** `useSyncExternalStore` trong `use-preferred-avatar` không được trả object avatar mới mỗi render. Đổi snapshot sang string seed ổn định từ local preference / remote fallback, rồi mới `parseAvatarChoice()` lại bằng `useMemo` để giữ contract React và tránh loop vô hạn.
+**Decision:** Thay `next/font/google` trong `src/frontend/app/layout.tsx` bằng font stack CSS variables dùng font hệ thống và fallback cục bộ.
 
-**Shipped:** cập nhật `src/frontend/hooks/use-preferred-avatar.ts` để snapshot là serialized avatar choice thay vì object trực tiếp.
+**Shipped:** cập nhật `src/frontend/app/layout.tsx`.
 
-**Tests:** scoped ESLint cho avatar/hoc-tap files pass với 2 warning cũ ở `hoc-tap-team-room.tsx`; Node 20 `npm run build` pass.
+**Tests:** verify pending trong task này.
 
-## 2026-06-22 — Simplify Hoc Tap quiz UI and broaden avatar choices
+## 2026-06-19 — Extra-skill lesson link render fix
 
-**Goal:** Bỏ luồng “tạo quiz mới” khỏi tab Quiz, đổi bộ lọc sang mental model phòng ban + tìm bộ đề, đồng bộ avatar giữa Học tập và header/tài khoản, đồng thời thêm avatar đa dạng + upload ảnh.
+**Goal:** Sửa câu trả lời gợi ý bài học thêm trên `/tro-ly` để link không còn hiện raw markdown trong bubble chat.
 
-**Decision:** Giữ Phase 2 quiz library ở mức practice catalog sẵn có thay vì nửa vời “quiz tự tạo”; CTA card đổi theo lịch sử làm bài để user quay lại xem kiểm tra. Avatar vẫn lưu local preference trong task này để sync ngay trên toàn bộ client surfaces mà không đụng schema/profile API, nhưng mở rộng từ 1 kiểu DiceBear sang nhiều style chính thức và thêm `upload` data URL đã resize để dùng được ngay.
+**Decision:** Bỏ `?extra=1` khỏi link sinh ra cho extra-skill bài học; route bài học hiện tại không dùng query này, còn parser chat vẫn render link nội bộ chuẩn `/lo-trinh/{moduleId}`.
 
-**Shipped:** xóa panel “Tạo quiz mới” và chỉ giữ thư viện bộ đề trong `hoc-tap-dashboard.tsx`; đổi filter quiz thành `Phòng ban` + `Tìm bộ đề`; bỏ dòng `Quiz tự tạo +153 XP`; đổi copy quiz sang “bộ đề thực hành / AI Trợ Lý”; thêm upload avatar + nhiều style DiceBear trong `app-avatar.ts`, `dicebear-avatar-picker.tsx`, `dicebear.ts`; đồng bộ avatar Học tập sang `account-menu.tsx`.
+**Shipped:** cập nhật `src/frontend/lib/extra-skill-lessons.ts` và bổ sung regression test trong `src/frontend/lib/extra-skill-lessons.test.ts`.
 
-**Tests:** verification trong task này sẽ chạy lại bằng scoped ESLint, targeted Vitest catalog, và Node 20 `npm run build`.
+**Tests:** targeted Vitest + browser smoke pending trong task này.
 
-## 2026-06-22 — Simplify team-room filters on Hoc Tap
+## 2026-06-19 — Backend mirror sync for extra-skill chat
 
-**Goal:** Làm phần “Chơi với team” gọn và logic hơn theo feedback UI: bỏ filter trùng chức năng và giữ đúng mental model tìm phòng theo phòng ban/chủ đề.
+**Goal:** Đồng bộ backend mirror với FE cho luồng extra-skill, prompt guard, và canned responses.
 
-**Decision:** Bỏ select `Chế độ` và 2 icon đổi view vì chưa có hành vi thật; đưa `Phòng ban` lên hàng trên thay chỗ `Chế độ`, chuyển ô `Tìm phòng hoặc chủ đề` xuống thay hàng `Phòng ban` cũ, và chỉ giữ chip trạng thái còn hữu ích (`Tất cả phòng`, `Đang chờ`, `Đang chơi`) thay vì lẫn cả trạng thái lẫn mode.
+**Decision:** Copy các file chat/prompt liên quan từ FE sang `src/backend/next_clone/frontend/` để backend mirror dùng cùng logic: `openai.ts`, `tro-ly-canned-responses.ts`, `extra-skill-lessons.ts`, `module-lesson-links.ts`, `chat-knowledge-extra.ts`, và `app/api/chat/route.ts`.
 
-**Shipped:** cập nhật layout/filter của tab team trong `src/frontend/components/hoc-tap-dashboard.tsx`; bỏ chip `Sắp bắt đầu`, `Classic`, `Team Battle`; bỏ 2 nút icon view.
+**Shipped:** backend mirror đã có cùng prompt rules, extra-skill context, và fallback response format với FE.
 
-**Tests:** verification trong task này sẽ chạy lại bằng scoped ESLint và Node 20 `npm run build`.
+**Tests:** repo-wide verify pending trong task này.
 
-## 2026-06-22 — Deployment follow-up for avatar module sync
+## 2026-06-19 — System admin console `/van-hanh`
 
-**Goal:** Vá lỗi build Vercel sau deploy commit `1ff20a1` khi source trên GitHub thiếu một phần dependency avatar đang có ở local.
+**Goal:** Xây một trang quản trị hệ thống thật sự để người vận hành nắm toàn bộ tổ chức, người dùng, nội dung, link mời, AI usage và audit log.
 
-**Decision:** Giữ nguyên logic avatar mới đã shipped, chỉ bổ sung các file bị sót khỏi commit trước: helper `avatar-preferences.ts` bản mới có `setPreferredAvatarChoice` và component dùng chung `user-avatar.tsx`.
+**Decision:** Giữ style UI hiện tại của hệ thống, nhưng mở rộng `/quan-tri` thành redirect compatibility và đưa console thật sang `/van-hanh`; hệ thống admin dùng Supabase service role cho hành động quản trị, còn demo mode chỉ hiển thị dữ liệu mẫu và không cho ghi.
 
-**Shipped:** thêm `src/frontend/lib/avatar-preferences.ts` vào commit follow-up cùng `src/frontend/components/user-avatar.tsx` để build cloud khớp với local.
+**Shipped:** route `/van-hanh`, API `/api/platform-admin`, component quản trị hệ thống, bootstrap script tài khoản mặc định `admin@c2-app-009.io.vn`, và migration seed quyền `platform_admin`.
 
-**Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.
+**Tests:** `npm run db:validate` pass; `npm run lint` pass với 5 warning cũ; `npm run test` pass; `npm run build` pass; browser smoke xác nhận login admin, `/login` redirect về `/van-hanh`, và console render thật.
 
-## 2026-06-22 — Deployment follow-up for useAppProfile avatar return
+## 2026-06-19 — Harden `/api/platform-admin` and split admin console tabs
 
-**Goal:** Vá tiếp lỗi build Vercel còn lại sau commit `18284c4`, khi `account-menu.tsx` destructure `avatar` nhưng source GitHub của `useAppProfile()` chưa trả field này.
+**Goal:** Khóa lỗ hổng GET platform-admin, thêm rate-limit/validation nhất quán, và tách console `/van-hanh` thành các tab con nhẹ hơn để dễ bảo trì.
 
-**Decision:** Giữ contract mới của avatar sync; chỉ bổ sung đúng hook `src/frontend/hooks/use-app-profile.ts` đang có ở local để cloud/source thống nhất với code đã dùng ở `account-menu`, `hoc-tap-dashboard`, và `hoc-tap-team-room`.
+**Decision:** Đưa `requirePlatformAdminContext()` lên cả GET/POST route, gắn rate-limit in-memory theo user/IP, chuẩn hóa validation payload trong `performPlatformAdminAction`, và tách UI thành shell + 6 tab/component con với confirm dialog cho hành động nhạy cảm.
 
-**Shipped:** đưa `avatar` return và hydrate logic liên quan từ `useAppProfile()` lên GitHub qua commit follow-up.
+**Shipped:** cập nhật `src/frontend/app/api/platform-admin/route.ts`, `src/frontend/lib/platform-admin-console.ts`, `src/frontend/lib/client-api.ts`, `src/frontend/components/platform-admin-console.tsx`, các tab `src/frontend/components/platform-admin/*.tsx`, thêm test route/validation, và sửa wrapper dialog.
 
-**Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.
+**Tests:** `npm run lint` pass; `npm run test` pass; `npm run build` pass; browser smoke xác nhận filter trên tab tổ chức/người dùng, tab nội dung và nhật ký có empty-state, và confirm dialog chặn trước khi ghi.
 
-## 2026-06-22 — Deployment follow-up to sync full avatar profile flow
+## 2026-06-19 — Remove leaked bootstrap script and untrack repomix
 
-**Goal:** Ngăn chuỗi fail lặp lại trên Vercel bằng cách đưa toàn bộ flow avatar/profile đang chạy ở local lên GitHub cùng lúc.
+**Goal:** Gỡ script bootstrap platform admin khỏi repo và giữ `repomix-output.xml` chỉ ở local, không đẩy lên Git nữa.
 
-**Decision:** Thay vì chờ từng lỗi build mới lộ ra, đồng bộ trọn cụm file avatar liên quan đến account page, app layout/nav, profile API, client API, learning profile parser, account settings và team room.
+**Decision:** Xóa `scripts/bootstrap-platform-admin.mjs`, remove `bootstrap:platform-admin` khỏi `package.json`, và đưa `repomix-output.xml` vào `.gitignore` sau khi bỏ track bằng Git.
 
-**Shipped:** bổ sung các thay đổi còn thiếu ở `app/(app)/layout.tsx`, `app/(app)/tai-khoan/page.tsx`, `app/api/profile/route.ts`, `components/account-settings-content.tsx`, `components/app-nav.tsx`, `components/hoc-tap-team-room.tsx`, `lib/client-api.ts`, `lib/learning-profile.ts`.
+**Shipped:** cleaned up repo exposure and left the local repomix file untouched on disk.
 
-**Tests:** sẽ chạy lại Node 20 `npm run build` trước khi push fix.
+**Tests:** cleanup-only; verified by `git status`.
 
-## 2026-06-22 — Fix avatar preference resetting to default after navigation
+## 2026-06-19 — Separate `/van-hanh/login` and tighten operator access
 
-**Goal:** Chặn bug đổi avatar xong thoát ra vào lại thì về avatar mặc định.
+**Goal:** Tách cổng đăng nhập riêng cho khu vận hành hệ thống và siết lại 3 lớp kiểm soát để employee/manager không đi thẳng vào `/van-hanh` hay `/api/platform-admin`.
 
-**Decision:** Vấn đề đến từ việc key local preference của avatar đang phụ thuộc vào tên hiển thị, trong khi tên/email/fullName có thể đổi giữa server render và client hydrate. Đổi sang identity ổn định hơn, ưu tiên email khi có, và cho hook avatar đọc/migrate được cả các alias key cũ để không mất avatar đã lưu trước đó.
+**Decision:** Giữ login người dùng chung ở `/login`, thêm `/van-hanh/login` cho platform_admin, chặn route bằng proxy + server page + API whoami, và hiển thị banner denied trong app layout khi có `?denied=1`.
 
-**Shipped:** cập nhật `avatar-preferences.ts`, `use-preferred-avatar.ts`, `use-app-profile.ts` và các caller ở account/hoc-tap/team-room/account-settings để dùng identity canonical + alias fallback.
+**Shipped:** `src/frontend/app/(operator)/layout.tsx`, `src/frontend/app/(operator)/van-hanh/login/page.tsx`, `src/frontend/components/operator-login-form.tsx`, `src/frontend/components/route-denied-banner.tsx`, `src/frontend/app/api/platform-admin/whoami/route.ts`, `src/frontend/app/api/platform-admin/whoami/route.test.ts`, `src/frontend/proxy.ts`, `src/frontend/proxy.test.ts`, `src/frontend/components/auth-login-form.tsx`, `src/frontend/lib/client-api.ts`, `src/frontend/app/(app)/layout.tsx`, `src/frontend/app/(app)/van-hanh/page.tsx`, `src/frontend/app/(app)/quan-tri/page.tsx`.
 
-**Tests:** scoped ESLint pass với 2 warning cũ ở `hoc-tap-team-room.tsx`; Node 20 `npm run build` pass.
+**Tests:** `npm run lint` pass; `npm run test` pass; `npm run build` pass; browser smoke xác nhận `/van-hanh/login` render riêng, admin login vào console, và `?denied=1` hiện banner rồi tự xoá query.
 
-## 2026-06-23 — Add Duck Race finish map for team quiz
+## 2026-06-20 — Fix `admin@vinuni.vn` auth seed and clean `/van-hanh/login` UI
 
-**Goal:** Cho người tạo room chọn Classic hoặc Đua vịt, giữ nguyên gameplay quiz và chỉ đổi màn tổng kết cuối session.
+**Goal:** Làm cho tài khoản `admin@vinuni.vn / 12345678` login được thật trong Supabase Auth, rồi dọn lại UI trang đăng nhập vận hành theo screenshot.
 
-**Decision:** Thêm `mapTheme` riêng thay vì overload `mode`; persist qua memory/Supabase/API với default Classic. Duck Race tính quãng đường từ tổng điểm trên điểm tối đa, loại AI Host, dùng shared rank khi hòa. Scene canvas là client leaf, responsive, retina-safe, redraw sau khi sprite tải và tôn trọng `prefers-reduced-motion`; leaderboard DOM vẫn là nguồn nội dung accessible.
+**Decision:** Xóa bản ghi Auth seed lỗi cũ, tạo lại user bằng Supabase Auth Admin API, gắn `profiles` + `platform_admins`, rồi chỉnh layout/form login để bỏ duplicate link, bỏ shield helper text, bỏ placeholder, và ẩn card trái trên mobile bằng `lg:` breakpoint.
 
-**Shipped:** selector bản đồ trong flow tạo room, badge map ở room card/summary, migration `20260623093000_hoc_tap_room_map_theme.sql`, 10 sprite vịt runtime, finish panel canvas + leaderboard và regression tests cho contract/ranking/tie/default.
+**Shipped:** các migration `supabase/migrations/20260620090000_seed_admin_vinuni_account.sql`, `20260620092000_seed_admin_vinuni_identity.sql`, `20260620093000_fix_admin_vinuni_identity.sql`, `20260620094000_cleanup_admin_vinuni_auth.sql`; cập nhật `src/frontend/app/(operator)/layout.tsx`, `src/frontend/components/operator-login-form.tsx`.
 
-**Tests:** targeted Node 20 Vitest 36/36; full unit 343/343; lint 0 error/7 warning cũ; Node 20 và Node 22 production build pass; `npm run db:validate` pass 39 migrations; `git diff --check` pass. Full runner Node 20 dừng trước API cases vì thiếu WebSocket native; chạy lại Node 22 vẫn dừng trước case đầu tiên do credential Supabase local chứa ký tự Unicode không hợp lệ trong HTTP header.
+**Tests:** `npm run db:sync` pass; `npm run lint` pass; `npm run test` pass; `npm run build` pass; browser smoke xác nhận `admin@vinuni.vn / 12345678` vào được `/van-hanh`, mobile login chỉ còn một link quay lại `/login`, card trái ẩn trên viewport nhỏ, và input không còn placeholder.
 
-## 2026-06-23 — Fix human host cannot enter the team quiz
+## 2026-06-20 — Audit operator console `/van-hanh`
 
-**Goal:** Sửa trường hợp người tạo phòng hiện đúng crown/quyền quản lý nhưng mất `hostToken` khi chuyển trang và không thể bắt đầu/tham gia trả lời.
+**Goal:** Rà `/van-hanh` như người vận hành thật, sửa các lỗi P0/P1 còn sót ở nav, route học, filter API, confirm dialog và a11y.
 
-**Decision:** Dùng chung helper identity account-scoped cho cả màn tạo room và room detail, đồng thời migrate key localStorage cũ. Human host nay vừa là controller vừa là player; AI Host vẫn chỉ điều phối. Đáp án đúng của host-review chỉ xuất hiện ở sảnh review hoặc pha reveal, không lộ trong lúc human host đang trả lời.
+**Decision:** Tách nav operator khỏi manager/employee, redirect platform admin khỏi learning/onboarding routes bằng notice riêng, thêm query filters cho GET `/api/platform-admin`, và bổ sung nhãn a11y/confirm cho các filter/action nhạy cảm.
 
-**Shipped:** helper `hoc-tap-room-identity`, cập nhật dashboard/team room handoff, gameplay memory + Supabase tính human host vào participant count/leaderboard/answer completion, migration `20260623133848_hoc_tap_human_host_player.sql`, và regression tests.
+**Shipped:** cập nhật `src/frontend/app/(app)/layout.tsx`, `src/frontend/components/app-nav.tsx`, `src/frontend/proxy.ts`, `src/frontend/components/route-denied-banner.tsx`, `src/frontend/app/api/platform-admin/route.ts`, `src/frontend/lib/platform-admin-console.ts`, `src/frontend/lib/platform-admin-types.ts`, `src/frontend/lib/client-api.ts`, các tab platform-admin và test route/proxy.
 
-**Tests:** targeted Vitest 45/45; full unit 348/348; scoped ESLint và `db:validate` pass. Full lint/build pending.
+**Tests:** `npm run lint` pass với 5 warning cũ; scoped `npm run test -- src/frontend/app/api/platform-admin/route.test.ts src/frontend/proxy.test.ts` pass; `npm run test` pass; `npm run build` pass; browser audit pass cho login, nav, redirect learning, filters, confirm dialog và mobile.
 
-## 2026-06-24 — Fix avatar sync across settings and team rooms
+## 2026-06-20 — Platform admin can edit `role_id`/`ai_level` and enforce learning activation
 
-**Goal:** Sửa bug avatar không đồng bộ: vào phòng có thể mất identity cũ rồi join lại thành avatar khác; avatar ở cài đặt cá nhân cũng phải đồng bộ với menu tài khoản, Học tập và phòng team.
+**Goal:** Cho platform admin sửa vai trò công việc, trình độ AI, reset cache lộ trình riêng và chặn các tài khoản chưa được kích hoạt học.
 
-**Decision:** Giữ avatar choice là một nguồn dữ liệu duy nhất trên client bằng cách ghi preference vào cả identity chính và alias (email, tên hiển thị, fullName). Room identity cũng đọc/lưu/xoá theo alias để khi client hydrate từ display name sang email không mất `participantId`/`hostToken`.
+**Decision:** Giữ `update-user` làm nguồn sửa chính cho `role_id` + `ai_level` và xóa `learning_recommendations` sau khi lưu; thêm `reset-user-learning` scope riêng cho cache lộ trình; gate `cho-kich-hoat`, `/lo-trinh`, `/tro-ly`, `/tien-bo`, `/kiem-tra`, và các API học tập khi `profiles.learning_activated = false`; thêm migration để backfill + bảo vệ các cột kích hoạt.
 
-**Shipped:** cập nhật `avatar-preferences`, `use-preferred-avatar`, `hoc-tap-room-identity`, `account-menu`, `account-settings-content`, `hoc-tap-dashboard`, `hoc-tap-team-room`; thêm regression tests cho avatar alias và room identity alias.
+**Shipped:** `src/frontend/lib/platform-admin-console.ts`, `src/frontend/lib/platform-admin-console.test.ts`, `src/frontend/lib/platform-admin-console.activation.test.ts`, `src/frontend/lib/platform-admin-types.ts`, `src/frontend/components/platform-admin/platform-admin-console.types.ts`, `src/frontend/components/platform-admin/users-tab.tsx`, `src/frontend/lib/post-auth-redirect.ts`, `src/frontend/lib/post-auth-redirect.test.ts`, `src/frontend/proxy.ts`, `src/frontend/proxy.test.ts`, `src/frontend/components/onboarding-flow.tsx`, `src/frontend/lib/learning-activation.ts`, `src/frontend/lib/email/*`, `src/frontend/app/(app)/cho-kich-hoat/page.tsx`, route gates under `src/frontend/app/(app)/`, API gates under `src/frontend/app/api/*`, `supabase/migrations/20260620120000_learning_activation_flags.sql`, `package.json`, `package-lock.json`.
 
-**Tests:** targeted Node 20 Vitest avatar/room identity pass 5/5; scoped ESLint pass; `npm run lint` pass với 5 warning cũ; `npm run test` Node 20 unit pass 370/370 rồi API dừng vì Node 20 thiếu native WebSocket; retry Node 22 unit pass 370/370 rồi API dừng ở lỗi credential Supabase local chứa ký tự Unicode không hợp lệ trong HTTP header (`ByteString` value 7852); Node 20 `npm run build` pass; `git diff --check` pass.
+**Tests:** `npm run db:validate` pass; `npm run lint` pass with the same 5 pre-existing warnings; `npm run test` pass; `npm run build` pass.
 
-## 2026-06-24 — Add full Alohe avatar catalog to picker
+## 2026-06-20 — Tighten activation bulk controls
 
-**Goal:** Tải thêm avatar từ `alohe/avatars` để user có nhiều lựa chọn avatar hơn trong cài đặt/Học tập.
+**Goal:** Tránh hiểu nhầm/trạng thái lan rộng khi vận hành kích hoạt học viên và thêm lối huỷ kích hoạt hàng loạt không ảnh hưởng platform admin.
 
-**Decision:** Không commit 133 file PNG vào repo; giữ cách app đang dùng là CDN `cdn.jsdelivr.net/gh/alohe/avatars/png`. Danh sách Alohe được mô tả bằng nhóm/range theo README chính thức (`vibrent`, `3d`, `bluey`, `memo`, `notion`, `teams`, `toon`, `upstream`) để picker sinh đủ 133 option và dễ bảo trì. Picker thêm scroll nội bộ để popup không dài quá màn hình.
+**Decision:** Gỡ backfill tự bật `learning_activated` cho mọi profile có `role_id` trong migration activation; thêm cờ server-side `excludePlatformAdmins` cho `bulk-set-activation`; UI `/van-hanh` có nút “Huỷ kích hoạt all” chỉ gửi các user đang active và backend vẫn lọc lại platform admin.
 
-**Shipped:** mở rộng `src/frontend/lib/app-avatar.ts`, thêm test catalog/URL trong `src/frontend/lib/app-avatar.test.ts`, và giới hạn chiều cao lưới option ở `src/frontend/components/dicebear-avatar-picker.tsx`.
+**Shipped:** cập nhật `src/frontend/lib/platform-admin-console.ts`, `src/frontend/components/platform-admin/users-tab.tsx`, `src/frontend/lib/platform-admin-console.test.ts`, `src/frontend/lib/platform-admin-console.activation.test.ts`, `supabase/migrations/20260620120000_learning_activation_flags.sql`.
 
-**Tests:** targeted Node 20 Vitest `app-avatar.test.ts` + `avatar-preferences.test.ts` pass 3/3; `npm run lint` pass với 5 warning cũ; `npm run test` Node 20 unit pass 372/372 rồi API dừng vì Node 20 thiếu native WebSocket; retry Node 22 unit pass 372/372 rồi API dừng ở lỗi credential Supabase local Unicode `ByteString` value 7852; Node 20 `npm run build` pass.
+**Tests:** scoped `npm run test -- src/frontend/lib/platform-admin-console.test.ts src/frontend/lib/platform-admin-console.activation.test.ts` pass, gồm full unit/API/Python suite do runner hiện tại chạy toàn bộ.
 
-## 2026-06-24 — Harden demo avatar sync and regression tests
+## 2026-06-21 — Nâng Agent sinh Lộ trình: HR role, assessment-gap, observability
 
-**Goal:** Sửa tiếp case demo trong ảnh: đổi avatar ở cài đặt nhưng header/menu còn giữ avatar cũ chữ `DO`; thêm test kỹ để đổi một nơi thì mọi surface demo đều nhận avatar mới.
+**Goal:** Sửa bug HR (`nhan-su` bị hạ về `khac`), bơm tín hiệu assessment-gap vào path-agent, log fallback có cấu trúc, đồng bộ eligibility giữa `generatePath` và `rankModules`.
 
-**Decision:** Nhóm các identity demo employee (`Demo User`, `nhanvien@congty.vn`, `demo@aitroly.local`) và demo manager (`Chị Quản lý`, `Quản lý`, `quanly@congty.vn`) vào cùng cụm sync trong `avatar-preferences`. Header demo nay truyền email demo thật giống trang tài khoản thay vì dùng tên hiển thị làm email.
+**Decision:** Tách `lib/role-ids.ts` (`coerceRoleId`, `VALID_ROLE_IDS` gồm `nhan-su`) làm nguồn role chung cho recommender + path-agent; `path-agent-eligibility.ts` gom `shouldSkipBasicModule`; `/lo-trinh` → `generatePath` (LLM + fallback), panel gợi ý → `rankModules`; API trả `source: agent|fallback` và log `[path-agent:fallback]` (không PII).
 
-**Shipped:** cập nhật `src/frontend/lib/avatar-preferences.ts`, `src/frontend/lib/avatar-preferences.test.ts`, và `src/frontend/app/(app)/layout.tsx`. Test mới phủ: settings email đọc được ở header identity, avatar header stale bị ghi đè khi settings chọn avatar mới, manager demo không leak sang employee demo.
+**Shipped:** `src/frontend/lib/role-ids.ts`, `path-agent-eligibility.ts`, `path-agent-log.ts`, cập nhật `recommender-context.ts`, `path-agent-input.ts`, `path-agent.ts`, `path-agent-fallback.ts`, `path-agent-validate.ts`, tests.
 
-**Tests:** targeted Node 20 Vitest `avatar-preferences.test.ts`, `app-avatar.test.ts`, `hoc-tap-room-identity.test.ts` pass 10/10; `npm run lint` pass với 5 warning cũ; Node 20 `npm run test` unit pass 375/375 rồi API dừng vì Node 20 thiếu native WebSocket; Node 20 `npm run build` pass.
+**Tests:** `npm run lint` pass (5 warnings cũ); `npm run test` pass (348 vitest + API + pytest); `npm run build` pass.

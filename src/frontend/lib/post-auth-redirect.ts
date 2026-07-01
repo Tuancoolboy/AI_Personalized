@@ -14,12 +14,20 @@ export function getPostAuthPath(
   roleId: string | null | undefined,
   email: string | null | undefined,
   userType?: UserType | null,
+  isPlatformAdmin?: boolean,
+  learningActivated = true,
 ): string {
+  if (isPlatformAdmin) {
+    return "/van-hanh";
+  }
   if (userType === "manager") {
     return "/quan-ly";
   }
   if (!userType && email && detectUserTypeFromEmail(email) === "manager") {
     return "/quan-ly";
+  }
+  if (roleId && !learningActivated) {
+    return "/cho-kich-hoat";
   }
   if (roleId) {
     return "/lo-trinh";

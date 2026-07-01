@@ -1,5 +1,6 @@
 import { resolveApiSession } from "@/lib/api-auth";
 import { apiError, apiOk } from "@/lib/api-error";
+import { canAccessLearning, loadLearningActivationRecord } from "@/lib/learning-activation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 
@@ -11,6 +12,10 @@ export async function GET() {
   const session = await resolveApiSession();
   if (!session || session.mode !== "supabase") {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
+  }
+  const access = await loadLearningActivationRecord(session.userId);
+  if (!canAccessLearning(access)) {
+    return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
   }
 
   const supabase = await createSupabaseServerClient();
@@ -52,6 +57,10 @@ export async function POST(request: Request) {
   const session = await resolveApiSession();
   if (!session || session.mode !== "supabase") {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
+  }
+  const access = await loadLearningActivationRecord(session.userId);
+  if (!canAccessLearning(access)) {
+    return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
   }
 
   let body: NhatKyPayload;

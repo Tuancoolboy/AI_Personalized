@@ -158,13 +158,14 @@ Nhân viên ở các phòng ban như kế toán, sales, marketing, vận hành t
 | Assessment | Quiz/tình huống thực tế sau mỗi cụm bài |
 | Dashboard | Tiến độ học, điểm đánh giá, trạng thái từng user/team |
 
-### Tech stack định hướng
+### Tech stack hiện tại
 
-- **Frontend:** TBD ngày 07/06, ưu tiên React nếu không có blocker.
-- **Backend:** TBD ngày 07/06, so sánh FastAPI và Node.js API trước khi scaffold.
-- **AI:** LLM tutor theo lesson context và role context.
-- **Data:** User, role, lesson, quiz, progress, team dashboard.
-- **Deployment:** Public URL để đáp ứng yêu cầu submission.
+- **Frontend:** Next.js 16.2.7 App Router, React 19, TypeScript, Tailwind CSS v4.
+- **Backend/data:** Next.js Route Handlers + Supabase; FastAPI/LangGraph nằm trong
+  `src/backend/`.
+- **AI:** OpenAI `gpt-4o-mini`, role/curriculum/personal/company context.
+- **Deployment:** Vercel production tại
+  [c2-app-009.vercel.app](https://c2-app-009.vercel.app).
 
 ---
 
@@ -192,18 +193,20 @@ Nhân viên ở các phòng ban như kế toán, sales, marketing, vận hành t
 
 | Hạng mục | Trạng thái |
 |---|---|
-| Frontend app | Chưa bắt đầu |
-| Backend/API | Chưa bắt đầu |
-| AI tutor flow | Chưa bắt đầu |
-| Assessment + dashboard | Chưa bắt đầu |
+| Frontend app | Hoàn thành MVP |
+| Backend/API | Hoàn thành MVP + Supabase/FastAPI slices |
+| AI tutor flow | Hoàn thành, có OpenAI thật + guardrails |
+| Assessment + dashboard | Hoàn thành MVP |
 
 ### Sprint 3 — Test & Deploy
 
 | Hạng mục | Trạng thái |
 |---|---|
-| QA user flow | Chưa bắt đầu |
-| Demo data | Chưa bắt đầu |
-| Deployment public URL | Chưa bắt đầu |
+| QA user flow | Đã có automated tests + browser smoke |
+| Evaluation framework | Đã có baseline metrics và raw evidence |
+| Guardrails | Đã có code, tests và eval evidence |
+| Deployment public URL | Hoàn thành — `c2-app-009.vercel.app` |
+| Gate 3 package | Đã chuẩn bị; còn quay/upload video mới |
 
 ---
 
@@ -297,6 +300,8 @@ Code MVP: frontend Next.js trong `src/frontend/`; backend Python trong `src/back
 - **Backend:** Supabase (Postgres + Auth + RLS) — schema sẵn sàng trong `supabase/migrations/`
 - **LLM tutor:** OpenAI `gpt-4o-mini` — gọi thật khi có `OPENAI_API_KEY` (đã kiểm chứng bằng eval, xem `eval/results/EVAL-REPORT.md`); fallback canned/cache khi chưa có key
 - **Deploy target:** Vercel
+- **Production URL:** [https://c2-app-009.vercel.app](https://c2-app-009.vercel.app)
+- **Future custom domain:** `https://c2-app-009.io.vn`
 
 **Tính năng đã ship:**
 
@@ -324,6 +329,12 @@ Code MVP: frontend Next.js trong `src/frontend/`; backend Python trong `src/back
 - `docs/ops/tuan-1-deploy-checklist.md` — checklist deploy Vercel + Supabase
 - `docs/README.md` — bản đồ cấu trúc `docs/`
 - `docs/gate-2-submission.md` — **hồ sơ nộp Gate 2** (link video demo + đủ 5 deliverable)
+- `docs/gate-3-submission.md` — **hồ sơ nộp Gate 3** (production, eval, guardrails, cost, demo)
+- `docs/product/gate-3-cost-report.md` — cost/user/month theo low/base/high usage
+- `eval/results/GATE-3-EVAL-REPORT.md` — metrics baseline Gate 3
+- `eval/results/GATE-3-GUARDRAILS-REPORT.md` — guardrail evidence
+- `planning/demo/gate-3-demo-video-plan.md` — shot list và lời thoại 3–5 phút
+- `presentation/gate-3-pitch-deck.pptx` — pitch deck Gate 3
 
 **Setup nhanh:**
 
@@ -332,6 +343,15 @@ npm install
 cp .env.example .env.local   # điền Supabase keys (xem docs/ops/supabase-setup.md)
 npm run dev                  # http://localhost:3000
 ```
+
+**Xuất codebase cho AI (Repomix):**
+
+```bash
+npm run repomix              # file mới: .repomix/repomix-YYYYMMDD-HHmmss.xml
+npm run repomix:full         # bản đầy đủ hơn — gồm cả src/backend/next_clone/**
+```
+
+Mỗi lần chạy tạo **1 file mới** (timestamp), không ghi đè bản cũ. Bản mới nhất luôn được copy sang `.repomix/repomix-latest.xml`. Thư mục `.repomix/` nằm trong `.gitignore`.
 
 ## Câu Hỏi Mẫu Cho Trợ Lý AI (Sample Queries)
 

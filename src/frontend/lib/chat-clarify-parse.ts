@@ -84,7 +84,7 @@ export function parseAssistantMessageContent(raw: string): ParsedAssistantMessag
   const clarify = parseClarifyPayload(payloadLine);
 
   if (!clarify) {
-    return { content: text.replace(CLARIFY_PREFIX, "").trim() };
+    return { content: stripClarifyBlock(text) };
   }
 
   return {

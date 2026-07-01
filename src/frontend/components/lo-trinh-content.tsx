@@ -17,12 +17,15 @@ import { getRole } from "@/lib/roles";
 import { isSupabaseConfigured } from "@/lib/supabase/is-configured";
 import {
   getEmployeeProfile,
+  getEmployeeExtraLessons,
   getEmployeeProgress,
 } from "@/lib/supabase/employee";
+import type { ExtraSkillLessonView } from "@/lib/extra-skill-lessons";
 
 export function LoTrinhContent() {
   const [profile, setProfile] = useState<ReturnType<typeof getDemoProfile>>(null);
   const [progress, setProgress] = useState<DemoProgress>({});
+  const [extraLessons, setExtraLessons] = useState<ExtraSkillLessonView[]>([]);
   const [modules, setModules] = useState<LearningModuleRecord[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -48,6 +51,8 @@ export function LoTrinhContent() {
         if (cancelled) return;
         setProfile(prof);
         setProgress(prog);
+        const nextExtraLessons = await getEmployeeExtraLessons();
+        if (!cancelled) setExtraLessons(nextExtraLessons);
 
         const aiLevel = prof?.assessment?.aiLevel ?? 0;
         if (prof?.roleId) {
@@ -66,6 +71,7 @@ export function LoTrinhContent() {
           setErrorMessage("Chưa đọc được dữ liệu Supabase. Vui lòng tải lại.");
           setProfile(getDemoProfile());
           setProgress(getDemoProgress());
+          setExtraLessons([]);
           const p = getDemoProfile();
           if (p?.roleId) {
             setModules(
@@ -123,6 +129,7 @@ export function LoTrinhContent() {
   const totalCount = modules.length;
   const percentComplete =
     totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const hasExtraLessons = extraLessons.length > 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10 md:py-14">
@@ -271,6 +278,70 @@ export function LoTrinhContent() {
             );
           })}
         </ul>
+      </div>
+
+      <div className="mt-10">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
+              Kỹ năng khác
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-bold text-ink">
+              Bài học thêm đã lưu
+            </h2>
+          </div>
+          <p className="text-xs text-ink-3">
+            Tối đa 5 bài học thêm cho mỗi người
+          </p>
+        </div>
+
+        {hasExtraLessons ? (
+          <ul className="mt-4 space-y-2">
+            {extraLessons.map((lesson) => (
+              <li key={lesson.moduleId}>
+                <Link
+                  href={`/lo-trinh/${lesson.moduleId}`}
+                  className="flex w-full items-center gap-4 rounded-2xl border border-line bg-card p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand/50 hover:shadow-md"
+                >
+                  <span className="grid h-9 w-9 flex-none place-items-center rounded-full border-2 border-brand bg-brand-soft text-brand">
+                    ✦
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-ink">
+                      {lesson.title || lesson.moduleId}
+                    </p>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-ink-2">
+                      <span>{lesson.skillLabel}</span>
+                      <span className="text-ink-3">·</span>
+                      <span>{lesson.roleLabel}</span>
+                      <span className="text-ink-3">·</span>
+                      <span
+                        className={
+                          lesson.status === "hoan-thanh"
+                            ? "font-semibold text-brand"
+                            : lesson.status === "dang-hoc"
+                              ? "font-semibold text-accent"
+                              : "text-ink-3"
+                        }
+                      >
+                        {lesson.status === "hoan-thanh"
+                          ? "Đã xong"
+                          : lesson.status === "dang-hoc"
+                            ? "Đang học"
+                            : "Chưa học"}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="hidden text-ink-3 sm:inline">→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-dashed border-line bg-secondary/30 p-5 text-sm text-ink-3">
+            Chưa có bài kỹ năng khác nào được lưu.
+          </div>
+        )}
       </div>
     </div>
   );

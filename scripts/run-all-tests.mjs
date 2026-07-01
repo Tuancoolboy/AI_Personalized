@@ -8,8 +8,25 @@ import { existsSync, readFileSync } from "node:fs";
 
 const API_PORT = process.env.TEST_PORT ?? "3099";
 const API_BASE = `http://localhost:${API_PORT}`;
+const LOCAL_DEV_URL = "http://localhost:3000";
+const NOT_FOUND_PROBE_PATH = "/trang-khong-ton-tai-xyz";
 let serverProc = null;
 let startedServer = false;
+
+function hasProductionBuild() {
+  return (
+    existsSync("src/frontend/.next/BUILD_ID") || existsSync(".next/BUILD_ID")
+  );
+}
+
+function isCi() {
+  return process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+}
+
+function shouldSkipApiTestBuild() {
+  if (process.env.SKIP_API_TEST_BUILD === "1") return true;
+  return isCi() && hasProductionBuild();
+}
 
 function loadEnvLocal() {
   if (!existsSync(".env.local")) return;
@@ -53,21 +70,52 @@ async function waitForServer(url, maxMs = 60_000) {
   return false;
 }
 
-async function ensureApiServer() {
+async function isOurAppServer(baseUrl) {
   try {
-    const res = await fetch("http://localhost:3000", {
+    const res = await fetch(`${baseUrl}${NOT_FOUND_PROBE_PATH}`, {
       signal: AbortSignal.timeout(2000),
     });
-    if (res.ok) {
-      console.log("Using existing dev server @ :3000");
-      return "http://localhost:3000";
-    }
+    return res.status === 404;
   } catch {
-    // start production server
+    return false;
+  }
+}
+
+async function tryReuseLocalDevServer() {
+  if (isCi() || process.env.REUSE_DEV_SERVER === "0") return null;
+
+  try {
+    const res = await fetch(LOCAL_DEV_URL, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!res.ok) return null;
+    if (!(await isOurAppServer(LOCAL_DEV_URL))) {
+      console.log(
+        `Skip reusing ${LOCAL_DEV_URL} — not this app (shared port or wrong server)`,
+      );
+      return null;
+    }
+    console.log(`Using existing dev server @ :3000`);
+    return LOCAL_DEV_URL;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureApiServer() {
+  const reused = await tryReuseLocalDevServer();
+  if (reused) return reused;
+
+  if (isCi()) {
+    console.log(`CI: starting dedicated API test server @ :${API_PORT}...`);
   }
 
-  console.log("Building Next.js for API tests...");
-  execSync("npm run build", { stdio: "inherit" });
+  if (shouldSkipApiTestBuild()) {
+    console.log("Reusing existing production build for API tests...");
+  } else {
+    console.log("Building Next.js for API tests...");
+    execSync("npm run build", { stdio: "inherit" });
+  }
 
   console.log(`Starting production server @ :${API_PORT}...`);
   serverProc = spawn("npm", ["run", "start"], {
@@ -76,7 +124,8 @@ async function ensureApiServer() {
       PORT: API_PORT,
       SUPABASE_DB_SYNC: "false",
     },
-    stdio: "pipe",
+    // Tránh deadlock pipe trên shared runner khi Next.js log nhiều.
+    stdio: isCi() ? "ignore" : "pipe",
     detached: false,
   });
   startedServer = true;
@@ -102,8 +151,12 @@ process.on("SIGINT", () => {
 });
 
 async function main() {
-  console.log("=== 1/3 Unit tests (Vitest) ===");
-  execSync("npx vitest run", { stdio: "inherit" });
+  if (process.env.CI_SKIP_VITEST !== "1") {
+    console.log("=== 1/3 Unit tests (Vitest) ===");
+    execSync("npx vitest run", { stdio: "inherit" });
+  } else {
+    console.log("=== 1/3 Unit tests — skipped (CI_SKIP_VITEST) ===");
+  }
 
   console.log("\n=== 2/3 API integration tests ===");
   const base = await ensureApiServer();

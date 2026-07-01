@@ -3,6 +3,9 @@
 // dùng generic response gợi ý cấu hình OpenAI.
 
 import { getLearningModuleById, getLearningModulesByRole } from "@/lib/learning-modules-data";
+import { formatExtraSkillLessonAnswer } from "@/lib/extra-skill-lessons";
+import { stripLeadingAssistantGreeting } from "@/lib/chat-prompt-safety";
+import type { RoleId } from "@/lib/openai";
 
 export type CannedResponse = {
   // Pattern (regex) match câu hỏi user.
@@ -52,7 +55,140 @@ AI có thể "bịa số" hoặc cam kết không thực tế. Bạn chịu trá
 
 Càng cụ thể → kết quả càng sát.`,
   },
+  {
+    pattern: /chưa sát|chưa đúng|sai rồi|sửa lại|nâng cấp câu trả lời|câu trả lời sao rồi|feedback/i,
+    answer: `Em hiểu rồi. Để sửa cho sát hơn, em cần bạn chọn 1 chỗ lệch nhất: phạm vi, dữ liệu đầu vào, định dạng đầu ra, hay giọng văn.
+
+Chỉ cần nói 1 ý lệch quan trọng nhất, em sẽ viết lại bản tốt hơn ngay.`,
+  },
+  {
+    pattern: /quá chung|chung chung|quá mơ hồ|(?:câu|câu trả lời|trả lời).{0,24}không rõ|chưa cụ thể/i,
+    answer: `Em thấy câu trả lời còn hơi chung. Nếu bạn muốn, hãy nói rõ 1 điểm lệch nhất: phạm vi việc, dữ liệu đang có, hay output cuối.
+
+Có 1 ý lệch quan trọng nhất là đủ để em viết lại sát hơn.`,
+  },
+  {
+    pattern: /quá dài|dài quá|rút gọn|ngắn lại|ngắn hơn/i,
+    answer: `Em sẽ rút gọn phần trả lời theo đúng ý chính.
+
+Nếu muốn, bạn có thể nói thêm là cần giữ ví dụ, giữ số bước, hay chỉ cần bản chốt nhanh.`,
+  },
+  {
+    pattern: /chỉ cần bản sửa|chỉ sửa thôi|khỏi giải thích|đừng giải thích|sửa luôn/i,
+    answer: `Em sẽ đi thẳng vào bản sửa, không vòng vo giải thích lại.
+
+Nếu bạn muốn, em có thể giữ đúng giọng cũ nhưng thay toàn bộ phần chưa sát.`,
+  },
+  {
+    pattern: /bản cuối|phiên bản cuối|chốt bản|final version|bản sạch/i,
+    answer: `Em sẽ đưa luôn bản cuối, gọn và sạch để bạn dùng ngay.
+
+Nếu cần, em có thể giữ một bản đầy đủ hơn ở dưới để bạn chọn nhanh.`,
+  },
+  {
+    pattern: /1 câu|một câu|rất ngắn|siêu ngắn|ngắn nhất/i,
+    answer: `Em sẽ nén lại thành bản cực ngắn, chỉ giữ ý chốt cuối cùng.
+
+Nếu bạn muốn, em có thể gói luôn thành 1 câu duy nhất để copy gửi đi.`,
+  },
+  {
+    pattern: /2 phiên bản|hai phiên bản|2 bản|bản ngắn và bản dài|bản ngắn.*bản đầy đủ/i,
+    answer: `Em sẽ làm luôn 2 phiên bản: một bản ngắn để chốt nhanh và một bản đầy đủ để bạn xem kỹ.
+
+Nếu muốn, em có thể ghi rõ đâu là bản nên dùng ngay, đâu là bản để tham khảo.`,
+  },
+  {
+    pattern:
+      /đổi sang checklist|dạng checklist|chuyển sang checklist|đổi sang bảng|dạng bảng|chuyển sang bảng/i,
+    answer: `Em sẽ giữ nguyên ý chính nhưng đổi sang checklist hoặc bảng để dễ làm ngay.
+
+Nếu bạn muốn, em có thể thêm cột "việc làm ngay" để nhìn ra bước tiếp theo thật nhanh.`,
+  },
+  {
+    pattern: /việc làm ngay|làm ngay.*ưu tiên|ưu tiên.*làm ngay/i,
+    answer: `Em sẽ chốt lại theo thứ tự ưu tiên việc làm ngay trước, rồi mới đến phần giải thích sau.
+
+Nếu cần, em có thể rút thành 3 việc quan trọng nhất để bạn đem đi làm liền.`,
+  },
+  {
+    pattern: /3 lựa chọn|ba lựa chọn|3 phương án|nhiều phương án|phương án khác/i,
+    answer: `Em sẽ gom thành 3 lựa chọn rõ ràng để bạn chọn nhanh, thay vì trả lời một đường duy nhất.
+
+Nếu muốn, em có thể ghi luôn khi nào nên chọn từng phương án.`,
+  },
+  {
+    pattern: /ví dụ theo nghề|ví dụ thực tế|ví dụ đúng nghề|case thực tế/i,
+    answer: `Em sẽ thêm ví dụ bám đúng nghề/công việc của bạn để dễ áp dụng hơn.
+
+Nếu bạn muốn, em có thể đổi hẳn sang ví dụ HR, kế toán, sales, hoặc vận hành cho sát ngữ cảnh.`,
+  },
+  {
+    pattern: /giọng người thật|bớt máy|tự nhiên hơn|đỡ máy/i,
+    answer: `Em sẽ chỉnh giọng cho tự nhiên hơn, bớt kiểu máy móc.
+
+Nếu muốn, em có thể viết theo kiểu nói chuyện đời thường nhưng vẫn giữ đúng ý chuyên môn.`,
+  },
+  {
+    pattern: /so sánh 2|2 phương án|phương án nào|phân biệt/i,
+    answer: `Em sẽ chuyển sang dạng so sánh để nhìn ra điểm khác nhau thật nhanh.
+
+Nếu muốn, em có thể làm luôn bảng 2 cột: phương án A, phương án B, và khi nào nên chọn mỗi bên.`,
+  },
+  {
+    pattern: /ưu nhược|ưu điểm|nhược điểm|điểm mạnh|điểm yếu|rủi ro/i,
+    answer: `Em sẽ bóc ra luôn ưu, nhược và rủi ro để bạn nhìn nhanh chỗ cần cân nhắc.
+
+Nếu muốn, em có thể xếp theo mức độ quan trọng: cái nào đáng lo nhất, cái nào chấp nhận được.`,
+  },
+  {
+    pattern: /prompt copy|copy-paste|copy paste|prompt mẫu|mẫu prompt/i,
+    answer: `Em sẽ viết lại thành prompt copy-paste để bạn dùng ngay.
+
+Nếu muốn, em có thể giữ luôn placeholder để bạn chỉ việc thay phần [ ] theo việc của mình.`,
+  },
+  {
+    pattern: /gửi sếp|bản gửi sếp|summary cho sếp|tóm tắt cho sếp|executive summary/i,
+    answer: `Em sẽ rút thành bản ngắn kiểu gửi sếp: chỉ giữ ý chính, kết luận, rủi ro, và việc cần làm tiếp.
+
+Nếu muốn, em cũng có thể chuyển sang giọng rất ngắn gọn, không lan man, để copy gửi luôn.`,
+  },
+  {
+    pattern: /key takeaways|ý chính|chốt ý|chốt lại|takeaway/i,
+    answer: `Em sẽ bóc ra đúng phần key takeaways trước, bỏ bớt phần kể lể.
+
+Nếu bạn muốn, em có thể gom thành 3 gạch đầu dòng: điều cần nhớ, điều cần làm, điều cần tránh.`,
+  },
+  {
+    pattern: /thiếu ví dụ|thêm ví dụ|mở rộng|chi tiết hơn|làm sâu|đổi giọng văn|đổi format/i,
+    answer: `Em sẽ nâng cấp theo hướng bạn cần: thêm ví dụ, làm sâu hơn, đổi giọng văn, hoặc đổi format.
+
+Nếu muốn sát hơn nữa, bạn chỉ cần nêu 1 kiểu mẫu bạn thích, em sẽ bám theo kiểu đó.`,
+  },
+  {
+    pattern: /đúng nhưng chưa đủ sâu|chưa đủ sâu|nông quá|sâu hơn|đào sâu/i,
+    answer: `Em sẽ đào sâu thêm phần đang còn nông.
+
+Nếu muốn, bạn có thể nói rõ phần nào cần sâu hơn nhất: lý do, ví dụ thực tế, hay bước thực hiện.`,
+  },
+  {
+    pattern: /lệch role|sai role|không đúng nghề|không đúng vai trò|sai ngữ cảnh nghề/i,
+    answer: `Em hiểu, mình đang bị lệch nghề/ngữ cảnh rồi. Em sẽ chỉnh lại theo đúng role và ví dụ đúng công việc của bạn.
+
+Nếu bạn muốn, hãy nói đúng 1 role hoặc 1 tình huống làm việc cụ thể để em bám sát hơn.`,
+  },
+  {
+    pattern: /benchmark|kỳ trước|đối chiếu với kỳ trước|tháng trước|tuần trước/i,
+    answer: `Em sẽ thêm phần so sánh với benchmark hoặc kỳ trước để câu trả lời có độ quyết định cao hơn.
+
+Nếu bạn có mốc so sánh cụ thể, cứ nói luôn, em sẽ đưa vào bản sửa.`,
+  },
 ];
+
+/** Trả về câu trả lời gợi ý module tiếp theo, hoặc null nếu role không có modules. */
+export function getNextLearningAnswer(roleId: string): string | null {
+  const answer = formatNextLearningAnswer(roleId);
+  return answer || null;
+}
 
 function formatNextLearningAnswer(roleId: string): string {
   const modules = getLearningModulesByRole(roleId, 0).slice(0, 3);
@@ -65,7 +201,7 @@ function formatNextLearningAnswer(roleId: string): string {
     return `${index + 1}. [${title}](/lo-trinh/${mod.id})`;
   });
 
-  return `Nếu anh/chị hỏi "học gì tiếp", em khuyên đi theo đúng thứ tự này trước:\n\n${lines.join("\n")}\n\nLý do: đi từ module nhập môn trước, rồi sang bài thực hành sát việc hơn.`;
+  return `Nếu bạn hỏi "học gì tiếp", em khuyên đi theo đúng thứ tự này trước:\n\n${lines.join("\n")}\n\nLý do: đi từ module nhập môn trước, rồi sang bài thực hành sát việc hơn.`;
 }
 
 const BY_ROLE: Record<string, CannedResponse[]> = {
@@ -275,10 +411,27 @@ export function findCannedResponse(
   const roleResponses = BY_ROLE[roleId] ?? [];
   for (const r of [...COMMON, ...roleResponses]) {
     if (r.pattern.test(question)) {
-      return { answer: r.answer, safety: safetyWarning };
+      return {
+        answer: stripLeadingAssistantGreeting(r.answer),
+        safety: safetyWarning,
+      };
     }
   }
-  return { answer: OFF_TOPIC.answer, safety: safetyWarning };
+
+  if (roleId) {
+    const extraSkillAnswer = formatExtraSkillLessonAnswer(roleId as RoleId, question);
+    if (extraSkillAnswer) {
+      return {
+        answer: stripLeadingAssistantGreeting(extraSkillAnswer),
+        safety: safetyWarning,
+      };
+    }
+  }
+
+  return {
+    answer: stripLeadingAssistantGreeting(OFF_TOPIC.answer),
+    safety: safetyWarning,
+  };
 }
 
 export function getSuggestedQuestions(roleId: string): string[] {

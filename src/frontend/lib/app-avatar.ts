@@ -26,7 +26,7 @@ const ALOHE_AVATAR_GROUPS = [
 ] as const;
 
 const ALOHE_BASE_URL =
-  "https://cdn.jsdelivr.net/gh/alohe/avatars/png";
+  "https://raw.githubusercontent.com/alohe/avatars/main/png";
 const DEFAULT_DICEBEAR_STYLE = "bottts-neutral";
 const MAX_UPLOADED_AVATAR_LENGTH = 350_000;
 const DICEBEAR_STYLES = [

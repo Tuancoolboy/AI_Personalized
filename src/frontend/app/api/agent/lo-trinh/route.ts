@@ -12,6 +12,7 @@ import {
 } from "@/lib/agent/path-agent-input";
 import { generatePath } from "@/lib/agent/path-agent";
 import { readCachedPath, writeCachedPath } from "@/lib/agent/path-agent-cache";
+import { canAccessLearning, loadLearningActivationRecord } from "@/lib/learning-activation";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,12 @@ export async function POST(request: Request) {
   const session = await resolveApiSession();
   if (!session) {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập để tạo lộ trình.");
+  }
+  if (session.mode === "supabase") {
+    const access = await loadLearningActivationRecord(session.userId);
+    if (!canAccessLearning(access)) {
+      return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
+    }
   }
 
   let body: Payload = {};

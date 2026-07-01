@@ -107,5 +107,25 @@
   <p>Catalog câu hỏi và đáp án vẫn nằm trong code để tránh mở authoring scope; dữ liệu user, điểm cao nhất, XP và lịch sử attempt được persist Supabase để đồng bộ thiết bị.</p>
   <h3>Bất kỳ điều gì khác cần lưu ý</h3>
   <p>Không migrate key localStorage XP cũ. Real mode không fallback memory/localStorage; demo mode dùng key mới và bắt đầu từ 0.</p>
+
+  <h2>6. Update 2026-06-26 — Timed quiz attempts và bộ câu hỏi dài hơn</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Thêm sentinel <code>-1</code> cho câu chưa trả lời khi hết giờ. Client luôn gửi đủ mảng đáp án theo số câu, còn server/grader tính <code>-1</code> là sai thay vì reject payload.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p>Spec BE-07 chỉ yêu cầu quiz score persistence; thay đổi này bổ sung countdown UI và auto-submit nhưng không đổi schema <code>quiz_results</code> hay RLS.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Chọn timer tổng theo bài thay vì timer từng câu để ít gây giật luồng học. Quiz Học tập dùng <code>durationMinutes</code> có sẵn, quiz theo lộ trình dùng 60 giây/câu.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Các role quiz và quiz Học tập hiện có 10 câu/bộ. Ba card Học tập cũ ở trạng thái <code>coming-soon</code> (<code>prompt-engineering</code>, <code>phan-tich-du-lieu</code>, <code>ai-automation</code>) nay là quiz thật gắn <code>roleId="khac"</code>, có link làm bài và cộng XP. Form AI gen câu hỏi trong Học tập mặc định 10 câu và UI giới hạn 10–15 câu, nhưng helper API vẫn giữ min cũ để không phá phòng/test cũ dùng câu hỏi tự chọn ngắn.</p>
+
+  <h2>7. Update 2026-07-01 — Merge repair against develop for quiz/avatar branch</h2>
+  <h3>Quyết định AI tự ra (ngoài spec)</h3>
+  <p>Khôi phục các file nền của <code>develop</code> bị xoá nhầm trong branch quiz/avatar, rồi merge thủ công các điểm chạm BE-07 thay vì lấy nguyên một phía. Mục tiêu là giữ feature quiz/avatar/Học tập nhưng không làm mất guard auth/session/persistence đã có trên <code>develop</code>.</p>
+  <h3>Những chỗ AI phải thay đổi so với spec gốc</h3>
+  <p><code>proxy.ts</code> tiếp tục dùng <code>learning_activated</code>, operator/platform-admin route guards và demo cookies của <code>develop</code>, đồng thời dùng helper public Supabase key mới. <code>/api/quiz-results</code> giữ server-side Học tập grading/XP nhưng kiểm tra <code>loadLearningActivationRecord()</code>/<code>canAccessLearning()</code> trước khi đọc hoặc ghi quiz result. <code>/api/profile</code> giữ avatar payload và đưa lại role <code>nhan-su</code>.</p>
+  <h3>Tradeoff AI phải cân nhắc</h3>
+  <p>Không đổi schema BE-07 và không thêm migration mới. Các migration/activation/platform-admin/email file đã có từ <code>develop</code> được restore nguyên trạng để branch không xoá nền production khi merge.</p>
+  <h3>Bất kỳ điều gì khác cần lưu ý</h3>
+  <p>Verification: targeted Vitest 54/54 pass; <code>npm run lint -- --ignore-pattern 'duck-race-master/**'</code> pass với 5 warning cũ; <code>npm run test</code> unit pass 447/447 và build pass, nhưng API integration dừng ở 21/30 vì env local đang Supabase mode nhưng thiếu auth credentials nên endpoint authenticated trả 401; <code>npm run db:validate</code> pass 50 migrations; <code>npm run build</code> pass; <code>git diff --check</code> pass.</p>
 </body>
 </html>

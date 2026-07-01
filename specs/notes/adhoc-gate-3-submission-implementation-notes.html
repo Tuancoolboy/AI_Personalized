@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gate 3 Submission — Implementation Notes</title>
+</head>
+<body>
+  <h1>Gate 3 Submission — Implementation Notes</h1>
+  <p>Ngày cập nhật: 25/06/2026</p>
+
+  <h2>1. Quyết định AI tự ra ngoài spec</h2>
+  <ul>
+    <li>Dùng duy nhất <code>c2-app-009.vercel.app</code> làm production URL.</li>
+    <li>Tách evidence thành submission, eval, guardrails, cost và demo plan.</li>
+    <li>Thêm script tổng hợp baseline để metrics có thể tái tạo.</li>
+    <li>Dùng ba cost scenarios và 25% contingency thay vì một con số duy nhất.</li>
+  </ul>
+
+  <h2>2. Những chỗ thay đổi so với spec gốc</h2>
+  <ul>
+    <li>Phép tính cũ 20 request/user/tháng được thay bằng low/base/high usage.</li>
+    <li>Input-token estimate tăng từ 500 lên 3.000 cho tutor vì runtime hiện có nhiều context block.</li>
+    <li>Không coi file eval backend placeholder là evidence chính; dùng raw eval của flow <code>/tro-ly</code>.</li>
+  </ul>
+
+  <h2>3. Tradeoff đã cân nhắc</h2>
+  <ul>
+    <li>Không chạy thêm paid OpenAI eval khi chưa có xác nhận riêng; dùng baseline thật đã lưu và production cache probe.</li>
+    <li>Không chuyển custom domain trong Gate 3 vì cần DNS/domain ownership; chỉ ghi rõ migration target.</li>
+    <li>Cost report dùng assumptions bảo thủ vì streaming path chưa xuất exact token usage.</li>
+  </ul>
+
+  <h2>4. Lưu ý và follow-up</h2>
+  <ul>
+    <li>Cần con người quay voice-over và upload video mới.</li>
+    <li>Nên chạy lại live eval authenticated trên production trước submission nếu budget cho phép.</li>
+    <li>Sau Gate 3 cần persist token/cost usage và đo time-to-first-token.</li>
+  </ul>
+</body>
+</html>

@@ -10,6 +10,8 @@ import {
   type AssignedPathModuleHint,
 } from "@/lib/chat-knowledge-company";
 import { createSupabaseServiceClient } from "@/lib/supabase/server";
+import { coerceRoleId } from "@/lib/role-ids";
+import { inferAssessmentGapModuleIds } from "@/lib/training-modules-adapter";
 import { getRoleSkillSlugs } from "./path-agent-catalog";
 import type { AgentFlowInput } from "./path-agent-types";
 
@@ -56,34 +58,59 @@ function normalizeAssignedPathModules(
   return [...byId.values()];
 }
 
+function attachPersonalizationSignals(
+  input: Omit<AgentFlowInput, "assessmentGapModuleIds" | "goalTags"> & {
+    goalTags?: string[];
+    assessmentGapModuleIds?: string[];
+  },
+): AgentFlowInput {
+  const roleId = coerceRoleId(input.roleId);
+  const goalTags =
+    input.goalTags && input.goalTags.length > 0
+      ? input.goalTags
+      : input.dailyTasks;
+  return {
+    ...input,
+    roleId,
+    goalTags,
+    assessmentGapModuleIds:
+      input.assessmentGapModuleIds ??
+      inferAssessmentGapModuleIds(roleId, input.aiLevel),
+  };
+}
+
 // Demo mode: dựng input từ hint client (cá nhân là mặc định ở demo).
 function resolveDemoInput(hints: AgentInputHints): AgentFlowInput {
-  const roleId = hints.roleId || "khac";
-  return {
+  const roleId = coerceRoleId(hints.roleId, "khac");
+  const aiLevel = clampLevel(hints.aiLevel);
+  const dailyTasks = uniqStrings(hints.dailyTasks);
+  return attachPersonalizationSignals({
     flow: "individual",
     roleId,
-    aiLevel: clampLevel(hints.aiLevel),
+    aiLevel,
     skillSlugs: getRoleSkillSlugs(roleId),
     primaryTool: suggestToolForIndividual(roleId).tool,
     completedModuleIds: uniqStrings(hints.completedModuleIds),
-    dailyTasks: uniqStrings(hints.dailyTasks),
+    dailyTasks,
     organizationName: null,
     departmentId: null,
     assignedPathTitle: null,
     assignedPathModules: [],
-  };
+  });
 }
 
 type ProfileRow = {
   role_id: string | null;
   ai_level: number | null;
   daily_tasks: string[] | null;
+  assessment_result: { dailyTasks?: string[] } | null;
 };
 
 type SupabaseFlowParts = {
   roleId: string;
   aiLevel: number;
   dailyTasks: string[];
+  goalTags: string[];
   completedModuleIds: string[];
   organizationId: string | null;
   positionSkillSlugs: string[];
@@ -96,6 +123,7 @@ export function buildSupabaseFlowInput(parts: SupabaseFlowParts): AgentFlowInput
     roleId,
     aiLevel,
     dailyTasks,
+    goalTags,
     completedModuleIds,
     organizationId,
     positionSkillSlugs,
@@ -103,7 +131,7 @@ export function buildSupabaseFlowInput(parts: SupabaseFlowParts): AgentFlowInput
   } = parts;
 
   if (!organizationId) {
-    return {
+    return attachPersonalizationSignals({
       flow: "individual",
       roleId,
       aiLevel,
@@ -111,11 +139,12 @@ export function buildSupabaseFlowInput(parts: SupabaseFlowParts): AgentFlowInput
       primaryTool: suggestToolForIndividual(roleId).tool,
       completedModuleIds,
       dailyTasks,
+      goalTags,
       organizationName: null,
       departmentId: null,
       assignedPathTitle: null,
       assignedPathModules: [],
-    };
+    });
   }
 
   const orgTool =
@@ -123,7 +152,7 @@ export function buildSupabaseFlowInput(parts: SupabaseFlowParts): AgentFlowInput
       ? learningContext.companyTool
       : DEFAULT_PRIMARY_TOOL;
 
-  return {
+  return attachPersonalizationSignals({
     flow: "company",
     roleId,
     aiLevel,
@@ -134,13 +163,14 @@ export function buildSupabaseFlowInput(parts: SupabaseFlowParts): AgentFlowInput
     primaryTool: orgTool,
     completedModuleIds,
     dailyTasks,
+    goalTags,
     organizationName: learningContext.organizationName,
     departmentId: learningContext.departmentId,
     assignedPathTitle: learningContext.assignedPathTitle,
     assignedPathModules: normalizeAssignedPathModules(
       learningContext.assignedPathModules,
     ),
-  };
+  });
 }
 
 // Supabase mode: query DB. Org membership quyết định luồng.
@@ -151,7 +181,7 @@ async function resolveSupabaseInput(userId: string): Promise<AgentFlowInput> {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("role_id, ai_level, daily_tasks")
+        .select("role_id, ai_level, daily_tasks, assessment_result")
         .eq("id", userId)
         .maybeSingle(),
       supabase
@@ -168,9 +198,11 @@ async function resolveSupabaseInput(userId: string): Promise<AgentFlowInput> {
     ]);
 
   const prof = (profile ?? null) as ProfileRow | null;
-  const roleId = prof?.role_id || "khac";
+  const roleId = coerceRoleId(prof?.role_id, "khac");
   const aiLevel = clampLevel(prof?.ai_level);
   const dailyTasks = uniqStrings(prof?.daily_tasks);
+  const assessmentGoals = uniqStrings(prof?.assessment_result?.dailyTasks);
+  const goalTags = assessmentGoals.length > 0 ? assessmentGoals : dailyTasks;
   const completedModuleIds = uniqStrings(
     (progress ?? []).map((r: { module_id: string }) => r.module_id),
   );
@@ -209,6 +241,7 @@ async function resolveSupabaseInput(userId: string): Promise<AgentFlowInput> {
     roleId,
     aiLevel,
     dailyTasks,
+    goalTags,
     completedModuleIds,
     organizationId,
     positionSkillSlugs,
@@ -235,24 +268,26 @@ export type DeptPreviewHints = {
 };
 
 export function buildDeptPreviewInput(hints: DeptPreviewHints): AgentFlowInput {
-  const roleId = hints.roleId || "khac";
+  const roleId = coerceRoleId(hints.roleId, "khac");
+  const aiLevel = clampLevel(hints.aiLevel ?? 1);
   const primaryTool =
     hints.primaryTool && isPrimaryTool(hints.primaryTool)
       ? hints.primaryTool
       : DEFAULT_PRIMARY_TOOL;
-  return {
+  return attachPersonalizationSignals({
     flow: "company",
     roleId,
-    aiLevel: clampLevel(hints.aiLevel ?? 1),
+    aiLevel,
     skillSlugs: uniqStrings(hints.skillSlugs),
     primaryTool,
     completedModuleIds: [],
     dailyTasks: [],
+    goalTags: [],
     organizationName: null,
     departmentId: null,
     assignedPathTitle: null,
     assignedPathModules: [],
-  };
+  });
 }
 
 // djb2 hash → fingerprint ngắn, ổn định cho cache. Đổi đầu vào đáng kể → đổi hash.
@@ -274,6 +309,8 @@ export function computeFingerprint(input: AgentFlowInput): string {
     [...input.skillSlugs].sort().join(","),
     [...input.completedModuleIds].sort().join(","),
     [...input.dailyTasks].sort().join(","),
+    [...input.goalTags].sort().join(","),
+    [...input.assessmentGapModuleIds].sort().join(","),
     input.organizationName ?? "",
     input.departmentId ?? "",
     input.assignedPathTitle ?? "",

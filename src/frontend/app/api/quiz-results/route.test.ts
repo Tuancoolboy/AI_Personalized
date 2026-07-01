@@ -34,6 +34,13 @@ vi.mock("@/lib/hoc-tap-audience", () => ({
   })),
 }));
 
+vi.mock("@/lib/learning-activation", () => ({
+  canAccessLearning: vi.fn(() => true),
+  loadLearningActivationRecord: vi.fn(async () => ({
+    learningActivated: true,
+  })),
+}));
+
 import { POST } from "./route";
 
 describe("POST /api/quiz-results hoc-tap", () => {
@@ -128,6 +135,7 @@ describe("POST /api/quiz-results hoc-tap", () => {
       error: null,
     });
     const quiz = getHocTapQuiz("ai-marketing")!;
+    const answers = quiz.questions.map((question) => question.correctIndex);
 
     const response = await POST(
       new Request("http://localhost/api/quiz-results", {
@@ -136,7 +144,7 @@ describe("POST /api/quiz-results hoc-tap", () => {
         body: JSON.stringify({
           roleId: "marketing",
           quizId: quiz.id,
-          answers: [0, 1, 0, 1],
+          answers,
           attemptId: "01945d36-3b7d-4c2d-8fd1-d8d469a38991",
         }),
       }),

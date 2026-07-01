@@ -15,6 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 PRODUCTION_ALIAS="${PRODUCTION_ALIAS:-c2-app-009.vercel.app}"
+LEGACY_ALIAS="${LEGACY_ALIAS:-ai-tro-ly.vercel.app}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 DEPLOY_WAIT_TIMEOUT="${DEPLOY_WAIT_TIMEOUT:-600}"
 DEPLOY_POLL_INTERVAL="${DEPLOY_POLL_INTERVAL:-5}"
@@ -138,6 +139,11 @@ echo ""
 
 wait_for_deployment_ready "$DEPLOY_URL"
 assign_production_alias "$DEPLOY_URL"
+
+echo ""
+echo "▶ Gỡ alias legacy nếu còn tồn tại:"
+vercel alias rm "$LEGACY_ALIAS" -y >/dev/null 2>&1 || true
+echo "   ✓ Không dùng https://$LEGACY_ALIAS"
 
 echo ""
 echo "▶ Xác nhận alias:"

@@ -1273,7 +1273,7 @@ function QuizPracticeCard({
             disabled
             className="inline-flex min-h-10 w-full items-center justify-center rounded-xl bg-secondary px-4 text-xs font-extrabold text-ink-3"
           >
-            Sắp ra mắt
+            Chưa mở được
           </button>
         )}
       </div>
@@ -1370,7 +1370,7 @@ function TeamActionCards({
   const [projectTopic, setProjectTopic] = useState(
     "Ứng dụng AI cho quy trình nội bộ",
   );
-  const [questionCount, setQuestionCount] = useState(8);
+  const [questionCount, setQuestionCount] = useState(10);
   const [difficulty, setDifficulty] =
     useState<HocTapAiRoomDifficulty>("Trung bình");
   const [projectContext, setProjectContext] = useState(
@@ -1832,14 +1832,14 @@ function TeamActionCards({
                     <span className="sr-only">Số câu muốn gen</span>
                     <input
                       type="number"
-                      min={3}
-                      max={30}
+                      min={10}
+                      max={15}
                       value={questionCount}
                       onChange={(event) =>
                         setQuestionCount(
                           Math.min(
-                            30,
-                            Math.max(3, Number.parseInt(event.target.value, 10) || 3),
+                            15,
+                            Math.max(10, Number.parseInt(event.target.value, 10) || 10),
                           ),
                         )
                       }
@@ -2309,7 +2309,7 @@ function TeamRoomCard({
             disabled
             className="inline-flex min-h-10 flex-none items-center justify-center rounded-xl bg-secondary px-4 text-xs font-extrabold text-ink-3"
           >
-            Sắp ra mắt
+            Chưa mở được
           </button>
         )}
       </div>

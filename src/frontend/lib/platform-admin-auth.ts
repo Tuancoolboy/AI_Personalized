@@ -19,3 +19,23 @@ export async function isPlatformAdminUser(): Promise<boolean> {
   if (!session || session.mode !== "supabase") return false;
   return isPlatformAdmin(session.userId);
 }
+
+export async function requirePlatformAdminContext(): Promise<
+  { mode: "demo"; userId: "demo-user" } | { mode: "supabase"; userId: string } | null
+> {
+  const session = await resolveApiSession();
+  if (!session) return null;
+
+  if (session.mode === "demo") {
+    const cookieStore = await cookies();
+    return cookieStore.get(DEMO_PLATFORM_ADMIN_COOKIE)?.value === "true"
+      ? session
+      : null;
+  }
+
+  if (!(await isPlatformAdmin(session.userId))) {
+    return null;
+  }
+
+  return session;
+}

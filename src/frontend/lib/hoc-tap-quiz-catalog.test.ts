@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getRole } from "@/lib/roles";
+import { UNANSWERED_QUIZ_OPTION } from "@/lib/quiz-answers";
 import {
   AVAILABLE_QUIZ_ROLE_IDS,
   buildHocTapQuizCatalog,
@@ -20,22 +21,23 @@ import {
 } from "@/lib/hoc-tap-quiz-catalog";
 
 describe("hoc-tap quiz catalog", () => {
-  it("contains five working role quizzes and three coming-soon topics", () => {
+  it("contains eight playable quiz sets and no coming-soon cards", () => {
     const catalog = buildHocTapQuizCatalog();
     const available = catalog.filter((item) => item.status === "available");
     const comingSoon = catalog.filter((item) => item.status === "coming-soon");
 
     expect(catalog).toHaveLength(8);
-    expect(available).toHaveLength(5);
-    expect(comingSoon).toHaveLength(3);
-    expect(available.map((item) => item.roleId)).toEqual([
-      ...AVAILABLE_QUIZ_ROLE_IDS,
-    ]);
+    expect(available).toHaveLength(8);
+    expect(comingSoon).toHaveLength(0);
+    expect(new Set(available.map((item) => item.roleId))).toEqual(
+      new Set([...AVAILABLE_QUIZ_ROLE_IDS]),
+    );
     expect(available.every((item) => item.creator === "AI Trợ Lý")).toBe(true);
 
     for (const item of available) {
       expect(item.roleId).not.toBeNull();
-      expect(item.questionCount).toBeGreaterThan(0);
+      expect(item.questionCount).toBeGreaterThanOrEqual(10);
+      expect(item.questionCount).toBeLessThanOrEqual(15);
       expect(item.durationMinutes).toBeGreaterThan(0);
     }
   });
@@ -56,7 +58,7 @@ describe("hoc-tap quiz catalog", () => {
     expect(sortHocTapQuizCatalog(catalog, "newest")[0]?.publishedOrder).toBe(8);
     expect(
       sortHocTapQuizCatalog(catalog, "question-count")[0]?.questionCount,
-    ).toBe(15);
+    ).toBe(10);
     expect(sortHocTapQuizCatalog(catalog, "xp")[0]?.xp).toBe(100);
     expect(catalog.map((item) => item.id)).toEqual(originalIds);
   });
@@ -104,17 +106,19 @@ describe("hoc-tap quiz catalog", () => {
     expect(getVisibleHocTapQuizzes(catalog, true)).toHaveLength(8);
   });
 
-  it("only creates quiz links for whitelisted role ids", () => {
+  it("creates quiz links for every playable quiz", () => {
     const marketingQuiz = getHocTapQuiz("ai-marketing");
     const catalog = buildHocTapQuizCatalog();
-    const comingSoon = catalog.find((item) => item.id === "prompt-engineering");
+    const promptQuiz = catalog.find((item) => item.id === "prompt-engineering");
 
     expect(marketingQuiz).not.toBeNull();
     expect(getHocTapQuizHref(marketingQuiz!)).toBe(
       "/kiem-tra/marketing?from=hoc-tap&quiz=ai-marketing",
     );
-    expect(comingSoon).toBeDefined();
-    expect(getHocTapQuizHref(comingSoon!)).toBeNull();
+    expect(promptQuiz).toBeDefined();
+    expect(getHocTapQuizHref(promptQuiz!)).toBe(
+      "/kiem-tra/khac?from=hoc-tap&quiz=prompt-engineering",
+    );
   });
 
   it("resolves hoc-tap route quiz only when role and quiz id match", () => {
@@ -124,6 +128,9 @@ describe("hoc-tap quiz catalog", () => {
     expect(resolveHocTapQuizForRoute("marketing", "ai-ban-hang")).toBeNull();
     expect(resolveHocTapQuizForRoute("marketing", null)?.id).toBe(
       "ai-marketing",
+    );
+    expect(resolveHocTapQuizForRoute("khac", "prompt-engineering")?.id).toBe(
+      "prompt-engineering",
     );
   });
 
@@ -188,5 +195,23 @@ describe("hoc-tap quiz catalog", () => {
         answers: correctAnswers.slice(1),
       }),
     ).toBeNull();
+  });
+
+  it("counts unanswered hoc-tap questions as wrong for timed-out attempts", () => {
+    const quiz = getHocTapQuiz("ai-marketing")!;
+    const answers = quiz.questions.map((question) => question.correctIndex);
+    answers[0] = UNANSWERED_QUIZ_OPTION;
+
+    expect(
+      gradeHocTapQuizAnswers({
+        quizId: quiz.id,
+        roleId: quiz.roleId,
+        answers,
+      }),
+    ).toEqual({
+      score: 90,
+      correctCount: quiz.questions.length - 1,
+      questionCount: quiz.questions.length,
+    });
   });
 });

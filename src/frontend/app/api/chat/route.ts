@@ -29,10 +29,12 @@ import {
   formatOrganizationLearningContext,
   loadOrganizationLearningContext,
 } from "@/lib/chat-knowledge-company";
+import { buildExtraSkillLessonsContext } from "@/lib/chat-knowledge-extra";
 import { buildCurriculumKnowledgeContext, buildDemoCurriculumKnowledgeContext } from "@/lib/chat-knowledge-curriculum";
 import { buildPersonalKnowledgeContext } from "@/lib/chat-knowledge-personal";
 import type { ChatAudience } from "@/lib/chat-types";
 import { isManagerUser } from "@/lib/manager-auth";
+import { canAccessLearning, loadLearningActivationRecord } from "@/lib/learning-activation";
 import {
   buildEmployeeSystemPrompt,
   buildManagerSystemPrompt,
@@ -84,6 +86,7 @@ async function streamDemoOpenAI(
           roleId ?? "khac",
           message,
         ),
+        extraSkillSummary: "",
         personalSummary: "",
         companySummary: "",
         ahaSummary: "",
@@ -147,6 +150,7 @@ const VALID_ROLES = new Set<RoleId>([
   "marketing",
   "van-hanh",
   "khac",
+  "nhan-su",
 ]);
 
 type ChatPayload = {
@@ -202,6 +206,12 @@ export async function POST(request: Request) {
   const session = await resolveApiSession();
   if (!session) {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập để dùng trợ lý AI.");
+  }
+  if (session.mode === "supabase") {
+    const access = await loadLearningActivationRecord(session.userId);
+    if (!canAccessLearning(access)) {
+      return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
+    }
   }
 
   let body: ChatPayload;
@@ -324,47 +334,6 @@ export async function POST(request: Request) {
       ? ""
       : await loadCoreContext(session.userId, audience);
 
-    let systemPrompt: string;
-    let employeePreferredAddress: import("@/lib/learning-profile").PreferredAddress | undefined;
-    if (isManager) {
-      const teamSummary = await getTeamAnalysisSummary(session.userId);
-      systemPrompt = buildManagerSystemPrompt({
-        fullName: profile.fullName,
-        coreContext: conversationMemory,
-        teamSummary,
-        freshConversation: forceNew,
-      });
-    } else if (effectiveRoleId) {
-      const learningContext = await loadOrganizationLearningContext(
-        session.userId,
-      );
-      const [curriculumSummary, personalCtx] = await Promise.all([
-        buildCurriculumKnowledgeContext(
-          session.userId,
-          effectiveRoleId,
-          message,
-          learningContext,
-        ),
-        buildPersonalKnowledgeContext(session.userId),
-      ]);
-      systemPrompt = buildEmployeeSystemPrompt(effectiveRoleId, {
-        fullName: profile.fullName,
-        preferredAddress: personalCtx.preferredAddress,
-        curriculumSummary,
-        personalSummary: personalCtx.block,
-        companySummary: formatOrganizationLearningContext(learningContext),
-        ahaSummary: personalCtx.ahaSummary,
-        conversationMemory,
-        freshConversation: forceNew,
-      });
-      employeePreferredAddress = personalCtx.preferredAddress;
-    } else {
-      return apiError(
-        "VALIDATION_ERROR",
-        "Chưa chọn vai trò. Hoàn thành onboarding trước.",
-      );
-    }
-
     const conversationId = await getOrCreateConversation(
       session.userId,
       audience,
@@ -380,6 +349,9 @@ export async function POST(request: Request) {
       ...history,
       { role: "user", content: message },
     ]);
+    let employeePreferredAddress:
+      | import("@/lib/learning-profile").PreferredAddress
+      | undefined;
     const clarifyContext = buildClarifyContextFromHistory(
       history,
       message,
@@ -396,7 +368,52 @@ export async function POST(request: Request) {
       clarifyCompleted,
       message,
       clarifyAnswersSummary,
+      clarifyContext,
     );
+    let systemPrompt: string;
+    if (isManager) {
+      const teamSummary = await getTeamAnalysisSummary(session.userId);
+      systemPrompt = buildManagerSystemPrompt({
+        fullName: profile.fullName,
+        coreContext: conversationMemory,
+        teamSummary,
+        freshConversation: forceNew,
+      });
+    } else if (effectiveRoleId) {
+      const learningContext = await loadOrganizationLearningContext(
+        session.userId,
+      );
+      const [curriculumSummary, extraSkillSummary, personalCtx] = await Promise.all([
+        buildCurriculumKnowledgeContext(
+          session.userId,
+          effectiveRoleId,
+          message,
+          learningContext,
+        ),
+        buildExtraSkillLessonsContext(session.userId, effectiveRoleId, message),
+        buildPersonalKnowledgeContext(session.userId),
+      ]);
+      const conversationMemoryForPrompt =
+        clarifyCompleted > 0 ? "" : conversationMemory;
+      systemPrompt = buildEmployeeSystemPrompt(effectiveRoleId, {
+        fullName: profile.fullName,
+        preferredAddress: personalCtx.preferredAddress,
+        curriculumSummary,
+        extraSkillSummary,
+        personalSummary: personalCtx.block,
+        companySummary: formatOrganizationLearningContext(learningContext),
+        ahaSummary: personalCtx.ahaSummary,
+        conversationMemory: conversationMemoryForPrompt,
+        freshConversation: forceNew,
+      });
+      employeePreferredAddress = personalCtx.preferredAddress;
+    } else {
+      return apiError(
+        "VALIDATION_ERROR",
+        "Chưa chọn vai trò. Hoàn thành onboarding trước.",
+      );
+    }
+
     const effectiveSystemPrompt = clarifyHint
       ? `${systemPrompt}\n\n${clarifyHint}`
       : systemPrompt;

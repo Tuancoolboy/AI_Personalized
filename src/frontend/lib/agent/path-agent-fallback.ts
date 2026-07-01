@@ -12,6 +12,17 @@ import type {
 } from "./path-agent-types";
 import { validateAgentOutput } from "./path-agent-validate";
 
+function prioritizeAssessmentGap(
+  ordered: string[],
+  gapIds: string[],
+): string[] {
+  if (gapIds.length === 0) return ordered;
+  const gapSet = new Set(gapIds);
+  const gaps = ordered.filter((id) => gapSet.has(id));
+  const rest = ordered.filter((id) => !gapSet.has(id));
+  return [...gaps, ...rest];
+}
+
 function companyGroups(input: AgentFlowInput): AgentPathGroup[] {
   const composed = composePathFromSkills(input.skillSlugs);
   const assignedPath = input.assignedPathModules ?? [];
@@ -70,6 +81,10 @@ export function buildFallbackPath(
     input.flow === "company" ? companyGroups(input) : individualGroups(input);
 
   const validated = validateAgentOutput({ groups }, pool, input);
+  const orderedModuleIds = prioritizeAssessmentGap(
+    validated.orderedModuleIds,
+    input.assessmentGapModuleIds,
+  );
   const missingSkills = findMissingSkills(input.skillSlugs).map(
     (slug) => SKILL_LABELS[slug] ?? slug,
   );
@@ -82,7 +97,7 @@ export function buildFallbackPath(
         ? "Lộ trình theo kỹ năng công ty mong muốn, ưu tiên nền tảng trước."
         : "Lộ trình cá nhân theo vị trí của bạn, đi từ cơ bản đến nâng cao.",
     groups: validated.groups,
-    orderedModuleIds: validated.orderedModuleIds,
+    orderedModuleIds,
     missingSkills,
     fingerprint,
   };

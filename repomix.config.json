@@ -1,0 +1,43 @@
+{
+  "output": {
+    "style": "xml",
+    "removeComments": false,
+    "removeEmptyLines": false,
+    "showLineNumbers": false,
+    "compress": false,
+    "directoryStructure": true,
+    "files": true,
+    "topFilesLength": 50
+  },
+  "include": ["**/*"],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      "node_modules/**",
+      ".next/**",
+      ".venv/**",
+      ".vercel/**",
+      ".git/**",
+      ".repomix/**",
+      "dist/**",
+      "build/**",
+      "coverage/**",
+      "**/*.png",
+      "**/*.jpg",
+      "**/*.jpeg",
+      "**/*.gif",
+      "**/*.webp",
+      "**/*.ico",
+      "**/*.svg",
+      "**/*.pdf",
+      "**/*.docx",
+      "**/*.mp4",
+      "**/*.zip",
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      "yarn.lock",
+      "src/backend/next_clone/**"
+    ]
+  }
+}

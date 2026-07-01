@@ -8,6 +8,8 @@ import {
 } from "@/lib/hoc-tap-quiz-catalog";
 import { resolveHocTapAudience } from "@/lib/hoc-tap-audience";
 import { gradeMcqQuiz } from "@/lib/mcq-grader";
+import { isSubmittedQuizAnswer } from "@/lib/quiz-answers";
+import { canAccessLearning, loadLearningActivationRecord } from "@/lib/learning-activation";
 import {
   createSupabaseServerClient,
   createSupabaseServiceClient,
@@ -20,6 +22,7 @@ const VALID_ROLES = new Set([
   "marketing",
   "van-hanh",
   "khac",
+  "nhan-su",
 ]);
 
 export async function GET() {
@@ -30,6 +33,10 @@ export async function GET() {
   const session = await resolveApiSession();
   if (!session || session.mode !== "supabase") {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
+  }
+  const access = await loadLearningActivationRecord(session.userId);
+  if (!canAccessLearning(access)) {
+    return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
   }
 
   const supabase = await createSupabaseServerClient();
@@ -87,7 +94,7 @@ function parseAnswers(value: unknown): number[] | null {
   if (!Array.isArray(value)) return null;
   const parsed: number[] = [];
   for (const item of value) {
-    if (typeof item !== "number" || !Number.isInteger(item) || item < 0) {
+    if (!isSubmittedQuizAnswer(item)) {
       return null;
     }
     parsed.push(item);
@@ -103,6 +110,10 @@ export async function POST(request: Request) {
   const session = await resolveApiSession();
   if (!session || session.mode !== "supabase") {
     return apiError("UNAUTHORIZED", "Bạn cần đăng nhập.");
+  }
+  const access = await loadLearningActivationRecord(session.userId);
+  if (!canAccessLearning(access)) {
+    return apiError("FORBIDDEN", "ACCOUNT_NOT_ACTIVATED");
   }
 
   let body: QuizPayload;

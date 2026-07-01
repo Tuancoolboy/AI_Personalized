@@ -18,6 +18,8 @@ export type ClarifyContext = {
   roleId?: string | null;
 };
 
+type ClarifyFlowKind = "default" | "extra-skill";
+
 export function defaultClarifyContext(): ClarifyContext {
   return {
     namedAddress: "bạn",
@@ -54,6 +56,7 @@ export function buildClarifyRuntimeHint(
   completedSteps: number,
   currentMessage: string,
   priorAnswersSummary?: string,
+  context?: ClarifyContext,
 ): string | null {
   if (!isClarifyUserAnswer(currentMessage)) return null;
 
@@ -72,6 +75,7 @@ User đã trả lời đủ ${MAX_CLARIFY_QUESTIONS} câu hỏi card.${answersBl
 
 <task>
 Dựa trên context trên, trả hướng dẫn đầy đủ NGAY: tóm tắt nhu cầu, các bước user tự làm, checklist hoặc prompt mẫu nếu hữu ích.
+Ưu tiên câu hỏi hiện tại và 3 câu trả lời vừa thu thập; không kéo thêm trí nhớ cũ không liên quan vào câu trả lời.
 </task>
 
 <format>
@@ -89,15 +93,21 @@ Nếu vẫn thiếu chi tiết nhỏ, nêu giả định hợp lý từ 3 câu t
   if (completedSteps <= 0) return null;
 
   const nextStep = completedSteps + 1;
+  const template = getClarifyStepTemplate(
+    nextStep,
+    context ?? defaultClarifyContext(),
+  );
   const layerHint =
     nextStep === 2
-      ? "Lớp 2 — điểm xuất phát: user đã có số liệu/tài liệu gì sẵn chưa?"
-      : "Lớp 3 — output cuối: user cần dàn ý, báo cáo file, hay slide?";
+      ? `Lớp 2 — câu tiếp theo phải bám nhánh vừa chọn: "${template.question}"`
+      : `Lớp 3 — câu cuối phải chốt kiểu hỗ trợ/đầu ra phù hợp: "${template.question}"`;
 
   return `TRẠNG THÁI HỎI LÀM RÕ (ưu tiên cao — bắt buộc tuân theo):
 User vừa trả lời câu hỏi điểm rẽ (${completedSteps}/${MAX_CLARIFY_QUESTIONS}).${answersBlock}
 BẮT BUỘC trả lời bằng intro ngắn (1 câu) + dòng __CLARIFY__ với step=${nextStep}, total=${MAX_CLARIFY_QUESTIONS}.
 ${layerHint}
+Options nên dùng: ${template.options.join(" | ")}.
+Câu trả lời phải bám sát câu hỏi hiện tại và 1–2 lượt trao đổi gần nhất; không dùng trí nhớ cũ nếu nó làm lệch hướng.
 CẤM hỏi bằng plain text không có __CLARIFY__. CẤM hỏi lại câu đã hỏi. CẤM trả hướng dẫn dài trước khi hết ${MAX_CLARIFY_QUESTIONS} câu.
 options PHẢI khớp câu hỏi (vd câu "nào/gì/loại" → lựa chọn cụ thể, KHÔNG dùng Có/Không).`;
 }
@@ -129,8 +139,22 @@ export function getClarifyStepTemplate(
   const { namedAddress, casualAddress, topicHint, roleId } = ctx;
   const normalizedHint = normalizeVi(topicHint);
   const isReportLike = /bao cao|tong hop|tong ket|report/.test(normalizedHint);
+  const flowKind = getClarifyFlowKind(normalizedHint);
 
   if (step === 1) {
+    if (flowKind === "extra-skill") {
+      return {
+        defaultIntro: `Chào ${namedAddress}! Học thêm kỹ năng ngoài lộ trình không có vấn đề gì, miễn là chọn phần áp dụng được vào việc của ${casualAddress}.`,
+        question: `${capitalizeVi(casualAddress)} muốn học thêm nhóm kỹ năng nào trước?`,
+        options: [
+          "Quảng cáo tuyển dụng / job ads",
+          "Employer branding / social content",
+          "Email / truyền thông nội bộ",
+          "Tự động hóa việc HR lặp lại",
+        ],
+      };
+    }
+
     const roleSpecific = getRoleSpecificStepOneTemplate(roleId, isReportLike);
     if (roleSpecific) {
       return {
@@ -164,6 +188,19 @@ export function getClarifyStepTemplate(
   }
 
   if (step === 2) {
+    if (flowKind === "extra-skill") {
+      return {
+        defaultIntro: `Cảm ơn ${casualAddress}! Em hỏi thêm để gợi ý đúng bài Kỹ năng khác.`,
+        question: `${capitalizeVi(casualAddress)} muốn áp dụng kỹ năng này vào việc HR nào trước?`,
+        options: [
+          "Tuyển dụng / thu hút ứng viên",
+          "Xây thương hiệu tuyển dụng",
+          "Truyền thông nội bộ",
+          "Đo hiệu quả kênh tuyển dụng",
+        ],
+      };
+    }
+
     return {
       defaultIntro: `Cảm ơn ${casualAddress}! Em hỏi thêm một chút nữa nhé.`,
       question: `${capitalizeVi(casualAddress)} đã có số liệu hoặc tài liệu nào sẵn chưa?`,
@@ -171,6 +208,19 @@ export function getClarifyStepTemplate(
         "Đã có số liệu sẵn",
         "Chưa có — cần hướng dẫn từ đầu",
         "Chỉ có một phần dữ liệu",
+      ],
+    };
+  }
+
+  if (flowKind === "extra-skill") {
+    return {
+      defaultIntro: `Gần xong rồi ${casualAddress}!`,
+      question: `${capitalizeVi(casualAddress)} muốn em hỗ trợ theo kiểu nào?`,
+      options: [
+        "Gợi ý bài học phù hợp để lưu",
+        "Checklist thực hành nhanh",
+        "Prompt mẫu copy dùng ngay",
+        "Giải thích từ đầu bằng ví dụ HR",
       ],
     };
   }
@@ -184,6 +234,14 @@ export function getClarifyStepTemplate(
       "Slide thuyết trình",
     ],
   };
+}
+
+function getClarifyFlowKind(normalizedHint: string): ClarifyFlowKind {
+  const isExtraSkill =
+    /ky nang khac|skill khac|hoc skill|hoc them skill|hoc them ky nang|ngoai lo trinh|khac co van de gi/.test(
+      normalizedHint,
+    );
+  return isExtraSkill ? "extra-skill" : "default";
 }
 
 function capitalizeVi(word: string): string {

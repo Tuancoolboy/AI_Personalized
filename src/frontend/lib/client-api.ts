@@ -2,6 +2,11 @@
 
 import type { LearningModuleRecord } from "@/lib/learning-modules-data";
 import type { AppAvatarChoice } from "@/lib/app-avatar";
+import type { PlatformAdminAction } from "@/lib/platform-admin-console";
+import type {
+  PlatformAdminConsoleFilters,
+  PlatformAdminConsoleReport,
+} from "@/lib/platform-admin-types";
 import type {
   HocTapDepartmentOption,
   HocTapDepartmentSource,
@@ -952,4 +957,45 @@ export async function fetchAgentHealth(): Promise<
   import("@/lib/agent-health").AgentHealthReport
 > {
   return parseJson(await fetch("/api/manager/agent-health"));
+}
+
+export async function fetchPlatformAdminConsole(
+  filters: PlatformAdminConsoleFilters = {},
+): Promise<{
+  ok: boolean;
+  report: PlatformAdminConsoleReport;
+  persisted?: boolean;
+  message?: string;
+}> {
+  const searchParams = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) searchParams.set(key, value);
+  }
+  const query = searchParams.toString();
+  return parseJson(await fetch(`/api/platform-admin${query ? `?${query}` : ""}`));
+}
+
+export async function fetchPlatformAdminWhoami(): Promise<{
+  ok: boolean;
+  isPlatformAdmin: boolean;
+}> {
+  return parseJson(await fetch("/api/platform-admin/whoami"));
+}
+
+export async function submitPlatformAdminAction(payload: {
+  action: PlatformAdminAction;
+  payload: Record<string, unknown>;
+}): Promise<{
+  ok: boolean;
+  message: string;
+  refreshed?: boolean;
+  data?: Record<string, unknown>;
+}> {
+  return parseJson(
+    await fetch("/api/platform-admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
 }

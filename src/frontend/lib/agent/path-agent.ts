@@ -1,5 +1,10 @@
 // Agent sinh lộ trình: gọi OpenAI với CHỈ metadata (chống lộ PII), parse + validate id.
 // Lỗi / thiếu key / parse fail → fallback rule-based (demo không crash).
+//
+// NGUỒN SỰ THẬT engine:
+// - Trang `/lo-trinh` → POST `/api/agent/lo-trinh` → `generatePath` (file này).
+// - Panel gợi ý → POST `/api/agents/recommender` → `rankModules` (lib/agents/recommender.ts).
+// Role + skip-basic dùng chung: `path-agent-eligibility.ts`, `coerceRoleId` trong `role-ids.ts`.
 
 import {
   getOpenAIClient,
@@ -13,6 +18,7 @@ import {
   findMissingSkills,
 } from "./path-agent-catalog";
 import { buildFallbackPath } from "./path-agent-fallback";
+import { logPathFallback } from "./path-agent-log";
 import type {
   AgentFlowInput,
   AgentPathResult,
@@ -43,6 +49,12 @@ function buildPrompt(input: AgentFlowInput, pool: CandidateModule[]): string {
   const completed = input.completedModuleIds.length
     ? input.completedModuleIds.join(", ")
     : "(chưa hoàn thành bài nào)";
+  const gapIds = input.assessmentGapModuleIds.length
+    ? input.assessmentGapModuleIds.join(", ")
+    : "(không có)";
+  const goals = input.goalTags.length
+    ? input.goalTags.join(", ")
+    : "(chưa khai báo)";
   const companyBlock = [
     input.organizationName ? `- Công ty: ${input.organizationName}` : null,
     input.departmentId
@@ -68,17 +80,20 @@ NHIỆM VỤ: CHỌN và SẮP XẾP bài học TỪ DANH SÁCH dưới đây. T
 - Level AI hiện tại (0-5): ${input.aiLevel}
 - Kỹ năng mục tiêu: ${skillLabels || "(theo vị trí)"}
 - Bài đã hoàn thành (bỏ qua): ${completed}
+- Module ưu tiên lấp lỗ hổng assessment (đưa lên đầu nếu còn phù hợp): ${gapIds}
+- Mục tiêu / việc muốn AI hóa (goalTags): ${goals}
 ${companyBlock ? `${companyBlock}\n` : ""}
 
 DANH SÁCH BÀI (chỉ được chọn id ở đây):
 ${poolForPrompt(pool)}
 
 QUY TẮC:
-1. Ưu tiên bài NỀN TẢNG trước, rồi level thấp → cao.
-2. Tối đa ${MAX_MODULES} bài. Bỏ bài đã hoàn thành. Level cao (>=5) bỏ bài nhập môn level 1 (giữ nền tảng).
-3. Nếu công ty đã giao lộ trình, ưu tiên giữ thứ tự và module trong lộ trình đó.
-4. Nhóm bài theo chủ đề/kỹ năng, mỗi nhóm kèm lý do ngắn.
-5. KHÔNG trả rỗng. Nếu một kỹ năng không có bài phù hợp, ghi vào "missingSkills".
+1. Ưu tiên bài trong danh sách "lấp lỗ hổng assessment" nếu chưa hoàn thành.
+2. Ưu tiên bài NỀN TẢNG, rồi level thấp → cao; cân goalTags khi chọn module kỹ năng.
+3. Tối đa ${MAX_MODULES} bài. Bỏ bài đã hoàn thành. Level cao (>=5) bỏ bài nhập môn level 1 (giữ nền tảng).
+4. Nếu công ty đã giao lộ trình, ưu tiên giữ thứ tự và module trong lộ trình đó.
+5. Nhóm bài theo chủ đề/kỹ năng, mỗi nhóm kèm lý do ngắn.
+6. KHÔNG trả rỗng. Nếu một kỹ năng không có bài phù hợp, ghi vào "missingSkills".
 
 TRẢ VỀ JSON đúng cấu trúc:
 {
@@ -88,15 +103,27 @@ TRẢ VỀ JSON đúng cấu trúc:
 }`;
 }
 
+function fallback(
+  input: AgentFlowInput,
+  fingerprint: string,
+  reason: Parameters<typeof logPathFallback>[0],
+  extra?: { errorName?: string },
+): AgentPathResult {
+  logPathFallback(reason, input, extra);
+  return buildFallbackPath(input, fingerprint);
+}
+
 export async function generatePath(
   input: AgentFlowInput,
   fingerprint: string,
 ): Promise<AgentPathResult> {
   const pool = buildCandidatePool(input);
 
-  if (!isOpenAIConfigured()) return buildFallbackPath(input, fingerprint);
+  if (!isOpenAIConfigured()) {
+    return fallback(input, fingerprint, "no-key");
+  }
   const client = getOpenAIClient();
-  if (!client) return buildFallbackPath(input, fingerprint);
+  if (!client) return fallback(input, fingerprint, "no-client");
 
   try {
     const completion = await client.chat.completions.create({
@@ -111,19 +138,18 @@ export async function generatePath(
     });
 
     const content = completion.choices[0]?.message?.content?.trim();
-    if (!content) return buildFallbackPath(input, fingerprint);
+    if (!content) return fallback(input, fingerprint, "empty-content");
 
     let raw: AgentRawOutput;
     try {
       raw = JSON.parse(content) as AgentRawOutput;
     } catch {
-      return buildFallbackPath(input, fingerprint);
+      return fallback(input, fingerprint, "parse-fail");
     }
 
     const validated = validateAgentOutput(raw, pool, input);
-    // Agent trả lộ trình rỗng → fallback để không trả rỗng.
     if (validated.orderedModuleIds.length === 0) {
-      return buildFallbackPath(input, fingerprint);
+      return fallback(input, fingerprint, "empty-output");
     }
 
     const declaredMissing = Array.isArray(raw.missingSkills)
@@ -147,7 +173,8 @@ export async function generatePath(
       fingerprint,
     };
   } catch (err) {
+    const errorName = err instanceof Error ? err.name : "Error";
     console.error("[path-agent]", err);
-    return buildFallbackPath(input, fingerprint);
+    return fallback(input, fingerprint, "exception", { errorName });
   }
 }

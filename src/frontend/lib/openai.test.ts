@@ -36,6 +36,7 @@ describe("openai", () => {
       fullName: "Lan",
       preferredAddress: "chi",
       curriculumSummary: "Nguồn curriculum",
+      extraSkillSummary: "Nguồn extra",
       personalSummary: "Nguồn personal",
       companySummary: "Nguồn company",
       ahaSummary: "Nguồn aha",
@@ -44,8 +45,26 @@ describe("openai", () => {
 
     expect(prompt).toContain("NGUỒN 3");
     expect(prompt).toContain("NGUỒN 4");
+    expect(prompt).toContain("NGUỒN 1B");
     expect(prompt).toContain("Nguồn company");
     expect(prompt).toContain("Nguồn aha");
+  });
+
+  it("buildEmployeeSystemPrompt blocks next-lesson leakage for extra skills", () => {
+    const prompt = buildEmployeeSystemPrompt("marketing", {
+      fullName: "Lan",
+      preferredAddress: "chi",
+      curriculumSummary: "Nguồn curriculum",
+      extraSkillSummary: "Bài học thêm độc lập",
+      personalSummary: "Nguồn personal",
+      companySummary: "Nguồn company",
+      ahaSummary: "Nguồn aha",
+      conversationMemory: "Nguồn memory",
+    });
+
+    expect(prompt).toContain("Kỹ năng khác");
+    expect(prompt).toContain("không có next lesson mặc định");
+    expect(prompt).toContain("không bẻ sang lộ trình chính");
   });
 
   it("buildEmployeeSystemPrompt omits prior memory on a fresh conversation", () => {
@@ -53,6 +72,7 @@ describe("openai", () => {
       fullName: "Lan",
       preferredAddress: "chi",
       curriculumSummary: "Nguồn curriculum",
+      extraSkillSummary: "",
       personalSummary: "Nguồn personal",
       companySummary: "Nguồn company",
       ahaSummary: "Nguồn aha",

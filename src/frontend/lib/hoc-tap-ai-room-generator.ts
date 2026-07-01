@@ -32,8 +32,8 @@ export type HocTapAiRoomPreviewResult = HocTapAiRoomPreviewInput & {
 };
 
 const MIN_AI_QUESTIONS = 3;
-const MAX_AI_QUESTIONS = 30;
-const DEFAULT_QUESTION_COUNT = 8;
+const MAX_AI_QUESTIONS = 15;
+const DEFAULT_QUESTION_COUNT = 10;
 const DEFAULT_TITLE = "Project AI Quiz";
 const DEFAULT_TOPIC = "Project AI";
 const DEFAULT_CONTEXT =

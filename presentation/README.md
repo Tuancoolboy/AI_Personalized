@@ -2,25 +2,24 @@
 
 ## Files
 
-- `pitch_deck.pptx` — Slide thuyết trình Demo Day
-- `video_demo.mp4` — Video demo sản phẩm (tối đa 5 phút)
+- `gate-3-pitch-deck.pptx` — deck 6 slide dùng cho Gate 3.
+- `kickoff-zoom-toi-nay.html` — deck kickoff cũ, chỉ dùng tham khảo.
+- Video không lưu trong Git; link recording được cập nhật tại
+  `docs/gate-3-submission.md`.
 
-## Pitch Deck Structure (10 slides)
+## Gate 3 Pitch Deck Structure
 
-1. **Title** — Tên dự án + Team
-2. **Problem** — Vấn đề là gì? Có bao nhiêu người gặp?
-3. **Solution** — Giải pháp AI của bạn
-4. **Demo** — Screenshot/Video ngắn
-5. **Architecture** — System diagram đơn giản
-6. **Tech Stack** — Technologies used
-7. **Traction** — Metrics, users, feedback
-8. **Market** — Quy mô thị trường
-9. **Team** — Ai làm gì
-10. **Ask** — Bạn cần gì tiếp theo?
+1. **Title + value proposition**
+2. **Problem + solution**
+3. **Production user flow**
+4. **Evaluation + guardrails**
+5. **Cost / user / month**
+6. **Readiness + next step**
 
 ## Video Demo Checklist
 
-- [ ] Giới thiệu problem (< 30 giây)
-- [ ] Demo live feature chính (2-3 phút)
-- [ ] Hiển thị kết quả AI (1 phút)
-- [ ] Tóm tắt impact (< 30 giây)
+- [x] Có pitch deck.
+- [x] Có shot list và lời thoại.
+- [x] Có prompt chính + prompt guardrail + backup plan.
+- [ ] Quay production flow.
+- [ ] Upload video 3–5 phút và cập nhật link.

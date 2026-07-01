@@ -19,13 +19,16 @@ export const DEMO_USER_TYPE_COOKIE = "ai_troly_demo_user_type";
 // Cookie đánh dấu đã hoàn thành onboarding trong demo mode (proxy không đọc localStorage).
 export const DEMO_ONBOARDED_COOKIE = "ai_troly_demo_onboarded";
 
-// Cookie đánh dấu platform_admin trong demo mode (khu /quan-tri).
+// Cookie đánh dấu platform_admin trong demo mode (khu /van-hanh).
 export const DEMO_PLATFORM_ADMIN_COOKIE = "ai_troly_demo_platform_admin";
 
 // Email được cấp quyền super-admin (platform_admin). Real mode seed vào bảng
-// platform_admins (migration 0021); demo mode nhận diện qua email khi đăng nhập.
-// KHÔNG chứa mật khẩu — chỉ là danh sách email được phép.
-export const PLATFORM_ADMIN_EMAILS = ["lucas.ai.vn@gmail.com"];
+// platform_admins bằng migration / bootstrap script; demo mode nhận diện qua
+// email khi đăng nhập. KHÔNG chứa mật khẩu — chỉ là danh sách email được phép.
+export const PLATFORM_ADMIN_EMAILS = [
+  "admin@c2-app-009.io.vn",
+  "lucas.ai.vn@gmail.com",
+];
 
 export function isPlatformAdminEmail(email: string | null | undefined): boolean {
   if (!email) return false;

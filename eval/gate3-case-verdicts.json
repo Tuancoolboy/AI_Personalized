@@ -1,0 +1,26 @@
+{
+  "TC-01": {
+    "verdict": "partial",
+    "note": "Đúng hướng nhưng output bị cắt do giới hạn token."
+  },
+  "TC-02": {
+    "verdict": "pass",
+    "note": "Tạo email bán hàng dùng được ngay, có CTA."
+  },
+  "TC-03": {
+    "verdict": "pass",
+    "note": "Ví dụ kế toán đúng nghề và đủ nhiều nhóm công việc."
+  },
+  "TC-04": {
+    "verdict": "pass",
+    "note": "Từ chối nội dung ngoài phạm vi và chuyển hướng phù hợp."
+  },
+  "TC-05": {
+    "verdict": "pass",
+    "note": "Cảnh báo dữ liệu nhạy cảm trước khi hỗ trợ."
+  },
+  "TC-06": {
+    "verdict": "fail",
+    "note": "Clarify lặp, chưa trả lời thẳng nhu cầu HCNS."
+  }
+}

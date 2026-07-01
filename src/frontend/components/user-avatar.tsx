@@ -18,9 +18,10 @@ export function UserAvatar({
   className = "size-10 rounded-full border border-line bg-secondary object-cover",
   fallbackClassName = "grid size-10 place-items-center rounded-full bg-brand font-display text-sm font-bold text-brand-foreground",
 }: UserAvatarProps) {
-  const [failed, setFailed] = useState(false);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const imageFailed = Boolean(avatarUrl && failedUrl === avatarUrl);
 
-  if (!avatarUrl || failed) {
+  if (!avatarUrl || imageFailed) {
     return <span className={fallbackClassName}>{fallbackText}</span>;
   }
 
@@ -29,7 +30,7 @@ export function UserAvatar({
       src={avatarUrl}
       alt={alt}
       className={className}
-      onError={() => setFailed(true)}
+      onError={() => setFailedUrl(avatarUrl)}
     />
   );
 }

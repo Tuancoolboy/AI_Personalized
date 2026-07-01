@@ -12,6 +12,7 @@ import {
 } from "@/lib/post-auth-redirect";
 import {
   DEMO_ONBOARDED_COOKIE,
+  DEMO_PLATFORM_ADMIN_COOKIE,
   DEMO_SESSION_COOKIE,
   DEMO_USER_TYPE_COOKIE,
   type UserType,
@@ -20,6 +21,7 @@ import { getSupabasePublicKey, getSupabaseUrl } from "@/lib/supabase/public-env"
 
 const PROTECTED_PREFIXES = [
   "/onboarding",
+  "/cho-kich-hoat",
   "/lo-trinh",
   "/tro-ly",
   "/kiem-tra",
@@ -27,7 +29,56 @@ const PROTECTED_PREFIXES = [
   "/tai-khoan",
   "/quan-ly",
   "/quan-tri",
+  "/van-hanh",
 ];
+
+const OPERATOR_LEARNING_PREFIXES = [
+  "/onboarding",
+  "/lo-trinh",
+  "/kiem-tra",
+  "/tien-bo",
+] as const;
+
+function isOperatorLoginPath(pathname: string): boolean {
+  return pathname.startsWith("/van-hanh/login");
+}
+
+function isOperatorConsolePath(pathname: string): boolean {
+  return pathname.startsWith("/van-hanh") && !isOperatorLoginPath(pathname);
+}
+
+function appendDeniedParam(url: URL): URL {
+  url.searchParams.set("denied", "1");
+  return url;
+}
+
+function isOperatorLearningPath(pathname: string): boolean {
+  return OPERATOR_LEARNING_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+function redirectPlatformAdminToConsole(request: NextRequest): NextResponse {
+  const url = new URL("/van-hanh", request.url);
+  url.searchParams.set("operator_notice", "learning");
+  return NextResponse.redirect(url);
+}
+
+function redirectToRolePath(
+  request: NextRequest,
+  roleId: string | null,
+  userType: UserType,
+  learningActivated: boolean,
+  withDenied = false,
+): NextResponse {
+  const nextPath = getPostAuthPath(
+    roleId,
+    null,
+    userType,
+    false,
+    learningActivated,
+  );
+  const url = new URL(nextPath, request.url);
+  return NextResponse.redirect(withDenied ? appendDeniedParam(url) : url);
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -68,6 +119,8 @@ export async function proxy(request: NextRequest) {
     request.cookies.get(DEMO_SESSION_COOKIE)?.value === "true";
   const demoOnboarded =
     request.cookies.get(DEMO_ONBOARDED_COOKIE)?.value === "true";
+  const demoPlatformAdmin =
+    request.cookies.get(DEMO_PLATFORM_ADMIN_COOKIE)?.value === "true";
   const demoUserType = request.cookies.get(DEMO_USER_TYPE_COOKIE)?.value;
   const demoIsManager = demoUserType === "manager";
 
@@ -76,19 +129,51 @@ export async function proxy(request: NextRequest) {
 
   // Env chưa cấu hình → demo mode
   if (!supabaseUrl || !supabasePublicKey) {
+    if (isOperatorLoginPath(pathname)) {
+      if (!hasDemoSession) {
+        return response;
+      }
+      if (demoPlatformAdmin) {
+        return NextResponse.redirect(new URL("/van-hanh", request.url));
+      }
+      return redirectToRolePath(
+        request,
+        demoOnboarded ? "role" : null,
+        demoIsManager ? "manager" : "employee",
+        true,
+        true,
+      );
+    }
+
+    if (isOperatorConsolePath(pathname) || pathname.startsWith("/quan-tri")) {
+      if (!hasDemoSession) {
+        const loginUrl = new URL("/van-hanh/login", request.url);
+        loginUrl.searchParams.set("next", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+      if (!demoPlatformAdmin) {
+        return redirectToRolePath(
+          request,
+          demoOnboarded ? "role" : null,
+          demoIsManager ? "manager" : "employee",
+          true,
+          true,
+        );
+      }
+      if (pathname.startsWith("/quan-tri")) {
+        return NextResponse.redirect(new URL("/van-hanh", request.url));
+      }
+      return response;
+    }
+
+    if (hasDemoSession && demoPlatformAdmin && isOperatorLearningPath(pathname)) {
+      return redirectPlatformAdminToConsole(request);
+    }
+
     if (isProtected && !hasDemoSession) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
-    }
-
-    if ((pathname === "/login" || pathname === "/register") && hasDemoSession) {
-      const dest = demoIsManager
-        ? "/quan-ly"
-        : demoOnboarded
-          ? "/lo-trinh"
-          : "/onboarding";
-      return NextResponse.redirect(new URL(dest, request.url));
     }
 
     if (
@@ -136,14 +221,17 @@ export async function proxy(request: NextRequest) {
 
   let roleId: string | null = null;
   let userType: UserType = "employee";
+  let platformAdmin = false;
+  let learningActivated = false;
   if (user) {
     try {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role_id")
+        .select("role_id, learning_activated")
         .eq("id", user.id)
         .maybeSingle();
       roleId = profile?.role_id ?? null;
+      learningActivated = Boolean(profile?.learning_activated);
     } catch {
       // Bỏ qua — coi như chưa onboard
     }
@@ -165,10 +253,46 @@ export async function proxy(request: NextRequest) {
     } catch {
       // Bỏ qua — coi như employee cho tới khi migration BE-08 được chạy.
     }
+
+    try {
+      const { data: adminRow } = await supabase
+        .from("platform_admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      platformAdmin = Boolean(adminRow);
+    } catch {
+      platformAdmin = false;
+    }
   }
 
   const userEmail = user?.email ?? null;
   const isManager = userType === "manager";
+
+  if (isOperatorLoginPath(pathname)) {
+    if (user) {
+      if (platformAdmin) {
+        return NextResponse.redirect(new URL("/van-hanh", request.url));
+      }
+      return redirectToRolePath(request, roleId, userType, learningActivated, true);
+    }
+    return response;
+  }
+
+  if (isOperatorConsolePath(pathname) || pathname.startsWith("/quan-tri")) {
+    if (!user) {
+      const loginUrl = new URL("/van-hanh/login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    if (!platformAdmin) {
+      return redirectToRolePath(request, roleId, userType, learningActivated, true);
+    }
+    if (pathname.startsWith("/quan-tri")) {
+      return NextResponse.redirect(new URL("/van-hanh", request.url));
+    }
+    return response;
+  }
 
   if (isProtected && !user) {
     const loginUrl = new URL("/login", request.url);
@@ -177,15 +301,32 @@ export async function proxy(request: NextRequest) {
   }
 
   if ((pathname === "/login" || pathname === "/register") && user) {
-    const nextPath = sanitizeNextPath(
-      request.nextUrl.searchParams.get("next"),
-    );
+    if (platformAdmin) {
+      return NextResponse.redirect(new URL("/van-hanh", request.url));
+    }
+    const nextPath = sanitizeNextPath(request.nextUrl.searchParams.get("next"));
     if (nextPath) {
       return NextResponse.redirect(new URL(nextPath, request.url));
     }
     return NextResponse.redirect(
-      new URL(getPostAuthPath(roleId, userEmail, userType), request.url),
+      new URL(
+        getPostAuthPath(
+          roleId,
+          userEmail,
+          userType,
+          platformAdmin,
+          learningActivated,
+        ),
+        request.url,
+      ),
     );
+  }
+
+  if (user && platformAdmin) {
+    if (isOperatorLearningPath(pathname)) {
+      return redirectPlatformAdminToConsole(request);
+    }
+    return response;
   }
 
   if (user && pathname.startsWith("/quan-ly") && !isManager) {
@@ -211,12 +352,31 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/quan-ly", request.url));
   }
 
+  if (pathname.startsWith("/cho-kich-hoat") && user && roleId && !isManager) {
+    if (learningActivated) {
+      return NextResponse.redirect(new URL("/lo-trinh", request.url));
+    }
+    return response;
+  }
+
   if (pathname.startsWith("/onboarding") && user && roleId && !isManager) {
-    return NextResponse.redirect(new URL("/lo-trinh", request.url));
+    return NextResponse.redirect(
+      new URL(learningActivated ? "/lo-trinh" : "/cho-kich-hoat", request.url),
+    );
   }
 
   if (user && !isManager && !roleId && isEmployeeAppPath(pathname)) {
     return NextResponse.redirect(new URL("/onboarding", request.url));
+  }
+
+  if (
+    user &&
+    !isManager &&
+    roleId &&
+    !learningActivated &&
+    isEmployeeAppPath(pathname)
+  ) {
+    return NextResponse.redirect(new URL("/cho-kich-hoat", request.url));
   }
 
   return response;

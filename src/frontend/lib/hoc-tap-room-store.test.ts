@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getHocTapQuiz } from "@/lib/hoc-tap-quiz-catalog";
 import {
   advanceHocTapRoom,
   createHocTapRoom,
@@ -221,7 +222,7 @@ describe("hoc-tap room store", () => {
     });
 
     expect(host.room.participants[0]?.avatarUrl).toContain(
-      "/alohe/avatars/png/vibrent_7.png",
+      "/alohe/avatars/main/png/vibrent_7.png",
     );
 
     const joined = joinHocTapRoom({
@@ -426,9 +427,10 @@ describe("hoc-tap room store", () => {
     expect(next.phase).toBe("leaderboard");
     expect(next.currentQuestionIndex).toBe(0);
 
+    const quiz = getHocTapQuiz("ai-van-phong")!;
     let finished = next;
     let guard = 0;
-    while (finished.status !== "finished" && guard < 10) {
+    while (finished.status !== "finished" && guard < quiz.questions.length * 3) {
       finished = advanceHocTapRoom(host.room.code, host.hostToken);
       guard += 1;
     }
@@ -797,10 +799,17 @@ describe("hoc-tap room store", () => {
   });
 
   it("requires a playable hoc-tap quiz", () => {
-    expect(() =>
+    expect(
       createHocTapRoom({
         hostName: "Host One",
         quizId: "prompt-engineering",
+      }).room.quizId,
+    ).toBe("prompt-engineering");
+
+    expect(() =>
+      createHocTapRoom({
+        hostName: "Host One",
+        quizId: "quiz-chua-ton-tai",
       }),
     ).toThrow("Bộ quiz này chưa sẵn sàng để tạo phòng.");
   });

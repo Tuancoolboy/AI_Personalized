@@ -3,7 +3,9 @@
 // dùng generic response gợi ý cấu hình OpenAI.
 
 import { getLearningModuleById, getLearningModulesByRole } from "@/lib/learning-modules-data";
+import { formatExtraSkillLessonAnswer } from "@/lib/extra-skill-lessons";
 import { stripLeadingAssistantGreeting } from "@/lib/chat-prompt-safety";
+import type { RoleId } from "@/lib/openai";
 
 export type CannedResponse = {
   // Pattern (regex) match câu hỏi user.
@@ -415,6 +417,17 @@ export function findCannedResponse(
       };
     }
   }
+
+  if (roleId) {
+    const extraSkillAnswer = formatExtraSkillLessonAnswer(roleId as RoleId, question);
+    if (extraSkillAnswer) {
+      return {
+        answer: stripLeadingAssistantGreeting(extraSkillAnswer),
+        safety: safetyWarning,
+      };
+    }
+  }
+
   return {
     answer: stripLeadingAssistantGreeting(OFF_TOPIC.answer),
     safety: safetyWarning,

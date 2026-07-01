@@ -20,7 +20,8 @@ describe("roles", () => {
     const role = getRole(roleId);
     expect(role).not.toBeNull();
     expect(role!.modules.length).toBeGreaterThanOrEqual(3);
-    expect(role!.quiz.length).toBeGreaterThanOrEqual(3);
+    expect(role!.quiz.length).toBeGreaterThanOrEqual(10);
+    expect(role!.quiz.length).toBeLessThanOrEqual(15);
     expect(role!.starterKit.prompts.length).toBeGreaterThanOrEqual(3);
     expect(role!.starterKit.tools.length).toBeGreaterThanOrEqual(3);
   });

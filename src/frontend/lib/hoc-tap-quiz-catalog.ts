@@ -1,3 +1,5 @@
+import { UNANSWERED_QUIZ_OPTION } from "@/lib/quiz-answers";
+
 export const AVAILABLE_QUIZ_ROLE_IDS = [
   "van-hanh",
   "kinh-doanh",
@@ -136,6 +138,84 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
         explanation:
           "Với dữ liệu nhân sự, hãy giảm dữ liệu nhạy cảm trước. AI chỉ nên hỗ trợ phát hiện mẫu bất thường, không thay quy trình phê duyệt.",
       },
+      {
+        question:
+          "Khi nhờ AI viết JD tuyển dụng, thông tin nào giúp bản nháp sát nhu cầu hơn?",
+        options: [
+          "Mục tiêu vị trí, nhiệm vụ chính, kỹ năng bắt buộc và tiêu chí đánh giá",
+          "Chỉ tên vị trí",
+          "Dữ liệu cá nhân của ứng viên cũ",
+          "Yêu cầu AI sao chép JD đối thủ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "JD cần dữ kiện rõ về công việc và tiêu chí. AI chỉ nên tạo bản nháp để HR chỉnh lại theo nhu cầu thật.",
+      },
+      {
+        question:
+          "AI tóm tắt khảo sát nhân viên thành nhiều nhận định tiêu cực. HR nên làm gì trước khi báo cáo?",
+        options: [
+          "Kiểm tra mẫu phản hồi, nhóm chủ đề và tránh lộ danh tính người góp ý",
+          "Công khai từng phản hồi kèm tên",
+          "Kết luận ngay rằng phòng ban có vấn đề",
+          "Xóa phản hồi trái chiều",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Phản hồi nhân viên cần bảo mật và phân tích cẩn trọng. AI hỗ trợ nhóm ý, còn HR kiểm chứng bối cảnh.",
+      },
+      {
+        question:
+          "Bạn muốn AI soạn checklist onboarding ngày đầu. Mục nào nên có?",
+        options: [
+          "Tài khoản cần tạo, người phụ trách, tài liệu cần đọc và mốc hoàn thành",
+          "Thông tin lương của toàn phòng",
+          "Mật khẩu dùng chung",
+          "Danh sách đánh giá cá nhân bí mật",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Checklist onboarding cần rõ trách nhiệm và mốc thời gian, không cần đưa dữ liệu nhạy cảm không liên quan.",
+      },
+      {
+        question:
+          "Khi AI gợi ý câu hỏi phỏng vấn, nguyên tắc nào cần giữ?",
+        options: [
+          "Câu hỏi bám năng lực công việc, tránh tuổi, giới tính, tình trạng hôn nhân",
+          "Hỏi càng riêng tư càng hiểu ứng viên",
+          "Để AI quyết định ứng viên trúng tuyển",
+          "Chỉ hỏi theo cảm tính",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Phỏng vấn cần công bằng và bám tiêu chí công việc. AI có thể gợi ý câu hỏi nhưng HR phải kiểm tra thiên kiến.",
+      },
+      {
+        question:
+          "Bạn dùng AI soạn kế hoạch đào tạo nội bộ. Đầu ra nào dễ triển khai nhất?",
+        options: [
+          "Mục tiêu học, agenda, bài tập thực hành, cách đo kết quả và tài liệu cần chuẩn bị",
+          "Một đoạn truyền cảm hứng chung chung",
+          "Slide tự động xuất bản không cần duyệt",
+          "Danh sách công cụ AI thật dài",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Đào tạo hiệu quả cần mục tiêu đo được, hoạt động cụ thể và cách đánh giá sau học.",
+      },
+      {
+        question:
+          "Khi AI đề xuất một chính sách nghỉ phép mới, bước nào bắt buộc?",
+        options: [
+          "Đối chiếu luật, chính sách hiện hành và để người có thẩm quyền duyệt",
+          "Ban hành ngay vì AI viết mạch lạc",
+          "Sao chép nguyên chính sách công ty khác",
+          "Không cần thông báo cho nhân viên",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Chính sách nhân sự có ràng buộc pháp lý và vận hành. AI chỉ tạo bản nháp, không thay quy trình phê duyệt.",
+      },
     ],
   },
   {
@@ -203,6 +283,84 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
         correctIndex: 0,
         explanation:
           "Role-play giúp luyện phản xạ và chuẩn bị kịch bản, nhưng kết quả kinh doanh vẫn phụ thuộc vào con người và tình huống thật.",
+      },
+      {
+        question:
+          "Bạn muốn AI phân nhóm khách hàng từ ghi chú CRM. Cách yêu cầu nào tốt nhất?",
+        options: [
+          "Ẩn định danh, nêu tiêu chí phân nhóm và yêu cầu bảng gồm nhu cầu, mức quan tâm, bước tiếp theo",
+          "Dán toàn bộ dữ liệu khách kèm số điện thoại",
+          "Yêu cầu AI đoán thu nhập cá nhân của khách",
+          "Chỉ hỏi 'khách nào ngon?'",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Phân nhóm bằng AI cần tiêu chí rõ và dữ liệu đã giảm nhạy cảm. Không nên yêu cầu AI suy đoán thông tin cá nhân.",
+      },
+      {
+        question:
+          "Sau buổi demo sản phẩm, AI hỗ trợ việc nào hiệu quả nhất?",
+        options: [
+          "Soạn bản tóm tắt nhu cầu, câu hỏi còn mở và email follow-up để sales chỉnh lại",
+          "Tự ký hợp đồng với khách",
+          "Tự quyết định mức giảm giá",
+          "Gửi email cho khách mà không cần kiểm tra",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI giúp tạo bản nháp và tóm tắt nhanh. Sales vẫn cần kiểm tra thông tin, giá và cam kết trước khi gửi.",
+      },
+      {
+        question:
+          "AI gợi ý một claim 'sản phẩm tăng doanh thu 300%' nhưng công ty chưa có số liệu. Bạn nên làm gì?",
+        options: [
+          "Dùng ngay để email hấp dẫn hơn",
+          "Bỏ claim hoặc thay bằng lợi ích đã có bằng chứng",
+          "Nói là số liệu nội bộ bí mật",
+          "Phóng đại thêm cho nổi bật",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Sales không nên dùng claim chưa có bằng chứng. AI có thể tạo câu thuyết phục nhưng dữ kiện phải đúng.",
+      },
+      {
+        question:
+          "Prompt nào giúp AI viết kịch bản gọi lại khách cũ tốt hơn?",
+        options: [
+          "Bạn là sales B2B, viết kịch bản gọi 90 giây cho khách từng dùng thử, mục tiêu hỏi trải nghiệm và hẹn demo nâng cấp",
+          "Gọi khách cũ đi",
+          "Ép khách mua lại",
+          "Tự bịa lịch sử giao dịch",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Prompt tốt nêu vai trò, đối tượng, thời lượng, mục tiêu và ngữ cảnh. Không để AI bịa lịch sử khách hàng.",
+      },
+      {
+        question:
+          "Khi AI tạo bảng so sánh sản phẩm mình với đối thủ, điều nào cần kiểm tra kỹ?",
+        options: [
+          "Tính đúng của thông tin đối thủ, ưu nhược điểm và nguồn dữ liệu",
+          "Bảng có nhiều màu hay không",
+          "AI dùng từ mạnh mẽ",
+          "Bảng dài hơn đối thủ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "So sánh cạnh tranh cần chính xác và công bằng. Thông tin sai có thể làm mất uy tín với khách.",
+      },
+      {
+        question:
+          "Bạn muốn đo hiệu quả dùng AI trong sales. Chỉ số nào thực tế hơn?",
+        options: [
+          "Thời gian soạn email giảm, tỷ lệ phản hồi và số follow-up được cá nhân hóa",
+          "Số chữ AI viết ra",
+          "Số lần đổi công cụ AI",
+          "AI trả lời có vẻ tự tin",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Hiệu quả sales nên đo bằng thời gian tiết kiệm và chất lượng tương tác với khách, không phải độ dài output AI.",
       },
     ],
   },
@@ -272,6 +430,84 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
         explanation:
           "AI giúp tăng tốc ideation và bản nháp. Chiến lược, kiểm duyệt brand voice và quyết định cuối vẫn cần marketer.",
       },
+      {
+        question:
+          "Bạn muốn AI lập kế hoạch nội dung tháng. Prompt nên có gì?",
+        options: [
+          "Mục tiêu chiến dịch, khách hàng mục tiêu, kênh, trụ cột nội dung, số bài và CTA",
+          "Lên content tháng này",
+          "Tự đoán toàn bộ sản phẩm",
+          "Sao chép lịch đăng của đối thủ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Content plan cần dữ kiện chiến dịch rõ. AI càng có bối cảnh, lịch gợi ý càng sát việc thật.",
+      },
+      {
+        question:
+          "Khi nhờ AI tạo brief hình ảnh quảng cáo, thông tin nào quan trọng?",
+        options: [
+          "Thông điệp chính, đối tượng, kênh đăng, phong cách, kích thước và điều cần tránh",
+          "Chỉ yêu cầu ảnh đẹp",
+          "Bắt AI dùng logo đối thủ",
+          "Không cần mô tả người xem",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Visual brief tốt cần mục tiêu truyền thông, ràng buộc kênh và phong cách. Không dùng tài sản thương hiệu của bên khác.",
+      },
+      {
+        question:
+          "AI viết caption có claim 'cam kết hiệu quả sau 7 ngày' nhưng sản phẩm chưa có cam kết này. Bạn nên?",
+        options: [
+          "Đăng ngay vì câu nghe mạnh",
+          "Sửa lại theo claim đã được công ty phê duyệt",
+          "Ẩn claim ở cuối bài",
+          "Tăng thành 3 ngày cho hấp dẫn",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Claim marketing phải đúng và được phê duyệt. AI có thể viết quá đà nếu không có ràng buộc rõ.",
+      },
+      {
+        question:
+          "Bạn dùng AI phân tích báo cáo chiến dịch. Đâu là yêu cầu tốt?",
+        options: [
+          "Chỉ dùng dữ liệu trong bảng, chỉ ra chỉ số tốt/kém và đề xuất 3 hành động có lý do",
+          "Tự bịa benchmark ngành",
+          "Kết luận chiến dịch thành công dù thiếu dữ liệu",
+          "Chỉ viết lại số liệu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Phân tích tốt cần bám dữ liệu đã cung cấp và tách rõ đề xuất khỏi giả định chưa kiểm chứng.",
+      },
+      {
+        question:
+          "AI tạo 20 ý tưởng nội dung. Bước tiếp theo nên là gì?",
+        options: [
+          "Chọn lọc theo mục tiêu, giọng thương hiệu, nguồn lực sản xuất và rủi ro pháp lý",
+          "Đăng cả 20 ý tưởng ngay",
+          "Chọn ý tưởng dài nhất",
+          "Bỏ qua kiểm tra brand voice",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI giúp tăng số lượng ý tưởng, nhưng marketer phải chọn lọc theo chiến lược, brand voice và khả năng thực thi.",
+      },
+      {
+        question:
+          "Khi tái sử dụng bài blog thành nhiều kênh, điều nào cần giữ nhất quán?",
+        options: [
+          "Thông điệp chính, dữ kiện quan trọng và CTA",
+          "Độ dài y hệt nhau trên mọi kênh",
+          "Hashtag giống nhau cho email",
+          "Tất cả câu chữ phải giữ nguyên",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Mỗi kênh có định dạng riêng, nhưng thông điệp chính và CTA cần nhất quán để không lệch chiến dịch.",
+      },
     ],
   },
   {
@@ -339,6 +575,84 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
         correctIndex: 0,
         explanation:
           "AI mạnh ở hỗ trợ đọc, phân loại, checklist và giải thích. Các bước chịu trách nhiệm nghiệp vụ vẫn cần người có thẩm quyền.",
+      },
+      {
+        question:
+          "Bạn muốn AI tìm khoản chi bất thường trong bảng 6 tháng. Prompt nào an toàn hơn?",
+        options: [
+          "Dùng dữ liệu đã ẩn danh, yêu cầu so sánh theo tháng và giải thích khoản lệch lớn",
+          "Upload file đầy đủ số tài khoản và mã số thuế",
+          "Yêu cầu AI kết luận gian lận ngay",
+          "Bỏ qua mô tả cột dữ liệu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI có thể hỗ trợ phát hiện mẫu lệch, nhưng dữ liệu cần ẩn danh và kết luận phải được kiểm chứng bằng chứng từ.",
+      },
+      {
+        question:
+          "Khi AI viết công thức Excel, bước kiểm tra nào nên làm?",
+        options: [
+          "Test với vài dòng dữ liệu mẫu đã biết kết quả trước khi áp dụng toàn bảng",
+          "Áp dụng ngay cho file báo cáo chính",
+          "Xóa công thức cũ không lưu bản sao",
+          "Không cần đọc giải thích",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Kiểm thử trên dữ liệu mẫu giúp phát hiện lỗi công thức trước khi ảnh hưởng báo cáo thật.",
+      },
+      {
+        question:
+          "AI soạn email nhắc công nợ. Thông tin nào bắt buộc tự đối chiếu?",
+        options: [
+          "Số tiền, hạn thanh toán, tên khách và điều khoản nhắc nợ",
+          "Màu chữ email",
+          "Độ dài câu chào",
+          "Tên công cụ AI",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Email công nợ có ràng buộc tài chính và quan hệ khách hàng, nên số tiền và điều khoản phải đúng tuyệt đối.",
+      },
+      {
+        question:
+          "Bạn muốn AI tóm tắt báo cáo quản trị. Điều nào cần cấm trong prompt?",
+        options: [
+          "Tự bịa số liệu hoặc nguyên nhân nếu bảng dữ liệu không có",
+          "Chỉ dùng dữ liệu đã cung cấp",
+          "Nêu điểm bất thường cần kiểm tra",
+          "Tách nhận định khỏi số liệu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI có thể bịa nếu không bị ràng buộc. Với báo cáo quản trị, chỉ dùng dữ liệu được cung cấp và nêu rõ phần cần kiểm chứng.",
+      },
+      {
+        question:
+          "Khi trích xuất thông tin từ PDF chứng từ bằng AI, việc nào vẫn phải làm thủ công?",
+        options: [
+          "Đối chiếu lại với chứng từ gốc trước khi nhập sổ",
+          "Tin mọi dòng trích xuất",
+          "Xóa file gốc",
+          "Tự tạo mã hóa đơn mới",
+        ],
+        correctIndex: 0,
+        explanation:
+          "OCR/AI có thể đọc sai số hoặc ngày. Kế toán phải đối chiếu với chứng từ gốc trước khi ghi nhận.",
+      },
+      {
+        question:
+          "AI phù hợp nhất khi kế toán cần giải thích chênh lệch kỳ này/kỳ trước như thế nào?",
+        options: [
+          "Gợi ý nhóm nguyên nhân có thể kiểm tra và câu hỏi cần hỏi thêm",
+          "Kết luận chắc chắn nguyên nhân dù thiếu chứng từ",
+          "Tự sửa số liệu kỳ trước",
+          "Bỏ qua các khoản bất thường",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI nên hỗ trợ tạo giả thuyết và checklist kiểm tra. Nguyên nhân cuối cùng phải dựa trên dữ liệu và chứng từ.",
       },
     ],
   },
@@ -408,26 +722,233 @@ const AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
         explanation:
           "Nguyên tắc an toàn là không đưa dữ liệu nhạy cảm vào công cụ công cộng nếu chưa có quy định và quyền phù hợp.",
       },
+      {
+        question:
+          "Bạn muốn AI viết email nhắc deadline cho team. Prompt nào phù hợp?",
+        options: [
+          "Viết email ngắn, lịch sự, nhắc deadline [ngày], nêu việc cần hoàn thành và kênh phản hồi",
+          "Nhắc deadline đi",
+          "Tự bịa lỗi của từng người",
+          "Viết càng căng thẳng càng tốt",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Email công việc nên rõ deadline, hành động cần làm và giọng phù hợp. Không để AI bịa lỗi cá nhân.",
+      },
+      {
+        question:
+          "Khi AI lập checklist tuần, tiêu chí nào giúp checklist dùng được?",
+        options: [
+          "Có mức ưu tiên, deadline, người phụ trách và đầu ra mong muốn",
+          "Chỉ liệt kê thật nhiều việc",
+          "Không cần thứ tự",
+          "Không cần mục tiêu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Checklist tốt phải giúp hành động được: ưu tiên rõ, thời hạn rõ và biết ai chịu trách nhiệm.",
+      },
+      {
+        question:
+          "AI đề xuất một quy trình nội bộ mới. Bạn nên làm gì trước khi áp dụng?",
+        options: [
+          "Nhờ người phụ trách nghiệp vụ rà soát và thử nhỏ trước",
+          "Áp dụng ngay cho toàn công ty",
+          "Xóa quy trình cũ lập tức",
+          "Không thông báo cho ai",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Quy trình ảnh hưởng nhiều người nên cần duyệt nghiệp vụ và thử nghiệm nhỏ trước khi triển khai rộng.",
+      },
+      {
+        question:
+          "Khi dùng AI soạn nội dung từ tài liệu công ty, điều nào cần kiểm tra?",
+        options: [
+          "AI có thêm thông tin ngoài tài liệu gốc hay không",
+          "AI viết nhanh hay chậm",
+          "Câu trả lời có dài không",
+          "AI dùng nhiều từ tiếng Anh",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI có thể tự thêm thông tin nghe hợp lý nhưng không có trong tài liệu. Cần kiểm tra để tránh truyền sai nội bộ.",
+      },
+      {
+        question:
+          "Bạn muốn AI so sánh 3 công cụ làm việc. Đầu ra nào dễ quyết định nhất?",
+        options: [
+          "Bảng so sánh theo chi phí, tính năng, rủi ro dữ liệu, độ dễ dùng và khuyến nghị",
+          "Một đoạn khen công cụ nổi tiếng nhất",
+          "Danh sách link không có nhận xét",
+          "Chọn ngẫu nhiên một công cụ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "So sánh theo tiêu chí giúp quyết định minh bạch hơn, đặc biệt với chi phí và rủi ro dữ liệu.",
+      },
+      {
+        question:
+          "Nếu AI trả lời sai nhưng giọng rất tự tin, bài học quan trọng là gì?",
+        options: [
+          "Luôn kiểm chứng thông tin quan trọng bằng nguồn đáng tin cậy",
+          "AI tự tin nghĩa là đúng",
+          "Không bao giờ dùng AI nữa",
+          "Chỉ dùng câu trả lời dài nhất",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI có thể sai trong giọng rất chắc chắn. Người dùng cần kiểm chứng thông tin quan trọng trước khi áp dụng.",
+      },
     ],
   },
 ];
 
-const COMING_SOON_QUIZZES: HocTapQuizItem[] = [
+const EXTRA_AVAILABLE_QUIZZES: HocTapPlayableQuizSeed[] = [
   {
     id: "prompt-engineering",
     title: "Prompt Engineering cơ bản",
     description:
       "Học cách viết yêu cầu rõ ràng để nhận kết quả sát mục tiêu hơn từ các công cụ AI.",
     category: "Prompt",
-    creator: "TuanCoolBoy",
+    creator: "AI Trợ Lý",
     difficulty: "Trung bình",
     xp: 70,
     publishedOrder: 3,
     theme: "prompt",
-    roleId: null,
-    questionCount: 12,
+    roleId: "khac",
     durationMinutes: 20,
-    status: "coming-soon",
+    questions: [
+      {
+        question: "Một prompt cơ bản nên bắt đầu bằng thông tin nào?",
+        options: [
+          "Vai trò/ngữ cảnh của AI và mục tiêu cần đạt",
+          "Một từ khóa thật ngắn",
+          "Mật khẩu tài khoản làm việc",
+          "Câu càng mơ hồ càng tốt",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Prompt tốt thường có vai trò, bối cảnh, nhiệm vụ, dữ liệu đầu vào và định dạng đầu ra.",
+      },
+      {
+        question:
+          "Bạn cần AI trả về bảng so sánh. Phần nào nên ghi rõ trong prompt?",
+        options: [
+          "Các cột cần có, tiêu chí so sánh và định dạng bảng",
+          "Chỉ ghi 'so sánh giúp tôi'",
+          "Yêu cầu AI tự đoán dữ liệu chưa có",
+          "Không cần nói đầu ra",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Nói rõ định dạng đầu ra giúp AI trả kết quả dễ copy, dễ kiểm tra và ít phải sửa lại.",
+      },
+      {
+        question:
+          "Khi prompt đầu tiên cho kết quả quá chung, bước sửa tốt nhất là gì?",
+        options: [
+          "Bổ sung bối cảnh, ví dụ, ràng buộc và tiêu chí đánh giá",
+          "Gõ lại đúng câu cũ nhiều lần",
+          "Chọn kết quả dài nhất",
+          "Bỏ qua mục tiêu ban đầu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Prompt là quá trình lặp. Càng thêm context và tiêu chí rõ, kết quả càng sát việc thật.",
+      },
+      {
+        question:
+          "Yêu cầu nào giúp AI tránh bịa dữ kiện khi viết báo cáo?",
+        options: [
+          "Chỉ sử dụng dữ liệu tôi cung cấp; phần thiếu hãy ghi 'chưa đủ dữ liệu'",
+          "Tự thêm số liệu cho thuyết phục",
+          "Viết tự tin dù thiếu nguồn",
+          "Không cần phân biệt dữ liệu thật và giả định",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Với báo cáo, phải ràng buộc AI chỉ dùng dữ liệu có thật và nêu rõ phần chưa đủ thông tin.",
+      },
+      {
+        question:
+          "Prompt nào phù hợp khi muốn AI đóng vai người phản biện?",
+        options: [
+          "Đóng vai reviewer, chỉ ra 5 rủi ro trong kế hoạch này và đề xuất cách kiểm chứng",
+          "Khen kế hoạch này",
+          "Viết lại cho dài hơn",
+          "Bỏ qua điểm yếu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Role phản biện giúp AI tìm lỗ hổng, nhưng cần mục tiêu rõ và yêu cầu cách kiểm chứng.",
+      },
+      {
+        question:
+          "Khi dùng prompt template cho công việc lặp lại, phần nào nên để trong ngoặc để thay mỗi lần?",
+        options: [
+          "Tên khách, sản phẩm, deadline, số liệu hoặc bối cảnh riêng của lần đó",
+          "Toàn bộ hướng dẫn cố định",
+          "Mật khẩu hệ thống",
+          "Không để phần nào thay đổi",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Template tốt giữ cấu trúc cố định và chỉ thay các biến như đối tượng, dữ liệu, thời hạn.",
+      },
+      {
+        question:
+          "Bạn muốn AI viết ngắn gọn hơn. Câu nào nên thêm vào prompt?",
+        options: [
+          "Trả lời tối đa 120 từ, dùng bullet, ưu tiên hành động cụ thể",
+          "Viết càng dài càng tốt",
+          "Không cần cấu trúc",
+          "Dùng thật nhiều thuật ngữ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Giới hạn độ dài và định dạng giúp đầu ra đúng nhu cầu sử dụng hơn.",
+      },
+      {
+        question:
+          "Khi đưa ví dụ mẫu vào prompt, mục đích chính là gì?",
+        options: [
+          "Giúp AI học phong cách, cấu trúc và mức chi tiết mong muốn",
+          "Để AI sao chép nguyên văn mọi lúc",
+          "Thay thế dữ liệu thật cần kiểm tra",
+          "Làm prompt dài cho chuyên nghiệp",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Ví dụ mẫu giúp AI bắt đúng style và cấu trúc. Vẫn cần kiểm tra dữ kiện trong câu trả lời mới.",
+      },
+      {
+        question:
+          "Dữ liệu nào không nên đặt trực tiếp trong prompt gửi công cụ công cộng?",
+        options: [
+          "Thông tin cá nhân, hợp đồng, lương, số tài khoản và bí mật nội bộ",
+          "Một tình huống giả lập đã ẩn danh",
+          "Yêu cầu định dạng đầu ra",
+          "Một câu hỏi kiến thức chung",
+        ],
+        correctIndex: 0,
+        explanation:
+          "An toàn dữ liệu là nguyên tắc nền tảng khi viết prompt trong môi trường công cộng.",
+      },
+      {
+        question:
+          "Sau khi AI trả lời, thói quen nào giúp dùng prompt hiệu quả hơn?",
+        options: [
+          "Đọc lại, kiểm chứng phần quan trọng và yêu cầu chỉnh theo tiêu chí cụ thể",
+          "Copy ngay mọi câu trả lời",
+          "Không bao giờ hỏi tiếp",
+          "Chỉ tin câu trả lời có giọng tự tin",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Kết quả AI là bản nháp. Người dùng cần kiểm tra và điều chỉnh bằng follow-up prompt rõ ràng.",
+      },
+    ],
   },
   {
     id: "phan-tich-du-lieu",
@@ -440,10 +961,140 @@ const COMING_SOON_QUIZZES: HocTapQuizItem[] = [
     xp: 50,
     publishedOrder: 2,
     theme: "data",
-    roleId: null,
-    questionCount: 12,
+    roleId: "khac",
     durationMinutes: 25,
-    status: "coming-soon",
+    questions: [
+      {
+        question:
+          "Trước khi nhờ AI phân tích một bảng dữ liệu, bước nào quan trọng nhất?",
+        options: [
+          "Mô tả ý nghĩa từng cột, mục tiêu phân tích và kiểm tra dữ liệu nhạy cảm",
+          "Dán bảng bất kỳ và hỏi 'có gì hay không'",
+          "Bỏ qua giá trị thiếu",
+          "Yêu cầu AI tự đoán nguồn dữ liệu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI cần hiểu cột dữ liệu và mục tiêu phân tích. Đồng thời phải xử lý dữ liệu nhạy cảm trước.",
+      },
+      {
+        question:
+          "AI phát hiện một chỉ số tăng mạnh. Bạn nên hiểu kết quả đó như thế nào?",
+        options: [
+          "Là tín hiệu cần kiểm tra nguyên nhân, không phải kết luận cuối cùng",
+          "Chắc chắn do một nguyên nhân duy nhất",
+          "Không cần kiểm tra dữ liệu gốc",
+          "Có thể công bố ngay",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Phân tích dữ liệu cần kiểm chứng: bất thường là điểm cần điều tra thêm, không phải kết luận chắc chắn.",
+      },
+      {
+        question:
+          "Khi hỏi AI về dữ liệu bán hàng, prompt nào tốt hơn?",
+        options: [
+          "Phân tích xu hướng doanh thu theo tháng, chỉ ra tháng bất thường và nêu 3 giả thuyết cần kiểm tra",
+          "Bảng này sao?",
+          "Tự tìm khách hàng giàu nhất",
+          "Viết kết luận tích cực",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Câu hỏi tốt nêu rõ chỉ số, chiều phân tích, dạng kết quả và yêu cầu kiểm chứng.",
+      },
+      {
+        question:
+          "Điều gì cần làm nếu AI đưa ra biểu đồ hoặc nhận xét nhưng không khớp số liệu gốc?",
+        options: [
+          "Dừng dùng nhận xét đó và kiểm tra lại cách nhập dữ liệu/công thức",
+          "Dùng vì AI thường đúng",
+          "Sửa số liệu gốc cho khớp AI",
+          "Bỏ qua sai lệch nhỏ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Khi kết quả AI lệch dữ liệu gốc, phải kiểm tra lại dữ liệu và phương pháp, không sửa số liệu để khớp AI.",
+      },
+      {
+        question:
+          "Bạn muốn AI phân nhóm phản hồi khách hàng. Dữ liệu nào nên loại bỏ trước?",
+        options: [
+          "Tên, email, số điện thoại và thông tin định danh không cần thiết",
+          "Nội dung phản hồi đã ẩn danh",
+          "Mục tiêu phân nhóm",
+          "Các nhãn chủ đề cần gợi ý",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Phản hồi khách có thể chứa dữ liệu cá nhân. Ẩn danh trước giúp giảm rủi ro khi phân tích.",
+      },
+      {
+        question:
+          "Khi dữ liệu có nhiều ô trống, cách nhờ AI phù hợp là gì?",
+        options: [
+          "Yêu cầu AI liệt kê ô thiếu, đánh giá ảnh hưởng và đề xuất cách xử lý",
+          "Tự điền đại cho đủ",
+          "Bỏ qua mọi ô trống",
+          "Xóa toàn bộ dòng thiếu mà không kiểm tra",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Dữ liệu thiếu cần được nhận diện và xử lý có lý do. Không nên để AI tự bịa giá trị.",
+      },
+      {
+        question:
+          "AI phù hợp nhất ở bước nào trong phân tích dữ liệu thường ngày?",
+        options: [
+          "Gợi ý câu hỏi, tóm tắt xu hướng, phát hiện bất thường và tạo checklist kiểm chứng",
+          "Thay thế toàn bộ người phân tích",
+          "Đảm bảo dữ liệu luôn đúng",
+          "Tự quyết định chiến lược công ty",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI giúp tăng tốc phân tích nhưng dữ liệu, ngữ cảnh và quyết định cuối vẫn cần con người kiểm tra.",
+      },
+      {
+        question:
+          "Khi yêu cầu AI giải thích một chỉ số, đầu ra nào hữu ích nhất?",
+        options: [
+          "Định nghĩa ngắn, cách tính, ý nghĩa, ngưỡng cần chú ý và ví dụ trong bảng hiện có",
+          "Một đoạn văn chung chung",
+          "Chỉ dịch tên chỉ số",
+          "Kết luận tốt/xấu không có lý do",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Giải thích chỉ số nên có cách tính và ý nghĩa trong bối cảnh dữ liệu thật.",
+      },
+      {
+        question:
+          "Muốn AI không vượt quá dữ liệu được cung cấp, bạn nên thêm câu nào?",
+        options: [
+          "Nếu dữ liệu không đủ, hãy nói rõ chưa đủ dữ liệu thay vì suy đoán",
+          "Hãy đoán mạnh dạn",
+          "Viết kết luận chắc chắn",
+          "Bỏ qua giới hạn dữ liệu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Ràng buộc này giúp giảm ảo giác và làm rõ phần kết luận nào chưa có bằng chứng.",
+      },
+      {
+        question:
+          "Khi chia sẻ kết quả phân tích từ AI cho team, điều nào nên kèm theo?",
+        options: [
+          "Nguồn dữ liệu, giả định, điểm cần kiểm chứng và khuyến nghị hành động",
+          "Chỉ kết luận cuối",
+          "Câu trả lời raw của AI không chỉnh",
+          "Thông tin cá nhân không cần thiết",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Kết quả phân tích cần minh bạch về nguồn, giả định và mức độ chắc chắn để team ra quyết định đúng.",
+      },
+    ],
   },
   {
     id: "ai-automation",
@@ -456,12 +1107,144 @@ const COMING_SOON_QUIZZES: HocTapQuizItem[] = [
     xp: 90,
     publishedOrder: 1,
     theme: "automation",
-    roleId: null,
-    questionCount: 15,
+    roleId: "khac",
     durationMinutes: 20,
-    status: "coming-soon",
+    questions: [
+      {
+        question:
+          "Quy trình nào phù hợp để bắt đầu tự động hóa bằng AI?",
+        options: [
+          "Việc lặp lại thường xuyên, có đầu vào/đầu ra rõ và rủi ro thấp",
+          "Việc hiếm khi xảy ra và cần phán đoán pháp lý cao",
+          "Quyết định sa thải nhân viên",
+          "Ký duyệt hợp đồng thay quản lý",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Tự động hóa nên bắt đầu từ việc lặp, rõ quy tắc, ít rủi ro để dễ kiểm soát và đo hiệu quả.",
+      },
+      {
+        question:
+          "Trước khi automation gửi email tự động ra ngoài, bước nào bắt buộc?",
+        options: [
+          "Có bước người duyệt hoặc điều kiện kiểm tra cho nội dung nhạy cảm",
+          "Gửi thẳng mọi nội dung AI tạo",
+          "Bỏ qua log hoạt động",
+          "Cho AI tự quyết định người nhận",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Nội dung gửi ra ngoài cần kiểm soát chất lượng, người nhận và rủi ro dữ liệu.",
+      },
+      {
+        question:
+          "Để mô tả một quy trình cho AI đề xuất automation, bạn nên cung cấp gì?",
+        options: [
+          "Các bước hiện tại, người phụ trách, công cụ đang dùng, lỗi thường gặp và tiêu chí thành công",
+          "Chỉ nói 'tự động hóa giúp tôi'",
+          "Mật khẩu phần mềm",
+          "Dữ liệu khách hàng thô không ẩn danh",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI cần hiểu quy trình hiện tại và điểm đau để đề xuất automation thực tế, không cần mật khẩu hay dữ liệu nhạy cảm.",
+      },
+      {
+        question:
+          "Automation bị lỗi và gửi sai thông tin. Thiết kế nào giúp giảm thiệt hại?",
+        options: [
+          "Có log, cảnh báo, bước dừng khẩn cấp và người chịu trách nhiệm kiểm tra",
+          "Không lưu vết để đơn giản",
+          "Chạy ẩn không ai biết",
+          "Cho AI tự sửa rồi gửi tiếp",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Automation cần khả năng quan sát, rollback/dừng và trách nhiệm rõ để xử lý lỗi nhanh.",
+      },
+      {
+        question:
+          "Chỉ số nào đo tốt hiệu quả automation?",
+        options: [
+          "Thời gian tiết kiệm, số lỗi giảm, số lượt xử lý và tỷ lệ cần can thiệp thủ công",
+          "Số công cụ AI đã kết nối",
+          "Tên automation nghe hay không",
+          "Prompt dài bao nhiêu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Đo automation bằng tác động vận hành thật: tiết kiệm thời gian, giảm lỗi và mức độ ổn định.",
+      },
+      {
+        question:
+          "Khi automation dùng dữ liệu từ nhiều hệ thống, rủi ro nào cần chú ý nhất?",
+        options: [
+          "Quyền truy cập, dữ liệu nhạy cảm, đồng bộ sai và log xử lý",
+          "Màu giao diện automation",
+          "Tên workflow quá ngắn",
+          "Có quá ít icon",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Kết nối nhiều hệ thống làm tăng rủi ro bảo mật và sai lệch dữ liệu, nên cần kiểm soát quyền và log.",
+      },
+      {
+        question:
+          "Bước thử nghiệm automation an toàn nhất là gì?",
+        options: [
+          "Chạy thử với dữ liệu mẫu/nhóm nhỏ, kiểm kết quả rồi mới mở rộng",
+          "Triển khai toàn công ty ngay",
+          "Xóa quy trình thủ công lập tức",
+          "Không cần đo kết quả",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Pilot nhỏ giúp phát hiện lỗi và đo hiệu quả trước khi automation ảnh hưởng diện rộng.",
+      },
+      {
+        question:
+          "Điều nào không nên giao hoàn toàn cho AI automation?",
+        options: [
+          "Quyết định có tác động pháp lý/tài chính/nhân sự cao mà không có người duyệt",
+          "Tạo bản nháp checklist",
+          "Tóm tắt email đã ẩn danh",
+          "Gắn nhãn ticket theo quy tắc đơn giản",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Việc rủi ro cao cần human-in-the-loop. AI automation phù hợp hơn với tác vụ lặp và có kiểm soát.",
+      },
+      {
+        question:
+          "Khi viết prompt cho automation xử lý ticket, yếu tố nào quan trọng?",
+        options: [
+          "Quy tắc phân loại, ví dụ đúng/sai, format output và trường hợp cần chuyển người xử lý",
+          "Chỉ yêu cầu 'xử lý ticket'",
+          "Cho AI tự đóng mọi ticket",
+          "Không cần ví dụ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Automation cần quy tắc và điều kiện chuyển người rõ để tránh xử lý sai các trường hợp nhạy cảm.",
+      },
+      {
+        question:
+          "Khi automation chạy tốt, việc tiếp theo nên làm là gì?",
+        options: [
+          "Viết tài liệu vận hành, owner, cách dừng, cách sửa và lịch kiểm tra định kỳ",
+          "Bỏ mặc vì đã tự động",
+          "Xóa toàn bộ hướng dẫn",
+          "Tăng quyền truy cập tối đa",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Automation vẫn cần tài liệu, owner và kiểm tra định kỳ để vận hành ổn định khi quy trình thay đổi.",
+      },
+    ],
   },
 ];
+
+const ALL_AVAILABLE_QUIZZES = [...AVAILABLE_QUIZZES, ...EXTRA_AVAILABLE_QUIZZES];
 
 export function isAvailableQuizRoleId(
   value: string,
@@ -470,14 +1253,12 @@ export function isAvailableQuizRoleId(
 }
 
 export function buildHocTapQuizCatalog(): HocTapQuizItem[] {
-  const available = AVAILABLE_QUIZZES.map(toHocTapQuizItem);
-
-  return [...available, ...COMING_SOON_QUIZZES];
+  return ALL_AVAILABLE_QUIZZES.map(toHocTapQuizItem);
 }
 
 export function getHocTapQuiz(quizId: string | null | undefined): HocTapPlayableQuiz | null {
   if (!quizId) return null;
-  const quiz = AVAILABLE_QUIZZES.find((item) => item.id === quizId);
+  const quiz = ALL_AVAILABLE_QUIZZES.find((item) => item.id === quizId);
   return quiz ? toPlayableQuiz(quiz) : null;
 }
 
@@ -488,7 +1269,7 @@ export function resolveHocTapQuizForRoute(
   const byId = getHocTapQuiz(quizId);
   if (byId) return byId.roleId === roleId ? byId : null;
   if (!isAvailableQuizRoleId(roleId)) return null;
-  const byRole = AVAILABLE_QUIZZES.find((item) => item.roleId === roleId);
+  const byRole = ALL_AVAILABLE_QUIZZES.find((item) => item.roleId === roleId);
   return byRole ? toPlayableQuiz(byRole) : null;
 }
 
@@ -676,12 +1457,17 @@ export function gradeHocTapQuizAnswers(input: {
     if (
       !question ||
       !Number.isInteger(answer) ||
-      answer < 0 ||
+      answer < UNANSWERED_QUIZ_OPTION ||
       answer >= question.options.length
     ) {
       return null;
     }
-    if (answer === question.correctIndex) correctCount += 1;
+    if (
+      answer !== UNANSWERED_QUIZ_OPTION &&
+      answer === question.correctIndex
+    ) {
+      correctCount += 1;
+    }
   }
 
   return {

@@ -29,6 +29,7 @@ describe("module-lesson-links", () => {
 
   it("accepts only internal lesson paths", () => {
     expect(isSafeLessonHref("/lo-trinh/marketing-m1")).toBe(true);
+    expect(isSafeLessonHref("/lo-trinh/marketing-m1?extra=1")).toBe(true);
     expect(isSafeLessonHref("https://evil.example")).toBe(false);
     expect(isSafeLessonHref("javascript:alert(1)")).toBe(false);
   });
@@ -175,6 +176,7 @@ describe("module-lesson-links", () => {
       expect(isSafeLessonHref("https://evil.example/phish")).toBe(false);
       expect(isSafeLessonHref("//evil.example/lo-trinh/marketing-m1")).toBe(false);
       expect(isSafeLessonHref("/lo-trinh/marketing-m1?x=1")).toBe(false);
+      expect(isSafeLessonHref("/lo-trinh/marketing-m1?extra=1")).toBe(true);
       expect(isSafeLessonHref("/lo-trinh/marketing-m1#anchor")).toBe(false);
     });
 
@@ -207,6 +209,19 @@ describe("module-lesson-links", () => {
         {
           kind: "text",
           value: "[Bài học](/lo-trinh/marketing-m1/extra/path)",
+        },
+      ]);
+    });
+
+    it("renders extra lesson query links as internal lesson links", () => {
+      const segments = parseChatInlineSegments(
+        "[Viết email nội bộ & truyền thông HR bằng AI](/lo-trinh/van-hanh-m9?extra=1)",
+      );
+      expect(linkSegments(segments)).toEqual([
+        {
+          kind: "link",
+          label: "Viết email nội bộ & truyền thông HR bằng AI",
+          href: "/lo-trinh/van-hanh-m9?extra=1",
         },
       ]);
     });

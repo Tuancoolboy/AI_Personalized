@@ -24,8 +24,12 @@ export type AgentFlowInput = {
   primaryTool: string;
   // Module đã hoàn thành (để bỏ bài đã xong + ưu tiên bài kế tiếp).
   completedModuleIds: string[];
-  // Tag công việc hằng ngày (assessment Q3) — ngữ cảnh thêm cho agent.
+  // Tag công việc hằng ngày (assessment Q3 / profiles.daily_tasks).
   dailyTasks: string[];
+  /** Tag mục tiêu từ assessment — dùng chung logic với rankModules.goalTags. */
+  goalTags: string[];
+  /** Module nên ưu tiên để lấp lỗ hổng năng lực (inferAssessmentGapModuleIds). */
+  assessmentGapModuleIds: string[];
   organizationName?: string | null;
   departmentId?: string | null;
   assignedPathTitle?: string | null;

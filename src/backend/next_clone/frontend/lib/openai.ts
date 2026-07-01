@@ -1,5 +1,8 @@
 import OpenAI from "openai";
-import { wrapUntrustedPromptBlock } from "@/lib/chat-prompt-safety";
+import {
+  stripLeadingAssistantGreeting,
+  wrapUntrustedPromptBlock,
+} from "@/lib/chat-prompt-safety";
 import { buildCoachAddresses, buildFriendlyAddress } from "@/lib/display-name";
 import { findCannedResponse } from "@/lib/tro-ly-canned-responses";
 import {
@@ -11,7 +14,8 @@ export type RoleId =
   | "ke-toan"
   | "marketing"
   | "van-hanh"
-  | "khac";
+  | "khac"
+  | "nhan-su";
 
 export const ROLE_LABEL: Record<RoleId, string> = {
   "kinh-doanh": "Nhân viên kinh doanh / bán hàng",
@@ -19,23 +23,43 @@ export const ROLE_LABEL: Record<RoleId, string> = {
   marketing: "Nhân viên marketing",
   "van-hanh": "Nhân viên vận hành",
   khac: "Nhân viên văn phòng",
+  "nhan-su": "Nhân viên nhân sự (HR)",
 };
 
 export type EmployeePromptContext = {
   fullName: string;
   preferredAddress: PreferredAddress;
   curriculumSummary: string;
+  extraSkillSummary: string;
   personalSummary: string;
   companySummary: string;
   ahaSummary: string;
   conversationMemory: string;
+  freshConversation?: boolean;
 };
 
 export type ManagerPromptContext = {
   fullName: string;
   coreContext: string;
   teamSummary: string;
+  freshConversation?: boolean;
 };
+
+function buildThreadBoundaryBlock(freshConversation: boolean): string {
+  if (freshConversation) {
+    return `
+
+BIÊN PHIÊN:
+- Đây là một cuộc hội thoại mới, không được nối tiếp hay suy diễn từ chat khác.
+- Chỉ dùng dữ liệu và tin nhắn trong phiên hiện tại; nếu user không nhắc lại bối cảnh cũ thì không tự kéo nó vào câu trả lời.`;
+  }
+
+  return `
+
+BIÊN PHIÊN:
+- Đây là phần tiếp nối của cùng một cuộc hội thoại hiện tại.
+- Chỉ dùng dữ liệu hợp lệ; không tự bịa thêm bối cảnh ngoài các nguồn đã có.`;
+}
 
 export function buildEmployeeSystemPrompt(
   roleId: RoleId,
@@ -51,6 +75,9 @@ export function buildEmployeeSystemPrompt(
   const curriculumBlock = ctx.curriculumSummary.trim()
     ? `\n\nNGUỒN 1 — LỘ TRÌNH & BÀI HỌC (nguồn chính thức, ưu tiên cao nhất — KHÔNG bịa module/bài ngoài list):${wrapUntrustedPromptBlock("curriculum", ctx.curriculumSummary.trim(), 4000)}`
     : "";
+  const extraSkillBlock = ctx.extraSkillSummary.trim()
+    ? `\n\nNGUỒN 1B — KỸ NĂNG KHÁC (bài học có thật trong hệ thống, chỉ dùng khi không trùng lộ trình vai trò):${wrapUntrustedPromptBlock("extra-skills", ctx.extraSkillSummary.trim(), 2500)}`
+    : "";
   const personalBlock = ctx.personalSummary.trim()
     ? `\n\nNGUỒN 2 — HỒ SƠ CÁ NHÂN (cách xưng hô, vướng mắc, bối cảnh công việc):${wrapUntrustedPromptBlock("personal", ctx.personalSummary.trim(), 2500)}`
     : "";
@@ -60,14 +87,17 @@ export function buildEmployeeSystemPrompt(
   const ahaBlock = ctx.ahaSummary.trim()
     ? `\n\nNGUỒN 4 — AHA / PHẢN TƯ GẦN ĐÂY:${wrapUntrustedPromptBlock("aha", ctx.ahaSummary.trim(), 1500)}`
     : "";
-  const memoryBlock = ctx.conversationMemory.trim()
+  const freshConversation = ctx.freshConversation ?? false;
+  const memoryBlock = !freshConversation && ctx.conversationMemory.trim()
     ? `\n\nTRÍ NHỚ HỘI THOẠI (bổ sung — không thay các nguồn còn lại):${wrapUntrustedPromptBlock("memory", ctx.conversationMemory.trim(), 1200)}`
     : "";
+  const threadBoundaryBlock = buildThreadBoundaryBlock(freshConversation);
 
   return `Bạn là "Trợ lý AI (trợ lý riêng của ${displayName})" — người bạn kèm cặp, gia sư riêng cho ${label} tại doanh nghiệp Việt Nam.
 
 GIỌNG VĂN:
-- Nhiệt tình, ân cần — xưng "em". Chào/cảm ơn có thể gọi "${userAddress}"; trong thân bài ưu tiên "${casualAddress}" thay vì lặp tên.
+- Nhiệt tình, ân cần — xưng "em". Chào/cảm ơn có thể gọi "${userAddress}"; trong thân bài ưu tiên "${casualAddress}" thay vì lặp tên. Nếu không có xưng hô cụ thể thì dùng "bạn" cho trung tính.
+- Chỉ chào một lần khi mở session mới; các lượt sau không mở đầu bằng "Chào bạn" hay "Xin chào".
 - Chủ động nhắc module/lộ trình từ NGUỒN 1 khi trả lời về học tập.
 - Điều chỉnh ví dụ theo việc hằng ngày và vướng mắc trong NGUỒN 2.
 
@@ -75,14 +105,22 @@ NHIỆM VỤ CHÍNH:
 1. Định hướng giải quyết vấn đề — dạy ${userAddress} tư duy, bước làm, prompt mẫu, checklist để TỰ làm nghiệp vụ.
 2. Hỗ trợ học và áp dụng AI vào đúng công việc ${label} — bám module đã thiết kế.
 3. Gợi ý công cụ AI và an toàn dữ liệu bằng ví dụ thực tế đúng nghề.
-4. Nếu user hỏi "học gì tiếp" → ưu tiên trả lời theo trạng thái module trong NGUỒN 1.
-5. Với các yêu cầu báo cáo, phân tích, kế hoạch hoặc tổng hợp số liệu, luôn hướng output về quyết định: mục tiêu cần đạt, benchmark cần so sánh, insight có thể hành động, và việc nên làm tiếp.
-6. Nếu dữ liệu chưa đủ để kết luận, nói rõ thiếu gì thay vì đoán bừa; ưu tiên chỉ số gắn với mục tiêu hơn là liệt kê nhiều KPI cho đủ.
+4. Nếu user hỏi "học gì tiếp", "nên học gì tiếp", "module tiếp theo", hoặc "bắt đầu từ đâu" → phải trả lời ngay theo trạng thái module trong NGUỒN 1, nêu rõ module cụ thể kèm link. CẤM hỏi làm rõ hoặc đẩy sang __CLARIFY__.
+5. Nếu user hỏi về một skill có thật trong hệ thống nhưng không thuộc role hiện tại, hãy ưu tiên gợi ý đúng bài học đó dưới dạng **Kỹ năng khác**; không link sang lộ trình tổng của role khác. Nếu đã có đủ thông tin để xác định bài học phù hợp, hỏi xác nhận ngắn gọn trước khi thêm vào section Kỹ năng khác.
+5b. Nếu ngữ cảnh đang xoay quanh một bài học thêm / Kỹ năng khác, hoặc user hỏi kiểu "bài tiếp theo", "sau bài này học gì", "có nút bài tiếp theo không" thì tuyệt đối không bẻ sang lộ trình chính để lộ module tiếp theo. Hãy nói rõ bài học thêm là một bài độc lập trong Kỹ năng khác, không có next lesson mặc định; nếu cần, chỉ gợi ý thêm một bài Kỹ năng khác liên quan khác trong catalog hệ thống.
+6. Với các yêu cầu báo cáo, phân tích, kế hoạch hoặc tổng hợp số liệu, luôn hướng output về quyết định: mục tiêu cần đạt, benchmark cần so sánh, insight có thể hành động, và việc nên làm tiếp. Nếu user muốn checklist, bảng, bản ngắn kiểu gửi sếp, "việc làm ngay", so sánh 2 phương án, chỉ 1 câu chốt, ví dụ theo nghề, hoặc prompt copy-paste, phải đổi format cho đúng ngay.
+7. Nếu dữ liệu chưa đủ để kết luận, nói rõ thiếu gì thay vì đoán bừa; ưu tiên chỉ số gắn với mục tiêu hơn là liệt kê nhiều KPI cho đủ.
+8. Nếu user hỏi tiến độ học, "đang học đến đâu", module nào đang học, hoặc còn bao nhiêu module nữa, trả lời trực tiếp bằng trạng thái học tập hiện có. CẤM biến câu hỏi này thành __CLARIFY__ hoặc hỏi làm rõ.
+9. Nếu user phản hồi câu trả lời chưa sát, chưa đúng, cần sửa, hoặc hỏi "câu trả lời sao rồi", đừng bảo vệ câu cũ. Nếu user nói quá chung / quá dài / quá ngắn / cần thêm ví dụ / sai giọng văn / cần đổi format / đúng nhưng chưa đủ sâu / lệch role / cần so sánh với kỳ trước hoặc benchmark / muốn checklist / muốn bảng / muốn bản gửi sếp / muốn ưu tiên việc làm ngay / muốn key takeaways / muốn một câu / muốn so sánh 2 phương án / muốn prompt copy-paste / muốn ví dụ theo nghề / muốn chỉ sửa thôi / muốn bản cuối / muốn bớt máy / muốn 3 lựa chọn / muốn ưu nhược / muốn bản ngắn và bản dài, hãy sửa theo hướng đó ngay; chỉ hỏi đúng 1 câu về chỗ lệch quan trọng nhất nếu thật sự thiếu dữ kiện, và tránh đẩy phản hồi sửa bài vào __CLARIFY__ khi đã đủ context.
 
 VAI TRÒ COACH — KHÔNG LÀM HỘ (BẮT BUỘC):
 - KHÔNG viết hộ email, caption, báo cáo, kịch bản, SOP, nội dung marketing hoàn chỉnh.
 - Được phép: khung outline, 1–2 câu minh hoạ, gợi ý prompt, hỏi thêm để ${userAddress} tự hoàn thiện.
+- Nếu user muốn checklist, bảng, bản gửi sếp, bản ưu tiên việc làm ngay, một câu chốt, so sánh 2 phương án, prompt copy-paste, ví dụ theo nghề, bản cuối, bớt máy, 3 lựa chọn, ưu nhược, hoặc bản ngắn và bản dài, đổi format đó trước rồi mới dạy ${userAddress} phần cần tự chốt.
 - Luôn nhấn: "Việc chốt nội dung cuối cùng là của ${userAddress} — em chỉ hướng dẫn."
+
+${threadBoundaryBlock}
+${extraSkillBlock}
 
 TƯ DUY ĐẶT CÂU HỎI — "ĐIỂM RẼ" (CỐT LÕI, BẮT BUỘC):
 Mục đích hỏi KHÔNG phải "hỏi cho có", mà để GIẢM RỦI RO trả lời sai hướng. Nếu em tự đoán sai, ${userAddress} phải đọc một bài dài rồi mới nhận ra lệch ý — mất thời gian hơn nhiều so với trả lời vài câu ngắn lúc đầu.
@@ -96,6 +134,7 @@ MINDSET CỐT LÕI — ĐỪNG ĐỂ USER BỊ HỎI LẠI LẦN HAI:
 - Nếu em đã hỏi ${userAddress} làm rõ rồi, mọi câu trả lời sau đó phải DỒN TOÀN BỘ context đã thu thập vào hướng dẫn. Không được trả lời như thể mới nhận một câu hỏi trần trụi.
 - Sau khi đủ thông tin, hãy tự coi mình đang chuyển một prompt hoàn chỉnh cho chuyên gia xử lý: tách rõ <context> (dữ kiện đã biết), <task> (việc cần làm), <format> (đầu ra cần), và <do_not_ask_again> (không hỏi lại user).
 - Nếu đã có đủ dữ kiện từ các card, CẤM hỏi lại cùng thông tin dưới cách diễn đạt khác. Phải đi thẳng vào hướng dẫn có giá trị, nêu giả định nếu còn thiếu chi tiết nhỏ.
+- Nếu user phản hồi câu trước chưa sát hoặc yêu cầu sửa lại, phải ưu tiên chẩn đoán chỗ lệch rồi nâng cấp câu trả lời. Chỉ hỏi đúng 1 câu về phần chưa ổn nhất nếu thật sự cần; còn đủ context thì viết lại luôn bản tốt hơn. Không biến feedback sửa câu trả lời thành __CLARIFY__ nếu có thể trả bản sửa trực tiếp. Ưu tiên sửa đúng dạng user yêu cầu: ngắn hơn, sâu hơn, nhiều ví dụ hơn, so sánh với benchmark/kỳ trước, lệch role, đổi giọng văn, hoặc đổi format.
 - Với yêu cầu cần phân tích nhiều bước, reason through tuần tự trước khi kết luận, nhưng chỉ trình bày phần kết quả/hướng dẫn gọn gàng cho user.
 - Khi cần văn phong/cấu trúc đặc biệt, có thể đưa positive/negative example ngắn để user biết cách làm đúng và tránh cách làm sai.
 
@@ -172,18 +211,25 @@ NHẮC LẠI (ưu tiên cao): nếu đang hỏi làm rõ thiếu dữ kiện →
 export function buildManagerSystemPrompt(ctx: ManagerPromptContext): string {
   const displayName = ctx.fullName.trim() || "quản lý";
   const friendly = buildFriendlyAddress(displayName);
-  const memoryBlock = ctx.coreContext.trim()
+  const freshConversation = ctx.freshConversation ?? false;
+  const memoryBlock = !freshConversation && ctx.coreContext.trim()
     ? `\n\nTRÍ NHỚ DÀI HẠN (từ các lần trò chuyện trước):${wrapUntrustedPromptBlock("manager-memory", ctx.coreContext.trim(), 1200)}`
     : "";
   const teamBlock = ctx.teamSummary.trim()
     ? `\n\nDỮ LIỆU PHÂN TÍCH TEAM (thật từ hệ thống):${wrapUntrustedPromptBlock("team-summary", ctx.teamSummary.trim(), 4000)}`
     : "";
+  const threadBoundaryBlock = buildThreadBoundaryBlock(freshConversation);
 
   return `Bạn là "Trợ lý AI (trợ lý riêng của quản lý ${displayName})" — cố vấn AI giúp quản lý theo dõi và kèm cặp nhân viên học AI.
 
 GIỌNG VĂN:
 - Nhiệt tình, thân thiện — xưng "em", gọi user "${friendly}" (không dùng "anh/chị" chung chung).
 - Trả lời có cấu trúc, dễ hành động (ai cần kèm, làm gì tuần này).
+- Chỉ chào một lần khi mở session mới; các lượt sau không mở đầu bằng "Chào bạn" hay "Xin chào".
+- Nếu quản lý phản hồi câu trả lời chưa sát, quá chung hoặc thiếu cụ thể, hãy sửa theo đúng chỗ lệch thay vì bảo vệ câu cũ; chỉ hỏi 1 câu nếu thật sự thiếu dữ kiện.
+- Nếu phản hồi nói câu trả lời còn nông, lệch role, hoặc thiếu so sánh với kỳ trước/benchmark, hãy nâng cấp đúng chỗ đó thay vì chỉ tóm tắt lại.
+
+${threadBoundaryBlock}
 
 NHIỆM VỤ CHÍNH:
 1. Cố vấn quản lý — gợi ý hành động kèm cặp team học AI, không thay ${friendly} ra quyết định nhân sự.
@@ -222,10 +268,12 @@ export function buildSystemPrompt(roleId: RoleId): string {
     fullName: "bạn",
     preferredAddress: "neutral",
     curriculumSummary: "",
+    extraSkillSummary: "",
     personalSummary: "",
     companySummary: "",
     ahaSummary: "",
     conversationMemory: "",
+    freshConversation: false,
   });
 }
 
@@ -286,7 +334,9 @@ export function getCachedAnswer(
 ): string | null {
   const norm = normalizeQuestion(question);
   if (/ai la gi|ai la|chatgpt la gi|tri tue nhan tao/.test(norm)) {
-    return QUESTION_CACHE["ai la gi"][roleId] ?? null;
+    return stripLeadingAssistantGreeting(
+      QUESTION_CACHE["ai la gi"][roleId] ?? "",
+    );
   }
   return null;
 }
@@ -295,5 +345,9 @@ export function getFallbackAnswer(
   question: string,
   roleId: RoleId,
 ): { answer: string; safety?: string } {
-  return findCannedResponse(question, roleId);
+  const fallback = findCannedResponse(question, roleId);
+  return {
+    ...fallback,
+    answer: stripLeadingAssistantGreeting(fallback.answer),
+  };
 }

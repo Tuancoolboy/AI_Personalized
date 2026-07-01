@@ -278,6 +278,97 @@ export const ROLES: Record<string, Role> = {
         explanation:
           "Prompt càng cụ thể (đối tượng, bối cảnh, giọng văn, độ dài, mục tiêu) thì AI trả kết quả càng sát thực tế.",
       },
+      {
+        question:
+          "Bạn muốn AI tóm tắt lịch sử chat với khách. Thông tin nào nên giữ lại?",
+        options: [
+          "Nhu cầu, băn khoăn, sản phẩm quan tâm và bước tiếp theo",
+          "Số điện thoại cá nhân, địa chỉ nhà và mã hợp đồng",
+          "Mật khẩu CRM để AI tự truy cập",
+          "Mọi tin nhắn riêng tư không liên quan đến bán hàng",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Khi dùng AI với dữ liệu khách, hãy giữ bối cảnh nghiệp vụ cần phân tích và loại bỏ thông tin định danh hoặc nhạy cảm.",
+      },
+      {
+        question:
+          "Sau cuộc gọi tư vấn, cách nhờ AI hỗ trợ follow-up nào hợp lý nhất?",
+        options: [
+          "Tạo 2 phiên bản tin nhắn nhắc lại nhu cầu, lợi ích chính và đề xuất lịch hẹn tiếp theo",
+          "Để AI gửi tự động cho khách mà bạn không đọc",
+          "Yêu cầu AI hứa chắc giảm giá dù chưa được duyệt",
+          "Nhờ AI phán đoán khách có tiền hay không",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI nên làm bản nháp follow-up dựa trên dữ kiện thật. Sales cần kiểm tra lại giọng văn, quyền giảm giá và cam kết trước khi gửi.",
+      },
+      {
+        question:
+          "Bạn muốn luyện xử lý từ chối 'để anh/chị hỏi lại sếp'. Prompt nào tốt nhất?",
+        options: [
+          "Đóng vai khách B2B đang cần xin duyệt ngân sách, đưa 4 phản hồi khó và chấm cách tôi trả lời",
+          "Làm khách khó đi",
+          "Chốt đơn bằng mọi giá",
+          "Tự nghĩ ra ngân sách của khách",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Role-play hiệu quả khi bối cảnh rõ và có tiêu chí phản hồi. AI giúp luyện tập, không thay cuộc trò chuyện thật với khách.",
+      },
+      {
+        question:
+          "Khi dùng AI soạn đề xuất bán hàng, phần nào bắt buộc bạn tự kiểm tra?",
+        options: [
+          "Giá, thời hạn, cam kết dịch vụ và điều khoản thương mại",
+          "Tiêu đề có hay không",
+          "Độ dài đoạn mở đầu",
+          "AI dùng nhiều từ chuyên nghiệp",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Các thông tin có ràng buộc kinh doanh phải được kiểm tra với chính sách công ty. AI có thể viết mượt nhưng bịa chi tiết.",
+      },
+      {
+        question:
+          "AI gợi ý giảm giá sâu để dễ chốt đơn. Hành động đúng là gì?",
+        options: [
+          "Dùng ngay vì AI tối ưu chốt sale",
+          "Đối chiếu chính sách giá và xin duyệt trước khi đề xuất",
+          "Nói với khách là hệ thống đã duyệt",
+          "Giấu quản lý để thử nghiệm",
+        ],
+        correctIndex: 1,
+        explanation:
+          "AI không có quyền quyết định chính sách giá. Mọi ưu đãi cần theo quy định và quyền phê duyệt của công ty.",
+      },
+      {
+        question:
+          "Chỉ số nào đo tốt hơn việc AI giúp sales tiết kiệm thời gian?",
+        options: [
+          "Số email/tin nhắn bản nháp được tạo và thời gian chỉnh sửa còn lại",
+          "Số lần mở ChatGPT trong ngày",
+          "Câu trả lời AI dài bao nhiêu",
+          "AI dùng từ ngữ có vẻ cao cấp",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Đo tác động bằng đầu ra và thời gian tiết kiệm thực tế, không phải số lần dùng công cụ hay độ dài câu trả lời.",
+      },
+      {
+        question:
+          "AI tạo chân dung khách hàng mục tiêu rất chi tiết nhưng không dựa trên dữ liệu nào. Bạn nên làm gì?",
+        options: [
+          "Dùng luôn làm chiến lược bán hàng",
+          "Xem là giả thuyết, đối chiếu CRM/phỏng vấn khách rồi mới dùng",
+          "Gửi cho khách để xác nhận",
+          "Bỏ toàn bộ dữ liệu cũ",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Persona do AI tạo khi thiếu dữ liệu chỉ là giả thuyết. Sales cần kiểm chứng bằng dữ liệu thật trước khi ra quyết định.",
+      },
     ],
   },
 
@@ -492,6 +583,97 @@ export const ROLES: Record<string, Role> = {
         explanation:
           "AI có thể «bịa số» (ảo giác). Luôn đối chiếu số liệu với nguồn gốc trước khi sử dụng.",
       },
+      {
+        question:
+          "Bạn muốn AI phân loại danh sách chi phí. Cách chuẩn bị dữ liệu nào phù hợp?",
+        options: [
+          "Ẩn tên nhà cung cấp nhạy cảm, giữ mô tả khoản chi, ngày, nhóm dự kiến và số tiền cần kiểm tra",
+          "Gửi toàn bộ file kế toán kèm tài khoản ngân hàng",
+          "Chỉ gửi tổng tiền và yêu cầu AI đoán nhóm chi phí",
+          "Yêu cầu AI tự tạo chứng từ còn thiếu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI cần dữ liệu đủ ngữ cảnh để phân loại, nhưng thông tin định danh, tài khoản và chứng từ nhạy cảm phải được bảo vệ.",
+      },
+      {
+        question:
+          "Khi nhờ AI giải thích công thức Excel dài, yêu cầu nào giúp kiểm soát lỗi tốt hơn?",
+        options: [
+          "Giải thích từng phần, nêu giả định và tạo ví dụ nhỏ để kiểm tra kết quả",
+          "Chỉ trả lời công thức cuối cùng",
+          "Tự sửa mọi số liệu trong file",
+          "Bỏ qua trường hợp dữ liệu trống",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Giải thích từng phần và kiểm bằng ví dụ nhỏ giúp kế toán phát hiện lỗi logic trước khi áp dụng vào file thật.",
+      },
+      {
+        question:
+          "AI phát hiện một khoản chi tăng đột biến so với tháng trước. Bước tiếp theo nên là gì?",
+        options: [
+          "Kết luận ngay là gian lận",
+          "Kiểm tra chứng từ, người duyệt và bối cảnh phát sinh trước khi kết luận",
+          "Xóa dòng đó khỏi báo cáo",
+          "Đăng lên nhóm công ty để hỏi",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Bất thường chỉ là tín hiệu cần kiểm tra. Kết luận nghiệp vụ phải dựa trên chứng từ và quy trình phê duyệt.",
+      },
+      {
+        question:
+          "Bạn muốn AI soạn email nhắc công nợ. Điều nào cần tránh?",
+        options: [
+          "Dùng giọng lịch sự và nêu hạn thanh toán rõ",
+          "Đưa sai số dư hoặc đe dọa pháp lý khi chưa được duyệt",
+          "Kiểm tra lại số tiền trước khi gửi",
+          "Ẩn thông tin khách khi hỏi AI công cộng",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Email công nợ liên quan số tiền và quan hệ khách hàng. Không dùng số sai hoặc cam kết pháp lý khi chưa được duyệt.",
+      },
+      {
+        question:
+          "Khi dùng AI tóm tắt báo cáo tài chính cho sếp, đầu ra nào hữu ích nhất?",
+        options: [
+          "5 ý chính: doanh thu, chi phí lớn, lợi nhuận, bất thường và việc cần quyết định",
+          "Một đoạn văn thật dài không có số liệu",
+          "Các nhận định chắc chắn dù thiếu dữ liệu",
+          "Chỉ viết lại tiêu đề báo cáo",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Báo cáo quản trị cần ngắn, có cấu trúc và chỉ rõ quyết định cần đưa ra. Số liệu vẫn phải được kế toán kiểm chứng.",
+      },
+      {
+        question:
+          "Câu nào mô tả đúng vai trò của AI trong kiểm tra chứng từ?",
+        options: [
+          "AI gợi ý điểm cần xem lại, còn người có chuyên môn đối chiếu chứng từ gốc",
+          "AI thay thế hoàn toàn kiểm soát nội bộ",
+          "AI được tự tạo hóa đơn bổ sung",
+          "AI quyết định khoản chi hợp lệ cuối cùng",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI hỗ trợ đọc, phân loại và cảnh báo. Trách nhiệm xác nhận chứng từ và tính hợp lệ vẫn thuộc quy trình kế toán.",
+      },
+      {
+        question:
+          "Nếu công ty có công cụ AI nội bộ được phê duyệt, lợi ích chính so với công cụ công cộng là gì?",
+        options: [
+          "Có thể có quy định bảo mật, kiểm soát quyền truy cập và lưu trữ phù hợp hơn",
+          "AI sẽ luôn đúng 100%",
+          "Không cần kiểm tra số liệu nữa",
+          "Có thể chia sẻ mọi dữ liệu cho bất kỳ ai",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Công cụ nội bộ có thể giảm rủi ro dữ liệu nếu được cấu hình đúng, nhưng vẫn cần kiểm tra kết quả và tuân thủ quy trình.",
+      },
     ],
   },
 
@@ -672,6 +854,97 @@ export const ROLES: Record<string, Role> = {
         correctIndex: 1,
         explanation:
           "Cụ thể về đối tượng, sản phẩm, giọng văn, số lượng, độ dài → kết quả sát hơn nhiều.",
+      },
+      {
+        question:
+          "Bạn muốn AI lên lịch nội dung 30 ngày. Dữ kiện nào quan trọng nhất?",
+        options: [
+          "Mục tiêu chiến dịch, chân dung khách hàng, kênh, trụ cột nội dung và ngày quan trọng",
+          "Chỉ yêu cầu 'làm content tháng này'",
+          "Bắt AI tự đoán toàn bộ sản phẩm",
+          "Không cần lịch vì AI sẽ tự tối ưu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Content calendar cần bối cảnh rõ về mục tiêu, audience, kênh và mốc thời gian để tránh lịch chung chung.",
+      },
+      {
+        question:
+          "Khi dùng AI tạo visual brief cho designer, đầu ra nào dễ dùng nhất?",
+        options: [
+          "Mô tả mục tiêu ảnh, đối tượng, bố cục, màu, thông điệp chính và điều cần tránh",
+          "Vẽ đẹp lên",
+          "Sao chép y hệt quảng cáo đối thủ",
+          "Không cần nói kích thước/kênh đăng",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Visual brief tốt giúp AI/designer hiểu mục tiêu và ràng buộc sáng tạo. Không nên sao chép tài sản của đối thủ.",
+      },
+      {
+        question:
+          "AI gợi ý một insight khách hàng nghe rất hay nhưng chưa có dữ liệu. Bạn nên làm gì?",
+        options: [
+          "Dùng ngay làm thông điệp quảng cáo chính",
+          "Xem là giả thuyết và kiểm chứng bằng survey, CRM hoặc dữ liệu chiến dịch",
+          "Phóng đại cho hấp dẫn",
+          "Xóa dữ liệu cũ vì AI đã phân tích",
+        ],
+        correctIndex: 1,
+        explanation:
+          "Insight marketing cần dữ liệu thật. AI hữu ích để tạo giả thuyết, không thay thế nghiên cứu khách hàng.",
+      },
+      {
+        question:
+          "Khi nhờ AI phân tích chỉ số quảng cáo, yêu cầu nào giảm hiểu sai?",
+        options: [
+          "Nêu mục tiêu chiến dịch, định nghĩa chỉ số và yêu cầu AI chỉ kết luận từ bảng số liệu đã cung cấp",
+          "Chỉ dán bảng rồi hỏi 'tốt không'",
+          "Yêu cầu AI tự bịa benchmark ngành",
+          "Bỏ qua ngân sách và thời gian chạy",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI cần hiểu mục tiêu và phạm vi dữ liệu. Benchmark hoặc kết luận ngoài dữ liệu phải được kiểm chứng nguồn.",
+      },
+      {
+        question:
+          "Việc nào nên có người duyệt trước khi dùng nội dung AI tạo ra?",
+        options: [
+          "Thông điệp thương hiệu, claim sản phẩm, số liệu và nội dung nhạy cảm",
+          "Tên file nháp nội bộ",
+          "Danh sách ý tưởng chưa xuất bản",
+          "Gợi ý cấu trúc checklist cá nhân",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Nội dung ra ngoài thị trường ảnh hưởng thương hiệu và pháp lý, nên marketer phải duyệt claim, số liệu và giọng thương hiệu.",
+      },
+      {
+        question:
+          "Bạn muốn tái sử dụng một bài blog thành nhiều kênh. Prompt nào đúng hướng?",
+        options: [
+          "Chuyển bài này thành post Facebook, email, caption LinkedIn và script video ngắn, giữ thông điệp chính và CTA",
+          "Viết lại tùy ý, càng khác càng tốt",
+          "Xóa thông điệp chính",
+          "Tự thêm ưu đãi chưa có",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI rất hợp để repurpose nội dung khi bạn giữ rõ thông điệp, kênh, định dạng và CTA. Không để AI tự thêm ưu đãi.",
+      },
+      {
+        question:
+          "Dấu hiệu nào cho thấy bản nháp AI cần biên tập lại trước khi đăng?",
+        options: [
+          "Dùng nhiều câu sáo rỗng, thiếu ví dụ thật và không giống giọng thương hiệu",
+          "Có bố cục rõ",
+          "Có nhiều phương án tiêu đề",
+          "Có CTA đúng mục tiêu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Bản nháp AI thường cần con người thêm trải nghiệm thật, dữ kiện cụ thể và giọng thương hiệu để tránh cảm giác chung chung.",
       },
     ],
   },
@@ -1102,6 +1375,45 @@ export const ROLES: Record<string, Role> = {
         explanation:
           "Mục tiêu tốt phải cụ thể, đo lường được — nền tảng để đánh giá hiệu quả đào tạo.",
       },
+      {
+        question:
+          "Bạn muốn AI soạn email thông báo chính sách mới. Dữ kiện nào cần có?",
+        options: [
+          "Người nhận, điểm thay đổi chính, ngày hiệu lực, việc cần làm và kênh hỏi đáp",
+          "Chỉ ghi 'viết email chính sách'",
+          "Yêu cầu AI tự bịa ngày hiệu lực",
+          "Gửi bản nháp không qua duyệt",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Thông báo nội bộ cần rõ đối tượng, nội dung thay đổi, thời hạn và kênh hỗ trợ. AI không nên tự bịa thông tin vận hành.",
+      },
+      {
+        question:
+          "Khi nhờ AI tạo checklist onboarding, lựa chọn nào tốt nhất?",
+        options: [
+          "Cung cấp vai trò nhân viên, mốc thời gian, tài liệu cần đọc và người phụ trách từng bước",
+          "Chỉ yêu cầu 'làm onboarding'",
+          "Bỏ qua người phụ trách vì AI sẽ tự làm",
+          "Đưa dữ liệu lương cá nhân vào checklist",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Checklist hữu ích khi có timeline, trách nhiệm và tài liệu rõ. Không cần đưa dữ liệu cá nhân nhạy cảm vào prompt.",
+      },
+      {
+        question:
+          "AI tóm tắt biên bản họp thành đầu việc, nhưng thiếu người phụ trách. Bạn nên làm gì?",
+        options: [
+          "Tự đối chiếu ghi chú gốc hoặc hỏi lại team trước khi gửi",
+          "Để trống rồi coi như đã giao việc",
+          "Tự gán ngẫu nhiên",
+          "Xóa toàn bộ biên bản",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Đầu việc vận hành cần người phụ trách rõ. Nếu AI thiếu dữ kiện, phải đối chiếu nguồn gốc hoặc xác nhận lại trước khi thông báo.",
+      },
     ],
   },
 
@@ -1272,6 +1584,97 @@ export const ROLES: Record<string, Role> = {
         correctIndex: 1,
         explanation:
           "Dữ liệu nhân sự, lương, hợp đồng mật không đưa lên công cụ AI công cộng.",
+      },
+      {
+        question:
+          "Bạn muốn AI tóm tắt một tài liệu dài cho sếp. Cách yêu cầu nào tốt nhất?",
+        options: [
+          "Tóm tắt thành 5 ý chính, nêu việc cần quyết định và rủi ro còn thiếu dữ liệu",
+          "Tóm tắt càng dài càng tốt",
+          "Tự bịa kết luận nếu tài liệu chưa nói",
+          "Chỉ dịch tiêu đề",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Tóm tắt hữu ích cần ngắn, có cấu trúc và phân biệt rõ dữ kiện có thật với phần còn thiếu.",
+      },
+      {
+        question:
+          "Khi dùng AI viết checklist công việc tuần, dữ kiện nào nên đưa vào?",
+        options: [
+          "Mục tiêu tuần, deadline, mức ưu tiên và các ràng buộc quan trọng",
+          "Mật khẩu các phần mềm làm việc",
+          "Thông tin cá nhân của đồng nghiệp",
+          "Không cần mục tiêu",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI lập checklist tốt khi hiểu mục tiêu, deadline và mức ưu tiên. Không đưa mật khẩu hoặc dữ liệu cá nhân vào prompt.",
+      },
+      {
+        question:
+          "AI đưa ra hướng dẫn dùng một phần mềm nội bộ nhưng bạn chưa từng cung cấp tài liệu. Bạn nên?",
+        options: [
+          "Làm theo ngay",
+          "Kiểm tra lại với tài liệu nội bộ hoặc người phụ trách hệ thống",
+          "Gửi cho cả phòng như quy trình chính thức",
+          "Đổi mật khẩu theo lời AI",
+        ],
+        correctIndex: 1,
+        explanation:
+          "AI có thể đoán sai phần mềm nội bộ. Quy trình chính thức phải dựa trên tài liệu hoặc người phụ trách thật.",
+      },
+      {
+        question:
+          "Prompt nào phù hợp để nhờ AI viết email xin dời lịch họp?",
+        options: [
+          "Viết email lịch sự xin dời lịch họp với [đối tượng], nêu lý do ngắn, đề xuất 2 khung giờ mới",
+          "Dời lịch đi",
+          "Tự bịa lý do càng nghiêm trọng càng tốt",
+          "Viết email thật dài",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Prompt tốt nêu người nhận, mục tiêu, giọng văn và thông tin cần có. Không nên để AI bịa lý do.",
+      },
+      {
+        question:
+          "Khi dùng AI tạo bảng so sánh lựa chọn công cụ, tiêu chí nào nên yêu cầu?",
+        options: [
+          "Chi phí, tính năng, rủi ro dữ liệu, độ dễ dùng và khuyến nghị có điều kiện",
+          "Chỉ chọn công cụ nổi tiếng nhất",
+          "Bỏ qua bảo mật vì là công cụ văn phòng",
+          "Chọn theo câu trả lời dài nhất",
+        ],
+        correctIndex: 0,
+        explanation:
+          "So sánh công cụ cần tiêu chí rõ, đặc biệt chi phí và dữ liệu. Khuyến nghị nên có điều kiện thay vì tuyệt đối.",
+      },
+      {
+        question:
+          "Cách nào giúp bạn kiểm tra câu trả lời của AI tốt hơn?",
+        options: [
+          "Yêu cầu AI nêu giả định, nguồn cần kiểm chứng và các bước tự kiểm tra",
+          "Chỉ chọn câu trả lời tự tin nhất",
+          "Không bao giờ hỏi lại",
+          "Dùng nếu câu trả lời có nhiều thuật ngữ",
+        ],
+        correctIndex: 0,
+        explanation:
+          "AI có thể sai dù tự tin. Nêu giả định và bước kiểm chứng giúp người dùng kiểm soát chất lượng đầu ra.",
+      },
+      {
+        question:
+          "Sau khi AI tạo bản nháp quy trình nội bộ, việc nào nên làm trước khi áp dụng?",
+        options: [
+          "Nhờ người phụ trách nghiệp vụ rà soát và thử với một tình huống nhỏ",
+          "Áp dụng ngay cho toàn công ty",
+          "Xóa quy trình cũ không cần đối chiếu",
+          "Giữ bí mật để tránh ai góp ý",
+        ],
+        correctIndex: 0,
+        explanation:
+          "Quy trình nội bộ cần được người có trách nhiệm kiểm tra và thử nhỏ trước khi áp dụng rộng.",
       },
     ],
   },

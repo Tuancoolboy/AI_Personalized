@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { RoleId } from "@/lib/openai";
+import { coerceRoleId } from "@/lib/role-ids";
 
 export type RecommenderUserContext = {
   organizationId: string | null;
@@ -9,14 +10,6 @@ export type RecommenderUserContext = {
   goalTags: string[];
   managerPriorityModuleIds: string[];
 };
-
-const VALID_ROLES = new Set<RoleId>([
-  "kinh-doanh",
-  "ke-toan",
-  "marketing",
-  "van-hanh",
-  "khac",
-]);
 
 function isMissingLearningSchema(message: string): boolean {
   return /learning_assignments|learning_path_modules|does not exist/i.test(
@@ -79,12 +72,10 @@ export async function loadRecommenderUserContext(
     .eq("id", userId)
     .maybeSingle();
 
-  const roleId: RoleId =
-    overrides?.roleId && VALID_ROLES.has(overrides.roleId as RoleId)
-      ? (overrides.roleId as RoleId)
-      : profile?.role_id && VALID_ROLES.has(profile.role_id as RoleId)
-        ? (profile.role_id as RoleId)
-        : "khac";
+  const roleId = coerceRoleId(
+    overrides?.roleId ?? profile?.role_id,
+    "khac",
+  );
 
   const aiLevel =
     overrides?.aiLevel !== undefined

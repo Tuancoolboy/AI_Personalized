@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCandidatePool } from "./path-agent-catalog";
+import { buildCandidatePool, getRoleSkillSlugs } from "./path-agent-catalog";
+import { buildFallbackPath } from "./path-agent-fallback";
 import type { AgentFlowInput } from "./path-agent-types";
 import { MAX_MODULES, validateAgentOutput } from "./path-agent-validate";
 
@@ -11,6 +12,8 @@ const companyInput: AgentFlowInput = {
   primaryTool: "claude",
   completedModuleIds: [],
   dailyTasks: [],
+  goalTags: [],
+  assessmentGapModuleIds: [],
   assignedPathModules: [
     {
       id: "company-path-m1",
@@ -179,5 +182,111 @@ describe("validateAgentOutput", () => {
     );
     expect(out.orderedModuleIds.length).toBeLessThanOrEqual(MAX_MODULES);
     expect(out.orderedModuleIds).toContain("company-path-m1");
+  });
+
+  it("output rỗng khi mọi id bịa (individual, không lộ trình giao)", () => {
+    const input: AgentFlowInput = {
+      ...companyInput,
+      flow: "individual",
+      assignedPathModules: [],
+      assignedPathTitle: null,
+    };
+    const out = validateAgentOutput(
+      {
+        groups: [
+          { title: "X", reason: "", moduleIds: ["id-bia-1", "id-bia-2"] },
+        ],
+      },
+      pool,
+      input,
+    );
+    expect(out.orderedModuleIds.length).toBe(0);
+  });
+
+  it("output rỗng khi tất cả module đã hoàn thành (individual)", () => {
+    const roleId = "nhan-su";
+    const input: AgentFlowInput = {
+      flow: "individual",
+      roleId,
+      aiLevel: 1,
+      skillSlugs: getRoleSkillSlugs(roleId),
+      primaryTool: "chatgpt",
+      completedModuleIds: [],
+      dailyTasks: [],
+      goalTags: [],
+      assessmentGapModuleIds: [],
+    };
+    const hrPool = buildCandidatePool(input);
+    const allDone = {
+      ...input,
+      completedModuleIds: hrPool.map((m) => m.id),
+    };
+    const out = validateAgentOutput(
+      {
+        groups: [
+          {
+            title: "All",
+            reason: "",
+            moduleIds: hrPool.map((m) => m.id),
+          },
+        ],
+      },
+      hrPool,
+      allDone,
+    );
+    expect(out.orderedModuleIds.length).toBe(0);
+  });
+
+  it("HR (nhan-su): pool có module HR; fallback ưu tiên gap assessment", () => {
+    const roleId = "nhan-su";
+    const gapId = "nhan-su-m1";
+    const input: AgentFlowInput = {
+      flow: "individual",
+      roleId,
+      aiLevel: 1,
+      skillSlugs: getRoleSkillSlugs(roleId),
+      primaryTool: "chatgpt",
+      completedModuleIds: [],
+      dailyTasks: ["tuyen-dung"],
+      goalTags: ["tuyen-dung"],
+      assessmentGapModuleIds: [gapId],
+    };
+    const hrPool = buildCandidatePool(input);
+    expect(hrPool.some((m) => m.id === gapId && m.roleId === "nhan-su")).toBe(
+      true,
+    );
+    const result = buildFallbackPath(input, "fp-hr");
+    expect(result.orderedModuleIds[0]).toBe(gapId);
+    expect(result.source).toBe("fallback");
+  });
+
+  it("HR (nhan-su): validate giữ module gap khi agent chọn đúng id", () => {
+    const roleId = "nhan-su";
+    const gapId = "nhan-su-m1";
+    const input: AgentFlowInput = {
+      flow: "individual",
+      roleId,
+      aiLevel: 1,
+      skillSlugs: getRoleSkillSlugs(roleId),
+      primaryTool: "chatgpt",
+      completedModuleIds: [],
+      dailyTasks: [],
+      goalTags: ["tuyen-dung"],
+      assessmentGapModuleIds: [gapId],
+    };
+    const hrPool = buildCandidatePool(input);
+    const foundationId = hrPool.find((m) => m.isFoundation)!.id;
+    const out = validateAgentOutput(
+      {
+        groups: [
+          { title: "Gap", reason: "", moduleIds: [gapId] },
+          { title: "Nền tảng", reason: "", moduleIds: [foundationId] },
+        ],
+      },
+      hrPool,
+      input,
+    );
+    expect(out.orderedModuleIds).toContain(gapId);
+    expect(out.orderedModuleIds[0]).toBe(foundationId);
   });
 });

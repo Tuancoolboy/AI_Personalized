@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import re
 
 DEMO_SESSION_COOKIE = "ai_troly_demo_session"
-VALID_ROLES = {"kinh-doanh", "ke-toan", "marketing", "van-hanh", "khac"}
+VALID_ROLES = {"kinh-doanh", "ke-toan", "marketing", "van-hanh", "khac", "nhan-su"}
 VALID_PROGRESS_STATUS = {"chua-hoc", "dang-hoc", "hoan-thanh"}
 ALLOWED_EVENTS = {
     "onboarding_complete",

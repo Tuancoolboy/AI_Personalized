@@ -44,40 +44,6 @@ create table if not exists public.learning_paths (
   updated_at timestamptz not null default now()
 );
 
--- Migration 20260611120000 đã tạo public.learning_paths sớm hơn với schema cũ
--- (name, position_id, created_at...). Khi rerun trên DB mới/cũ, cần nâng cấp bảng
--- hiện có trước khi tạo index/policy mới phụ thuộc vào status/title/path_type.
-alter table if exists public.learning_paths
-  add column if not exists scope text,
-  add column if not exists path_type text,
-  add column if not exists job_role_id text,
-  add column if not exists title text,
-  add column if not exists status text,
-  add column if not exists updated_at timestamptz;
-
-update public.learning_paths
-set
-  scope = coalesce(scope, 'organization'),
-  path_type = coalesce(path_type, 'specialist'),
-  title = coalesce(title, nullif(name, ''), 'Lộ trình chưa đặt tên'),
-  status = coalesce(status, 'draft'),
-  updated_at = coalesce(updated_at, created_at, now())
-where
-  scope is null
-  or path_type is null
-  or title is null
-  or status is null
-  or updated_at is null;
-
-alter table public.learning_paths
-  alter column scope set default 'organization',
-  alter column path_type set default 'specialist',
-  alter column title set not null,
-  alter column status set default 'draft',
-  alter column status set not null,
-  alter column updated_at set default now(),
-  alter column updated_at set not null;
-
 create index if not exists learning_paths_org_status_idx
   on public.learning_paths (organization_id, status);
 
@@ -158,8 +124,6 @@ create policy training_modules_member_select on public.training_modules
   );
 
 -- learning_paths
-drop policy if exists learning_paths_select on public.learning_paths;
-drop policy if exists learning_paths_write on public.learning_paths;
 drop policy if exists learning_paths_manager_all on public.learning_paths;
 create policy learning_paths_manager_all on public.learning_paths
   for all using (

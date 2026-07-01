@@ -99,11 +99,6 @@ When Supabase env vars exist:
 - [x] Phase 3.5 — Add manager UI for create/copy/rotate link.
 - [ ] Phase 3.6 — Smoke test two real managers/organizations in production-like Supabase.
 
-Update 2026-06-23: tài khoản thường không được tạo membership Cộng đồng. Vì
-vậy accept invite hợp lệ sẽ chuyển audience Học tập sang công ty vừa nhận;
-XP Cộng đồng vẫn được giữ trong ledger cũ, còn XP công ty bắt đầu từ 0.
-Phase 3.6 vẫn mở cho tới khi smoke test production-like xác nhận toàn bộ flow.
-
 ## Acceptance Criteria
 
 - Manager A and Manager B receive different tokens.

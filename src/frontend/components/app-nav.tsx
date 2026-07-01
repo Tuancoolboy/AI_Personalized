@@ -16,6 +16,7 @@ type AppNavProps = {
   userType: UserType;
   homeHref: string;
   avatarUrl?: string | null;
+  showRolePill?: boolean;
 };
 
 export function AppNav({
@@ -26,6 +27,7 @@ export function AppNav({
   userType,
   homeHref,
   avatarUrl,
+  showRolePill = true,
 }: AppNavProps) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -48,7 +50,7 @@ export function AppNav({
             <span className="truncate font-display text-base font-bold tracking-tight text-ink">
               AI Trợ Lý
             </span>
-            {userType === "manager" && (
+            {showRolePill && userType === "manager" && (
               <span className="ml-0.5 hidden rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent sm:inline">
                 Quản lý
               </span>

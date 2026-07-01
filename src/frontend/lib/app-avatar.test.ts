@@ -17,9 +17,9 @@ describe("app avatar", () => {
     });
   });
 
-  it("builds Alohe CDN URLs for newly available avatars", () => {
+  it("builds Alohe raw GitHub URLs for newly available avatars", () => {
     expect(buildAvatarUrl({ provider: "alohe", id: "upstream_22" })).toBe(
-      "https://cdn.jsdelivr.net/gh/alohe/avatars/png/upstream_22.png",
+      "https://raw.githubusercontent.com/alohe/avatars/main/png/upstream_22.png",
     );
   });
 });

@@ -8,10 +8,10 @@ import type {
   CandidateModule,
 } from "./path-agent-types";
 
+import { shouldSkipBasicModule } from "@/lib/agent/path-agent-eligibility";
+
 const MAX_MODULES = 10;
 const MIN_MODULES = 8;
-// aiLevel >= ngưỡng này → bỏ bài nhập môn (level 1) không phải nền tảng.
-const SKIP_BASIC_LEVEL = 5;
 
 type PoolIndex = Map<string, CandidateModule>;
 
@@ -67,12 +67,8 @@ function cleanIds(
     const mod = pool.get(id);
     if (!mod) continue; // id bịa hoặc ngoài pool
     if (completed.has(id)) continue; // đã xong → bỏ
-    if (
-      input.aiLevel >= SKIP_BASIC_LEVEL &&
-      mod.level === 1 &&
-      !mod.isFoundation
-    ) {
-      continue; // người giỏi bỏ bài nhập môn (giữ nền tảng)
+    if (shouldSkipBasicModule(input.aiLevel, mod.level, mod.isFoundation)) {
+      continue;
     }
     seen.add(id);
     out.push(id);
@@ -165,4 +161,5 @@ export function validateAgentOutput(
   return { groups: syncedGroups, orderedModuleIds: ordered };
 }
 
-export { MAX_MODULES, MIN_MODULES, SKIP_BASIC_LEVEL };
+export { MAX_MODULES, MIN_MODULES };
+export { SKIP_BASIC_MODULE_LEVEL as SKIP_BASIC_LEVEL } from "@/lib/agent/path-agent-eligibility";

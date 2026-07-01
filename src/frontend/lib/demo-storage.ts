@@ -1,6 +1,7 @@
 // Lưu trữ tạm trong localStorage khi chưa có Supabase (demo mode).
 // Khi cấu hình Supabase thật → các hàm trong /lib/supabase/* sẽ thay thế.
 
+import { EXTRA_SKILL_LESSON_LIMIT } from "@/lib/extra-skill-lessons";
 import type { AssessmentResult } from "./assessment";
 import type { LearningProfile } from "./learning-profile";
 
@@ -9,6 +10,7 @@ const KEYS = {
   progress: "ai_troly_demo_progress",
   timeLogs: "ai_troly_demo_time_logs",
   quizResults: "ai_troly_demo_quiz_results",
+  extraLessons: "ai_troly_demo_extra_lessons",
 } as const;
 
 export type DemoProfile = {
@@ -39,6 +41,13 @@ export type DemoQuizResult = {
   score: number; // 0-100
   passed: boolean;
   createdAt: string;
+};
+
+export type DemoExtraLesson = {
+  moduleId: string;
+  skillSlug: string;
+  sourceRoleId: string;
+  enrolledAt: string;
 };
 
 function read<T>(key: string, fallback: T): T {
@@ -147,4 +156,23 @@ export function getAverageQuizScore(): number {
   return Math.round(
     results.reduce((sum, r) => sum + r.score, 0) / results.length,
   );
+}
+
+// EXTRA LESSONS
+export function getDemoExtraLessons(): DemoExtraLesson[] {
+  return read<DemoExtraLesson[]>(KEYS.extraLessons, []);
+}
+
+export function saveDemoExtraLesson(lesson: DemoExtraLesson): DemoExtraLesson[] {
+  const current = getDemoExtraLessons();
+  const existing = current.find((item) => item.moduleId === lesson.moduleId);
+  const nextCount = existing ? current.length : current.length + 1;
+  if (!existing && nextCount > EXTRA_SKILL_LESSON_LIMIT) {
+    throw new Error("Đã đạt giới hạn 5 bài học thêm.");
+  }
+
+  const deduped = current.filter((item) => item.moduleId !== lesson.moduleId);
+  const next = [lesson, ...deduped];
+  write(KEYS.extraLessons, next);
+  return next;
 }
